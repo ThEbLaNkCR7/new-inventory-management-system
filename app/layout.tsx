@@ -1,0 +1,50 @@
+import type React from "react"
+import { Outfit } from "next/font/google"
+import { AuthProvider } from "@/contexts/AuthContext"
+import { InventoryProvider } from "@/contexts/InventoryContext"
+import { BatchProvider } from "@/contexts/BatchContext"
+import { ApprovalProvider } from "@/contexts/ApprovalContext"
+import { ThemeProvider } from "@/contexts/ThemeContext"
+import { NotificationProvider } from "@/contexts/NotificationContext"
+import { FormPersistenceProvider } from "@/contexts/FormPersistenceContext"
+import "./globals.css"
+
+const outfit = Outfit({
+  subsets: ["latin"],
+  variable: "--font-outfit",
+  display: "swap",
+  weight: ["100", "200", "300", "400", "500", "600", "700", "800", "900"]
+})
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  return (
+    <html lang="en" suppressHydrationWarning>
+      <body className={`${outfit.variable} font-outfit min-h-screen bg-background text-foreground transition-colors duration-300 antialiased`}>
+        <ThemeProvider>
+          <AuthProvider>
+            {/* inventory must exist before approval; approval applies inventory changes */}
+            <InventoryProvider>
+              <ApprovalProvider>
+                <BatchProvider>
+                  <NotificationProvider>
+                    <FormPersistenceProvider>
+                      {children}
+                    </FormPersistenceProvider>
+                  </NotificationProvider>
+                </BatchProvider>
+              </ApprovalProvider>
+            </InventoryProvider>
+          </AuthProvider>
+        </ThemeProvider>
+      </body>
+    </html>
+  )
+}
+
+export const metadata = {
+  generator: 'v0.dev'
+};
