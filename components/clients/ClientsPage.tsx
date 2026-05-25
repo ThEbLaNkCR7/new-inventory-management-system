@@ -30,8 +30,9 @@ import { useAuth } from "@/contexts/AuthContext"
 import { usePersistentForm } from "@/contexts/FormPersistenceContext"
 import { useInventory } from "@/contexts/InventoryContext"
 import { formatNepaliDateForTable, getCurrentNepaliYear, getNepaliYear } from "@/lib/utils"
-import { Building, CheckCircle, Clock, Edit, Eye, Mail, Phone, Plus, Search, Trash2 } from "lucide-react"
+import { Building, CheckCircle, Clock, Edit, Eye, Loader2, Mail, Phone, Plus, Search, Trash2 } from "lucide-react"
 import { useState } from "react"
+import { Progress } from "../ui/progress"
 
 export default function ClientsPage() {
   const {
@@ -308,6 +309,31 @@ export default function ClientsPage() {
 
   return (
     <div className="space-y-6 p-6 min-h-screen transition-colors duration-300">
+      {isLoading && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-xl max-w-md w-full mx-4">
+            <div className="flex items-center justify-center mb-4">
+              <Loader2 className="h-8 w-8 animate-spin text-primary mr-3" />
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                Processing...
+              </h3>
+            </div>
+
+            <div className="space-y-3">
+              <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400">
+                <span>{currentStep}</span>
+                <span>{Math.round(progress)}%</span>
+              </div>
+
+              <Progress value={progress} className="h-2" />
+
+              <div className="text-xs text-gray-500 dark:text-gray-400 text-center">
+                Step {Math.ceil((progress / 100) * totalSteps)} of {totalSteps}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Success/Info Alert */}
       {showSuccessAlert && (
         <Alert className="border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20 p-4 mb-4">
@@ -950,8 +976,8 @@ export default function ClientsPage() {
                     <TableCell>
                       <span
                         className={`font-medium px-2 py-1 rounded-full text-sm ${client.paymentStatus === "Received"
-                            ? "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400"
-                            : "bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400"
+                          ? "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400"
+                          : "bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400"
                           }`}
                       >
                         {client.paymentStatus === "Received" ? "Received" : "Pending"}
