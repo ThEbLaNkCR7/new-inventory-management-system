@@ -138,8 +138,21 @@ export default function SalesPage() {
       body: formData,
     });
 
-    if (!res.ok) throw new Error("Failed to upload bill");
-    const data = await res.json();
+    console.log("Upload Response Status:", res.status);
+    console.log("Upload Response OK:", res.ok);
+
+    let data;
+
+    try {
+      data = await res.json();
+    } catch (err) {
+      throw new Error("Server returned invalid response");
+    }
+
+    if (!res.ok) {
+      throw new Error(data.message || "Failed to upload bill");
+    }
+
     return data.url;
   };
 
