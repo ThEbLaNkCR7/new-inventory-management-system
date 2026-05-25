@@ -366,14 +366,14 @@ export default function ClientsPage() {
                 <DialogTitle>Add New Client</DialogTitle>
                 <DialogDescription>
                   Enter client information to add to your database
-                  {/* Removed user?.role !== "admin" && ( */}
-                  <div className="mt-2 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
-                    <div className="flex items-center text-amber-800 dark:text-amber-200">
-                      <Clock className="h-4 w-4 mr-2" />
-                      <span className="text-sm font-medium">Changes require admin approval</span>
+                  {user?.role !== "admin" && (
+                    <div className="mt-2">
+                      <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-700">
+                        <Clock className="h-3 w-3 mr-1" />
+                        Changes require admin approval
+                      </Badge>
                     </div>
-                  </div>
-                  {/* ) */}
+                  )}
                 </DialogDescription>
               </DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-4">
