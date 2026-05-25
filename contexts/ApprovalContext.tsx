@@ -3,6 +3,7 @@
 import type React from "react"
 import { createContext, useContext, useState } from "react"
 import { useInventory } from "./InventoryContext"
+import { useAuth } from "./AuthContext"
 
 export interface ApprovalChange {
   id: string
@@ -33,6 +34,7 @@ const ApprovalContext = createContext<ApprovalContextType | undefined>(undefined
 
 export function ApprovalProvider({ children }: { children: React.ReactNode }) {
   const [changes, setChanges] = useState<ApprovalChange[]>([])
+  const { user } = useAuth()
   const {
     addProduct,
     updateProduct,
@@ -54,13 +56,46 @@ export function ApprovalProvider({ children }: { children: React.ReactNode }) {
   } = useInventory()
 
   const submitChange = (change: Omit<ApprovalChange, "id" | "requestedAt" | "status">) => {
+    const isAdmin = user?.role === "admin"
+    const now = new Date().toISOString()
+
     const newChange: ApprovalChange = {
       ...change,
       id: Date.now().toString(),
-      requestedAt: new Date().toISOString(),
-      status: "pending",
+      requestedAt: now,
+      status: isAdmin ? "approved" : "pending",
+      ...(isAdmin && {
+        reviewedBy: user?.email,
+        reviewedAt: now,
+      }),
     }
+
     setChanges((prev) => [...prev, newChange])
+
+    // Auto-apply if user is admin
+    if (isAdmin) {
+      try {
+        switch (change.type) {
+          case "product":
+            applyProductChange(newChange)
+            break
+          case "sale":
+            applySaleChange(newChange)
+            break
+          case "purchase":
+            applyPurchaseChange(newChange)
+            break
+          case "client":
+            applyClientChange(newChange)
+            break
+          case "supplier":
+            applySupplierChange(newChange)
+            break
+        }
+      } catch (error) {
+        console.error("Error auto-applying admin change:", error)
+      }
+    }
   }
 
   const applySaleChange = (change: ApprovalChange) => {
@@ -188,7 +223,7 @@ export function ApprovalProvider({ children }: { children: React.ReactNode }) {
           const updatedChange = {
             ...change,
             status: "approved" as const,
-            reviewedBy: "admin@example.com", // In real app, get from auth context
+            reviewedBy: user?.email,
             reviewedAt: new Date().toISOString(),
             reviewNotes: notes,
           }
@@ -229,12 +264,12 @@ export function ApprovalProvider({ children }: { children: React.ReactNode }) {
       prev.map((change) =>
         change.id === changeId
           ? {
-              ...change,
-              status: "rejected" as const,
-              reviewedBy: "admin@example.com", // In real app, get from auth context
-              reviewedAt: new Date().toISOString(),
-              reviewNotes: notes,
-            }
+            ...change,
+            status: "rejected" as const,
+            reviewedBy: user?.email,
+            reviewedAt: new Date().toISOString(),
+            reviewNotes: notes,
+          }
           : change,
       ),
     )
