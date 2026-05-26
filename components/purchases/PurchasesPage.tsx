@@ -36,6 +36,7 @@ export default function PurchasesPage() {
   const { toast } = useToast()
   const [searchTerm, setSearchTerm] = useState("")
   const [activeTab, setActiveTab] = useState("all")
+  const [billImage, setBillImage] = useState<File | null>(null);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
@@ -48,6 +49,7 @@ export default function PurchasesPage() {
   const [viewingPurchase, setViewingPurchase] = useState<any>(null)
   const [selectedProduct, setSelectedProduct] = useState<any>(null)
   const [productFilter, setProductFilter] = useState("all")
+  const [billUrl, setBillUrl] = useState<string>("");
   const initialFormData = {
     productId: "",
     supplier: "",
@@ -95,6 +97,34 @@ export default function PurchasesPage() {
 
     return filtered
   }
+
+  const uploadBillToCloudinary = async (file: File): Promise<string> => {
+    const formData = new FormData();
+    formData.append("purchaseBill", file);
+
+    const res = await fetch("/api/purchases/upload", {
+      method: "POST",
+      body: formData,
+    });
+
+    console.log("Upload Response Status:", res.status);
+    console.log("Upload Response OK:", res.ok);
+
+    let data;
+
+    try {
+      data = await res.json();
+    } catch (err) {
+      throw new Error("Server returned invalid response");
+    }
+
+    if (!res.ok) {
+      throw new Error(data.message || "Failed to upload purchase bill");
+    }
+
+    return data.url;
+  };
+
 
   const filteredPurchases = getFilteredPurchases()
 
@@ -176,6 +206,11 @@ export default function PurchasesPage() {
       updateProgress("Validating purchase data...", 1, 5)
       await new Promise(resolve => setTimeout(resolve, 500))
 
+      let uploadedBillUrl = "";
+      if (billImage) {
+        uploadedBillUrl = await uploadBillToCloudinary(billImage);
+      }
+
       const product = products.find((p) => p.id === formData.productId)
       if (product) {
         updateProgress("Checking product availability...", 2, 5)
@@ -188,7 +223,7 @@ export default function PurchasesPage() {
           updateProgress("Updating inventory levels...", 4, 5)
           const supplierName = formData.supplier === "custom" ? formData.customSupplier : formData.supplier
           const { customSupplier, ...purchaseData } = formData
-          await addPurchase({ ...purchaseData, productName: product.name, supplier: supplierName })
+          await addPurchase({ ...purchaseData, productName: product.name, supplier: supplierName, billUrl: uploadedBillUrl, })
 
           updateProgress("Operation completed!", 5, 5)
           await new Promise(resolve => setTimeout(resolve, 300))
@@ -245,6 +280,13 @@ export default function PurchasesPage() {
       updateProgress("Validating changes...", 1, 5)
       await new Promise(resolve => setTimeout(resolve, 500))
 
+      let uploadedBillUrl = billUrl
+
+      // Upload new bill if selected
+      if (billImage) {
+        uploadedBillUrl = await uploadBillToCloudinary(billImage)
+      }
+
       const product = products.find((p) => p.id === formData.productId)
       if (product && editingPurchase && (user?.role === "admin" || editReason.trim())) {
         updateProgress("Checking product availability...", 2, 5)
@@ -257,7 +299,7 @@ export default function PurchasesPage() {
           updateProgress("Adjusting inventory...", 4, 5)
           const supplierName = formData.supplier === "custom" ? formData.customSupplier : formData.supplier
           const { customSupplier, ...purchaseData } = formData
-          await updatePurchase(editingPurchase.id, { ...purchaseData, productName: product.name, supplier: supplierName })
+          await updatePurchase(editingPurchase.id, { ...purchaseData, productName: product.name, supplier: supplierName, billUrl: uploadedBillUrl })
 
           updateProgress("Operation completed!", 5, 5)
           await new Promise(resolve => setTimeout(resolve, 300))
@@ -270,7 +312,7 @@ export default function PurchasesPage() {
           updateProgress("Submitting for approval...", 4, 4)
           const supplierName = formData.supplier === "custom" ? formData.customSupplier : formData.supplier
           const { customSupplier, ...purchaseData } = formData
-          requestPurchaseChange("update", { ...purchaseData, productName: product.name, supplier: supplierName }, editingPurchase.id, editReason)
+          requestPurchaseChange("update", { ...purchaseData, productName: product.name, supplier: supplierName, billUrl: uploadedBillUrl }, editingPurchase.id, editReason)
           toast({ title: "Submitted", description: "Purchase changes submitted for admin approval." })
         }
       } else if (user?.role !== "admin" && !editReason.trim()) {
@@ -594,6 +636,16 @@ export default function PurchasesPage() {
                   <MaterialDatePicker
                     value={formData.purchaseDate ? new Date(formData.purchaseDate) : undefined}
                     onChange={(date: Date | undefined) => updateForm({ ...formData, purchaseDate: date ? date.toISOString().split("T")[0] : "" })}
+                  />
+                </div>
+
+                <div className="mb-4">
+                  <label htmlFor="bill">Upload Bill Image</label>
+                  <input
+                    type="file"
+                    id="bill"
+                    accept="image/*"
+                    onChange={(e) => setBillImage(e.target.files?.[0] || null)}
                   />
                 </div>
                 <div className="flex justify-end space-x-2">
@@ -1028,6 +1080,26 @@ export default function PurchasesPage() {
                   </Badge>
                 </div>
               </div>
+              {/* Bill Image */}
+              {viewingPurchase.billUrl && (
+                <div className="space-y-2">
+                  <Label>Bill Image</Label>
+
+                  <img
+                    src={viewingPurchase.billUrl}
+                    alt="Bill"
+                    className="rounded-lg border object-contain"
+                  />
+
+                  <a
+                    href={viewingPurchase.billUrl}
+                    target="_blank"
+                    className="text-blue-600 underline text-sm"
+                  >
+                    Open Full Image
+                  </a>
+                </div>
+              )}
             </div>
           )}
 
@@ -1178,6 +1250,29 @@ export default function PurchasesPage() {
                 value={formData.purchaseDate ? new Date(formData.purchaseDate) : undefined}
                 onChange={(date: Date | undefined) => updateForm({ ...formData, purchaseDate: date ? date.toISOString().split("T")[0] : "" })}
               />
+            </div>
+            <div className="space-y-2">
+              <Label>Bill Image</Label>
+
+              <Input
+                type="file"
+                accept="image/*"
+                onChange={(e) => {
+                  if (e.target.files?.[0]) {
+                    setBillImage(e.target.files[0])
+                  }
+                }}
+              />
+
+              {billUrl && (
+                <a
+                  href={billUrl}
+                  target="_blank"
+                  className="text-blue-600 text-sm underline"
+                >
+                  View Existing Bill
+                </a>
+              )}
             </div>
             <div className="flex justify-end space-x-2">
               <Button type="button" variant="neutralOutline" onClick={() => {

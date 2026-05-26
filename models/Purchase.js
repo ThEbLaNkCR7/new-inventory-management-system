@@ -7,6 +7,7 @@ const purchaseSchema = new mongoose.Schema({
   supplierType: { type: String, enum: ["Individual", "Company"], default: "Company" },
   quantityPurchased: { type: Number, required: true },
   purchasePrice: { type: Number, required: true },
+  billUrl: { type: String, required: false },
   purchaseDate: { type: Date, required: true },
   isActive: { type: Boolean, default: true },
 }, { timestamps: true })
