@@ -47,6 +47,7 @@ export default function PurchasesPage() {
   const [deletingPurchase, setDeletingPurchase] = useState<any>(null)
   const [viewingPurchase, setViewingPurchase] = useState<any>(null)
   const [selectedProduct, setSelectedProduct] = useState<any>(null)
+  const [productFilter, setProductFilter] = useState("all")
   const initialFormData = {
     productId: "",
     supplier: "",
@@ -106,6 +107,10 @@ export default function PurchasesPage() {
   }
 
   const purchasesCounts = getPurchasesCounts()
+
+  const uniqueProductNames = React.useMemo(() => {
+    return Array.from(new Set(products.map(p => p.name)))
+  }, [products])
 
   const clearForm = () => {
     resetForm()
@@ -295,6 +300,19 @@ export default function PurchasesPage() {
     setIsProductHistoryDialogOpen(true)
   }
 
+  useEffect(() => {
+    console.log("All Purchases:", purchases);
+
+    purchases.forEach((purchase) => {
+      console.log("Product Name:", purchase.productName);
+    });
+  }, [purchases]);
+
+  // Get all products for selection
+  const filteredProducts = React.useMemo(() => {
+    return products
+  }, [products])
+
   const handleSupplierClick = (supplier: string) => {
     setSelectedSupplierForHistory(supplier)
     setIsSupplierHistoryDialogOpen(true)
@@ -433,19 +451,61 @@ export default function PurchasesPage() {
                 <div className="space-y-2">
                   <Label htmlFor="product">Product *</Label>
                   <Select
-                    value={formData.productId}
-                    onValueChange={(value) => updateForm({ ...formData, productId: value })}
-                    required
+                    value={productFilter}
+                    onValueChange={(value) => {
+                      setProductFilter(value)
+                      // Reset productId and netWeight when group changes
+                      updateForm({ productId: "", netWeight: 0 })
+                    }}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select product" />
                     </SelectTrigger>
                     <SelectContent>
-                      {products.map((product) => (
+                      <SelectItem value="all">All Product</SelectItem>
+                      {uniqueProductNames.map((name) => (
+                        <SelectItem key={name} value={name}>{name}</SelectItem>
+                      ))}
+                      {/* {products.map((product) => (
                         <SelectItem key={product.id} value={product.id}>
                           {product.name} - {product.netWeight}kg (Stock: {product.stockQuantity})
                         </SelectItem>
-                      ))}
+                      ))} */}
+                    </SelectContent>
+                  </Select>
+                  {/* main product Dropdown */}
+                  <Select
+                    value={formData.productId}
+                    onValueChange={(value) => {
+                      updateForm({
+                        ...formData,
+                        productId: value,
+                        netWeight: 0
+                      })
+                    }}
+                    required
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select product">
+                        {
+                          filteredProducts.find(
+                            (p) => p.id === formData.productId
+                          )?.name
+                        }
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {filteredProducts
+                        .filter(product => productFilter === "all" || product.name === productFilter)
+                        .map((product) => (
+                          <SelectItem key={product.id} value={product.id} textValue={product.name}>
+                            <div className="flex flex-col">
+                              <span className="font-medium">{product.name}</span>
+                              <span className="text-sm text-gray-500">Stock: {product.stockQuantity}</span>
+                              <span className="text-sm text-gray-500">netWeight: {product.netWeight}kg</span>
+                            </div>
+                          </SelectItem>
+                        ))}
                     </SelectContent>
                   </Select>
                 </div>
