@@ -548,16 +548,23 @@ export default function SalesPage() {
                     required
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Select product" />
+                      <SelectValue placeholder="Select product">
+                        {
+                          filteredProducts.find(
+                            (p) => p.id === formData.productId
+                          )?.name
+                        }
+                      </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                       {filteredProducts
                         .filter(product => productFilter === "all" || product.name === productFilter)
                         .map((product) => (
-                          <SelectItem key={product.id} value={product.id}>
+                          <SelectItem key={product.id} value={product.id} textValue={product.name}>
                             <div className="flex flex-col">
                               <span className="font-medium">{product.name}</span>
                               <span className="text-sm text-gray-500">Stock: {product.stockQuantity}</span>
+                              <span className="text-sm text-gray-500">netWeight: {product.netWeight}kg</span>
                             </div>
                           </SelectItem>
                         ))}
