@@ -52,6 +52,7 @@ export default function PurchasesPage() {
   const [billUrl, setBillUrl] = useState<string>("");
   const initialFormData = {
     productId: "",
+    customProductName: "",
     supplier: "",
     supplierType: "Company",
     customSupplier: "",
@@ -70,6 +71,7 @@ export default function PurchasesPage() {
   const [progress, setProgress] = useState(0)
   const [currentStep, setCurrentStep] = useState("")
   const [totalSteps, setTotalSteps] = useState(0)
+  const isCustomProductSelected = productFilter === "custom"
 
   useEffect(() => {
     if (showSuccessAlert) {
@@ -211,8 +213,19 @@ export default function PurchasesPage() {
         uploadedBillUrl = await uploadBillToCloudinary(billImage);
       }
 
+      const isCustomProduct = productFilter === "custom"
       const product = products.find((p) => p.id === formData.productId)
-      if (product) {
+      const productName = isCustomProduct ? formData.customProductName : product?.name
+      if (!productName) {
+        toast({
+          title: "Error",
+          description: "Please select or enter a product name.",
+          variant: "destructive",
+        })
+
+        return
+      }
+      if (productName) {
         updateProgress("Checking product availability...", 2, 5)
         await new Promise(resolve => setTimeout(resolve, 500))
 
@@ -223,7 +236,9 @@ export default function PurchasesPage() {
           updateProgress("Updating inventory levels...", 4, 5)
           const supplierName = formData.supplier === "custom" ? formData.customSupplier : formData.supplier
           const { customSupplier, ...purchaseData } = formData
-          await addPurchase({ ...purchaseData, productName: product.name, supplier: supplierName, billUrl: uploadedBillUrl, })
+          await addPurchase({
+            ...purchaseData, productName, supplier: supplierName, billUrl: uploadedBillUrl,
+          })
 
           updateProgress("Operation completed!", 5, 5)
           await new Promise(resolve => setTimeout(resolve, 300))
@@ -236,7 +251,16 @@ export default function PurchasesPage() {
           updateProgress("Submitting for approval...", 4, 4)
           const supplierName = formData.supplier === "custom" ? formData.customSupplier : formData.supplier
           const { customSupplier, ...purchaseData } = formData
-          requestPurchaseChange("create", { ...purchaseData, productName: product.name, supplier: supplierName }, undefined, editReason || "New purchase record")
+          requestPurchaseChange(
+            "create",
+            {
+              ...purchaseData,
+              productName,
+              supplier: supplierName,
+            },
+            undefined,
+            editReason || "New purchase record"
+          )
           toast({ title: "Submitted", description: "Purchase submitted for admin approval." })
         }
       }
@@ -496,60 +520,108 @@ export default function PurchasesPage() {
                     value={productFilter}
                     onValueChange={(value) => {
                       setProductFilter(value)
-                      // Reset productId and netWeight when group changes
-                      updateForm({ productId: "", netWeight: 0 })
+                      if (value === "custom") {
+                        updateForm({
+                          ...formData,
+                          productId: "custom",
+                          customProductName: "",
+                          netWeight: 0,
+                        })
+
+                        return
+                      }
+                      updateForm({
+                        ...formData,
+                        productId: "",
+                        customProductName: "",
+                        netWeight: 0,
+                      })
                     }}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select product" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">All Product</SelectItem>
+                      <SelectItem value="all">
+                        All Product
+                      </SelectItem>
                       {uniqueProductNames.map((name) => (
-                        <SelectItem key={name} value={name}>{name}</SelectItem>
-                      ))}
-                      {/* {products.map((product) => (
-                        <SelectItem key={product.id} value={product.id}>
-                          {product.name} - {product.netWeight}kg (Stock: {product.stockQuantity})
+                        <SelectItem
+                          key={name}
+                          value={name}
+                        >
+                          {name}
                         </SelectItem>
-                      ))} */}
+                      ))}
+                      <SelectItem value="custom">
+                        + Add Custom Product
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                   {/* main product Dropdown */}
-                  <Select
-                    value={formData.productId}
-                    onValueChange={(value) => {
-                      updateForm({
-                        ...formData,
-                        productId: value,
-                        netWeight: 0
-                      })
-                    }}
-                    required
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select product">
-                        {
-                          filteredProducts.find(
-                            (p) => p.id === formData.productId
-                          )?.name
-                        }
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      {filteredProducts
-                        .filter(product => productFilter === "all" || product.name === productFilter)
-                        .map((product) => (
-                          <SelectItem key={product.id} value={product.id} textValue={product.name}>
-                            <div className="flex flex-col">
-                              <span className="font-medium">{product.name}</span>
-                              <span className="text-sm text-gray-500">Stock: {product.stockQuantity}</span>
-                              <span className="text-sm text-gray-500">netWeight: {product.netWeight}kg</span>
-                            </div>
-                          </SelectItem>
-                        ))}
-                    </SelectContent>
-                  </Select>
+                  {isCustomProductSelected ? (
+                    <Input
+                      placeholder="Enter custom product name"
+                      value={formData.customProductName}
+                      onChange={(e) =>
+                        updateForm({
+                          ...formData,
+                          customProductName: e.target.value,
+                        })
+                      }
+                      required
+                    />
+                  ) : (
+                    <Select
+                      value={formData.productId}
+                      onValueChange={(value) => {
+                        const selectedProduct =
+                          products.find(
+                            (p) => p.id === value
+                          )
+                        updateForm({
+                          ...formData,
+                          productId: value,
+                          netWeight:
+                            selectedProduct?.netWeight || 0,
+                        })
+                      }}
+                      required
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select product" />
+                      </SelectTrigger>
+
+                      <SelectContent>
+                        {filteredProducts
+                          .filter(
+                            (product) =>
+                              productFilter === "all" ||
+                              product.name === productFilter
+                          )
+                          .map((product) => (
+                            <SelectItem
+                              key={product.id}
+                              value={product.id}
+                            >
+                              <div className="flex flex-col">
+                                <span className="font-medium">
+                                  {product.name}
+                                </span>
+                                <span className="text-sm text-gray-500">
+                                  Stock:
+                                  {product.stockQuantity}
+                                </span>
+                                <span className="text-sm text-gray-500">
+                                  netWeight:
+                                  {product.netWeight}kg
+                                </span>
+                              </div>
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="supplier">Supplier *</Label>

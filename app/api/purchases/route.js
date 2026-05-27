@@ -55,22 +55,31 @@ export async function POST(request) {
   try {
     await dbConnect();
     const body = await request.json();
-    const purchase = new Purchase(body);
-    await purchase.save();
+    if (body.productId === "custom") {
+      console.log("Custom product detected");
 
-    // Update product stock quantity
-    const product = await Product.findById(purchase.productId);
-    if (product) {
-      const newStockQuantity =
-        product.stockQuantity + purchase.quantityPurchased;
-      await Product.findByIdAndUpdate(purchase.productId, {
-        stockQuantity: newStockQuantity,
-        lastRestocked: new Date(),
+      let customProduct = await Product.findOne({
+        name: body.customProduct?.name?.trim(),
       });
-      console.log(
-        `📦 Updated stock for ${product.name}: ${product.stockQuantity} → ${newStockQuantity}`,
-      );
+
+      if (!customProduct) {
+        customProduct = await Product.create({
+          name: body.customProductName,
+          description: "",
+          category: "Custom",
+          stockQuantity: body.quantityPurchased || 0,
+          unitPrice: body.purchasePrice || 0,
+          supplier: body.supplier || "Custom Supplier",
+          netWeight: body.netWeight || 0,
+          lastRestocked: new Date(),
+        });
+
+        console.log("Created product:", customProduct._id);
+      }
+      body.productId = customProduct._id;
     }
+
+    const purchase = await Purchase.create(body);
 
     return NextResponse.json(purchase, { status: 201 });
   } catch (error) {
