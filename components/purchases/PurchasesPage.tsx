@@ -58,6 +58,7 @@ export default function PurchasesPage() {
     customSupplier: "",
     quantityPurchased: 0,
     purchasePrice: 0,
+    category: "",
     purchaseDate: new Date().toISOString().split("T")[0],
     netWeight: 0,
   }
@@ -72,6 +73,9 @@ export default function PurchasesPage() {
   const [currentStep, setCurrentStep] = useState("")
   const [totalSteps, setTotalSteps] = useState(0)
   const isCustomProductSelected = productFilter === "custom"
+  const [isAddingNewCategory, setIsAddingNewCategory] = useState(false)
+  const [newCategoryName, setNewCategoryName] = useState("")
+  const [categoryFilter, setCategoryFilter] = useState("all")
 
   useEffect(() => {
     if (showSuccessAlert) {
@@ -237,12 +241,12 @@ export default function PurchasesPage() {
           const supplierName = formData.supplier === "custom" ? formData.customSupplier : formData.supplier
           const { customSupplier, ...purchaseData } = formData
           await addPurchase({
-            ...purchaseData, productName, supplier: supplierName, billUrl: uploadedBillUrl,
+            ...purchaseData, productName, supplier: supplierName, billUrl: uploadedBillUrl, category: isAddingNewCategory ? newCategoryName : formData.category,
           })
 
           updateProgress("Operation completed!", 5, 5)
           await new Promise(resolve => setTimeout(resolve, 300))
-
+          resetForm()
           toast({ title: "Success", description: "Purchase recorded successfully!", })
         } else {
           updateProgress("Preparing approval request...", 3, 4)
@@ -377,6 +381,12 @@ export default function PurchasesPage() {
   // Get all products for selection
   const filteredProducts = React.useMemo(() => {
     return products
+  }, [products])
+
+  const categories = React.useMemo(() => {
+    return Array.from(
+      new Set(products.map((p) => p.category).filter(Boolean))
+    ).sort()
   }, [products])
 
   const handleSupplierClick = (supplier: string) => {
@@ -589,15 +599,23 @@ export default function PurchasesPage() {
                       required
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Select product" />
+                        <SelectValue placeholder="Select product">
+                          {
+                            filteredProducts.find(
+                              (p) => p.id === formData.productId
+                            )?.name
+                          }
+                        </SelectValue>
                       </SelectTrigger>
 
                       <SelectContent>
                         {filteredProducts
                           .filter(
                             (product) =>
-                              productFilter === "all" ||
-                              product.name === productFilter
+                              (categoryFilter === "all" ||
+                                product.category === categoryFilter) &&
+                              (productFilter === "all" ||
+                                product.name === productFilter)
                           )
                           .map((product) => (
                             <SelectItem
@@ -622,6 +640,60 @@ export default function PurchasesPage() {
                       </SelectContent>
                     </Select>
                   )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="category">Category *</Label>
+
+                  {isAddingNewCategory && (
+                    <Input
+                      id="category-new"
+                      value={newCategoryName}
+                      onChange={(e) => setNewCategoryName(e.target.value)}
+                      placeholder="Enter new category name"
+                      required
+                    />
+                  )}
+
+                  <Select
+                    value={isAddingNewCategory ? "__new__" : formData.category}
+                    onValueChange={(value) => {
+                      if (value === "__new__") {
+                        setIsAddingNewCategory(true)
+                        setNewCategoryName("")
+
+                        updateForm({
+                          ...formData,
+                          category: "",
+                        })
+                      } else {
+                        setIsAddingNewCategory(false)
+
+                        updateForm({
+                          ...formData,
+                          category: value,
+                        })
+                      }
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select or add category" />
+                    </SelectTrigger>
+
+                    <SelectContent>
+                      <SelectItem value="all">All Categories</SelectItem>
+
+                      {categories.map((cat) => (
+                        <SelectItem key={cat} value={cat}>
+                          {cat}
+                        </SelectItem>
+                      ))}
+
+                      <SelectItem value="__new__">
+                        Add new category...
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="supplier">Supplier *</Label>

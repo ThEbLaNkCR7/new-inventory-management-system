@@ -32,6 +32,7 @@ export interface Purchase {
   quantityPurchased: number
   purchasePrice: number
   billUrl?: string
+  category?: string
   purchaseDate: string
   isActive?: boolean
 }
