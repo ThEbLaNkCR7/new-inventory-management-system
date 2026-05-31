@@ -854,7 +854,7 @@ export default function SalesPage() {
       </Card>
 
       {/* Sales Table Component */}
-      {/* <SalesTable
+      <SalesTable
         filteredSales={filteredSales}
         activeTab={activeTab}
         onActiveTabChange={setActiveTab}
@@ -865,18 +865,18 @@ export default function SalesPage() {
         onDelete={handleDelete}
         onProductClick={handleProductClick}
         onClientClick={handleClientClick}
-      /> */}
+      />
 
       {/* View Sale Dialog */}
-      {/* <ViewSaleDialog
+      <ViewSaleDialog
         isOpen={isViewDialogOpen}
         onOpenChange={setIsViewDialogOpen}
         sale={viewingSale}
         onEdit={handleEdit}
-      /> */}
+      />
 
       {/* Edit Sale Dialog */}
-      {/* <EditSaleDialog
+      <EditSaleDialog
         isOpen={isEditDialogOpen}
         onOpenChange={setIsEditDialogOpen}
         formData={formData}
@@ -894,10 +894,10 @@ export default function SalesPage() {
           clearForm()
           setIsEditDialogOpen(false)
         }}
-      /> */}
+      />
 
       {/* Delete Sale Dialog */}
-      {/* <DeleteSaleDialog
+      <DeleteSaleDialog
         isOpen={isDeleteDialogOpen}
         onOpenChange={setIsDeleteDialogOpen}
         deleteReason={deleteReason}
@@ -907,24 +907,24 @@ export default function SalesPage() {
           e.preventDefault()
           await handleDeleteConfirm()
         }}
-      /> */}
+      />
 
       {/* Product History Dialog */}
-      {/* <ProductHistoryDialog
+      <ProductHistoryDialog
         isOpen={isProductHistoryDialogOpen}
         onOpenChange={setIsProductHistoryDialogOpen}
         product={selectedProduct}
         sales={sales}
         purchases={purchases}
-      /> */}
+      />
 
       {/* Client History Dialog */}
-      {/* <ClientHistoryDialog
+      <ClientHistoryDialog
         isOpen={isClientHistoryDialogOpen}
         onOpenChange={setIsClientHistoryDialogOpen}
         clientName={selectedClientForHistory}
         sales={sales}
-      /> */}
+      />
     </div>
   )
 }
