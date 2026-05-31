@@ -37,18 +37,21 @@ export interface Purchase {
   isActive?: boolean
 }
 
-export interface Sale {
-  id: string
+export type SaleItem = {
   productId: string
   productName: string
-  client: string
-  clientType?: string
   quantitySold: number
   salePrice: number
+}
+
+export type Sale = {
+  id: string
+  client: string
+  clientType: string
   saleDate: string
   billUrl?: string
-  batchId?: string
   isActive?: boolean
+  items: SaleItem[]
 }
 
 export interface Client {
@@ -344,7 +347,7 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
   // Sales
   const addSale = async (sale: Omit<Sale, "id">) => {
     try {
-      console.log("💰 Adding new sale:", sale.productName)
+      // console.log("💰 Adding new sale:", sale.productName)
       const res = await fetch("/api/sales", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -353,7 +356,7 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
       if (!res.ok) throw new Error("Failed to add sale")
       const newSale = await res.json()
       setSales((prev) => [...prev, { ...newSale, id: newSale._id || newSale.id }])
-      console.log("✅ Sale added successfully:", sale.productName)
+      // console.log("✅ Sale added successfully:", sale.productName)
 
       // Update client statistics
       await updateClientStats(sale.client)
@@ -537,7 +540,7 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
   }
 
   const getTotalSales = () => {
-    return sales.reduce((total, sale) => total + sale.quantitySold * sale.salePrice, 0)
+    return sales.reduce((total, sale) => total + sale.items.reduce((s, i) => s + i.quantitySold * i.salePrice, 0), 0)
   }
 
   const getTotalPurchases = () => {
@@ -552,7 +555,7 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
   const getClientTotalSpent = (clientName: string) => {
     return sales
       .filter(sale => sale.client === clientName && sale.isActive !== false)
-      .reduce((total, sale) => total + (sale.quantitySold * sale.salePrice), 0)
+      .reduce((total, sale) => total + (sale.items.reduce((s, i) => s + i.quantitySold * i.salePrice, 0)), 0)
   }
 
   // Calculate total spent for a specific supplier
@@ -660,7 +663,15 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
 
   // Total sold items (sum of quantitySold from all sales)
   const getTotalSoldItems = () => {
-    return sales.reduce((total, sale) => total + sale.quantitySold, 0)
+    return sales.reduce(
+      (total, sale) =>
+        total +
+        (sale.items?.reduce(
+          (sum, item) => sum + item.quantitySold,
+          0
+        ) || 0),
+      0
+    )
   }
 
   const getStockByBatch = (batchId: string) => {
@@ -687,7 +698,15 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
         return purchaseNepaliYear === year && purchaseNepaliMonth === monthNumber
       })
 
-      const salesAmount = monthSales.reduce((total, sale) => total + sale.quantitySold * sale.salePrice, 0)
+      const salesAmount = monthSales.reduce((total, sale) => {
+        const saleTotal =
+          sale.items?.reduce(
+            (sum, item) => sum + item.quantitySold * item.salePrice,
+            0
+          ) || 0
+
+        return total + saleTotal
+      }, 0)
       const purchasesAmount = monthPurchases.reduce(
         (total, purchase) => total + purchase.quantityPurchased * purchase.purchasePrice,
         0,
