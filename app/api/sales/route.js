@@ -55,18 +55,24 @@ export async function POST(request) {
   try {
     await dbConnect();
     const body = await request.json();
+    console.log(JSON.stringify(body, null, 2));
     const sale = new Sale(body);
     await sale.save();
 
-    // Update product stock quantity
-    const product = await Product.findById(sale.productId);
-    if (product) {
-      if (sale.quantitySold >= product.stockQuantity) {
-        await Product.findByIdAndDelete(sale.productId);
+    // Update stock for each item
+    for (const item of sale.items) {
+      const product = await Product.findById(item.productId);
+
+      if (!product) continue;
+
+      if (item.quantitySold >= product.stockQuantity) {
+        await Product.findByIdAndDelete(item.productId);
+
         console.log(`🗑️ Product ${product.name} sold completely and removed`);
       } else {
-        const newStockQuantity = product.stockQuantity - sale.quantitySold;
-        await Product.findByIdAndUpdate(sale.productId, {
+        const newStockQuantity = product.stockQuantity - item.quantitySold;
+
+        await Product.findByIdAndUpdate(item.productId, {
           stockQuantity: newStockQuantity,
         });
         console.log(
