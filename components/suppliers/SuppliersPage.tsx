@@ -615,7 +615,15 @@ export default function SuppliersPage() {
                                       getNepaliYear(p.purchaseDate) === selectedYear
                                   )
                                   .reduce(
-                                    (sum, p) => sum + p.quantityPurchased * p.purchasePrice,
+                                    (sum, p) =>
+                                      sum +
+                                      (p.items?.reduce(
+                                        (itemSum, item) =>
+                                          itemSum +
+                                          (item.quantityPurchased || 0) *
+                                          (item.purchasePrice || 0),
+                                        0
+                                      ) || 0),
                                     0
                                   )
                                 : getSupplierTotalSpent(supplier.name)
@@ -1084,13 +1092,44 @@ export default function SuppliersPage() {
                   <div className="space-y-2">
                     <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Total Quantity</Label>
                     <p className="text-gray-900 dark:text-gray-100 font-semibold text-lg">
-                      {purchases.filter(p => p.supplier === selectedSupplierForHistory && getNepaliYear(p.purchaseDate) === getCurrentNepaliYear()).reduce((sum, p) => sum + p.quantityPurchased, 0)} units
+                      {purchases
+                        .filter(
+                          (p) =>
+                            p.supplier === selectedSupplierForHistory &&
+                            getNepaliYear(p.purchaseDate) === getCurrentNepaliYear()
+                        )
+                        .reduce(
+                          (sum, p) =>
+                            sum +
+                            (p.items?.reduce(
+                              (itemSum, item) =>
+                                itemSum + (item.quantityPurchased || 0),
+                              0
+                            ) || 0),
+                          0
+                        )} units
                     </p>
                   </div>
                   <div className="space-y-2">
                     <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Total Value</Label>
                     <p className="text-gray-900 dark:text-gray-100 font-semibold text-lg">
-                      Rs {purchases.filter(p => p.supplier === selectedSupplierForHistory && getNepaliYear(p.purchaseDate) === getCurrentNepaliYear()).reduce((sum, p) => sum + (p.quantityPurchased * p.purchasePrice), 0).toLocaleString()}
+                      Rs {purchases
+                        .filter(
+                          (p) =>
+                            p.supplier === selectedSupplierForHistory &&
+                            getNepaliYear(p.purchaseDate) === getCurrentNepaliYear()
+                        )
+                        .reduce(
+                          (sum, p) =>
+                            sum +
+                            (p.items?.reduce(
+                              (itemSum, item) =>
+                                itemSum + (item.quantityPurchased || 0) * (item.purchasePrice || 0),
+                              0
+                            ) || 0),
+                          0
+                        )
+                        .toLocaleString()}
                     </p>
                   </div>
                 </div>
@@ -1128,16 +1167,38 @@ export default function SuppliersPage() {
                                 {formatNepaliDateForTable(purchase.purchaseDate)}
                               </TableCell>
                               <TableCell className="font-medium text-gray-900 dark:text-gray-100">
-                                {purchase.productName}
+                                {purchase.items
+                                  ?.map((i) => i.productName || "")
+                                  .filter(Boolean)
+                                  .join(", ")}
                               </TableCell>
                               <TableCell className="text-gray-700 dark:text-gray-300">
-                                {purchase.quantityPurchased} units
+                                {purchase.items?.reduce(
+                                  (sum, i) => sum + (i.quantityPurchased || 0),
+                                  0
+                                )}{" "}
+                                units
                               </TableCell>
                               <TableCell className="text-gray-700 dark:text-gray-300">
-                                Rs {purchase.purchasePrice.toLocaleString()}
+                                Rs{" "}
+                                {(
+                                  purchase.items?.reduce(
+                                    (sum, i) => sum + (i.purchasePrice || 0),
+                                    0
+                                  ) || 0
+                                ).toLocaleString()}
                               </TableCell>
                               <TableCell className="font-semibold text-blue-600 dark:text-blue-400">
-                                Rs {(purchase.quantityPurchased * purchase.purchasePrice).toLocaleString()}
+                                Rs{" "}
+                                {(
+                                  purchase.items?.reduce(
+                                    (sum, i) =>
+                                      sum +
+                                      (i.quantityPurchased || 0) *
+                                      (i.purchasePrice || 0),
+                                    0
+                                  ) || 0
+                                ).toLocaleString()}
                               </TableCell>
                             </TableRow>
                           ))

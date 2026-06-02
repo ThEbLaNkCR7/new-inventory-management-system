@@ -102,26 +102,39 @@ export function ApprovalProvider({ children }: { children: React.ReactNode }) {
     switch (change.action) {
       case "create":
         addSale({
-          productId: change.proposedData.productId,
-          productName: change.proposedData.productName,
           client: change.proposedData.client,
-          quantitySold: change.proposedData.quantitySold,
-          salePrice: change.proposedData.salePrice,
+          clientType: change.proposedData.clientType,
           saleDate: change.proposedData.saleDate,
+          batchId: change.proposedData.batchId,
+          items: [
+            {
+              productId: change.proposedData.productId,
+              productName: change.proposedData.productName,
+              quantitySold: change.proposedData.quantitySold,
+              salePrice: change.proposedData.salePrice,
+            },
+          ],
         })
         break
+
       case "update":
         if (change.entityId) {
           updateSale(change.entityId, {
-            productId: change.proposedData.productId,
-            productName: change.proposedData.productName,
             client: change.proposedData.client,
-            quantitySold: change.proposedData.quantitySold,
-            salePrice: change.proposedData.salePrice,
+            clientType: change.proposedData.clientType,
             saleDate: change.proposedData.saleDate,
+            items: [
+              {
+                productId: change.proposedData.productId,
+                productName: change.proposedData.productName,
+                quantitySold: change.proposedData.quantitySold,
+                salePrice: change.proposedData.salePrice,
+              },
+            ],
           })
         }
         break
+
       case "delete":
         if (change.entityId) {
           deleteSale(change.entityId)
@@ -134,26 +147,38 @@ export function ApprovalProvider({ children }: { children: React.ReactNode }) {
     switch (change.action) {
       case "create":
         addPurchase({
-          productId: change.proposedData.productId,
-          productName: change.proposedData.productName,
           supplier: change.proposedData.supplier,
-          quantityPurchased: change.proposedData.quantityPurchased,
-          purchasePrice: change.proposedData.purchasePrice,
+          supplierType: change.proposedData.supplierType,
           purchaseDate: change.proposedData.purchaseDate,
+          items: [
+            {
+              productId: change.proposedData.productId,
+              productName: change.proposedData.productName,
+              quantityPurchased: change.proposedData.quantityPurchased,
+              purchasePrice: change.proposedData.purchasePrice,
+            },
+          ],
         })
         break
+
       case "update":
         if (change.entityId) {
           updatePurchase(change.entityId, {
-            productId: change.proposedData.productId,
-            productName: change.proposedData.productName,
             supplier: change.proposedData.supplier,
-            quantityPurchased: change.proposedData.quantityPurchased,
-            purchasePrice: change.proposedData.purchasePrice,
+            supplierType: change.proposedData.supplierType,
             purchaseDate: change.proposedData.purchaseDate,
+            items: [
+              {
+                productId: change.proposedData.productId,
+                productName: change.proposedData.productName,
+                quantityPurchased: change.proposedData.quantityPurchased,
+                purchasePrice: change.proposedData.purchasePrice,
+              },
+            ],
           })
         }
         break
+
       case "delete":
         if (change.entityId) {
           deletePurchase(change.entityId)
@@ -161,7 +186,6 @@ export function ApprovalProvider({ children }: { children: React.ReactNode }) {
         break
     }
   }
-
   const applyProductChange = (change: ApprovalChange) => {
     switch (change.action) {
       case "create":

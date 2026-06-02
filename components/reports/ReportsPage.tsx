@@ -114,26 +114,47 @@ export default function ReportsPage() {
     return weeks.map(({ week, start, end }) => {
       const weekSales = sales
         .filter((s) => {
-          const date = new Date(s.saleDate);
+          const date = new Date(s.saleDate)
           return (
             date.getMonth() + 1 === currentMonth &&
             date.getDate() >= start &&
             date.getDate() <= end
-          );
+          )
         })
-        .reduce((sum, s) => sum + s.quantitySold * s.salePrice, 0);
+        .reduce((sum, s) => {
+          return (
+            sum +
+            (s.items || []).reduce(
+              (itemSum, item) =>
+                itemSum +
+                (item.quantitySold || 0) *
+                (item.salePrice || 0),
+              0
+            )
+          )
+        }, 0)
 
       const weekPurchases = purchases
         .filter((p) => {
-          const date = new Date(p.purchaseDate);
+          const date = new Date(p.purchaseDate)
           return (
             date.getMonth() + 1 === currentMonth &&
             date.getDate() >= start &&
             date.getDate() <= end
-          );
+          )
         })
-        .reduce((sum, p) => sum + p.quantityPurchased * p.purchasePrice, 0);
-
+        .reduce((sum, p) => {
+          return (
+            sum +
+            (p.items || []).reduce(
+              (itemSum, item) =>
+                itemSum +
+                (item.quantityPurchased || 0) *
+                (item.purchasePrice || 0),
+              0
+            )
+          )
+        }, 0)
       return {
         week,
         sales: weekSales,
@@ -156,11 +177,42 @@ export default function ReportsPage() {
     return nepaliMonths.map((monthName, index) => {
       const monthNumber = index + 1;
       const monthSales = sales
-        .filter(s => getNepaliYear(s.saleDate) === currentNepaliYear && getNepaliMonth(s.saleDate) === monthNumber)
-        .reduce((sum, s) => sum + s.quantitySold * s.salePrice, 0);
+        .filter(
+          (s) =>
+            getNepaliYear(s.saleDate) === currentNepaliYear &&
+            getNepaliMonth(s.saleDate) === monthNumber
+        )
+        .reduce((sum, s) => {
+          return (
+            sum +
+            (s.items || []).reduce(
+              (itemSum, item) =>
+                itemSum +
+                (item.quantitySold || 0) *
+                (item.salePrice || 0),
+              0
+            )
+          )
+        }, 0)
+
       const monthPurchases = purchases
-        .filter(p => getNepaliYear(p.purchaseDate) === currentNepaliYear && getNepaliMonth(p.purchaseDate) === monthNumber)
-        .reduce((sum, p) => sum + p.quantityPurchased * p.purchasePrice, 0);
+        .filter(
+          (p) =>
+            getNepaliYear(p.purchaseDate) === currentNepaliYear &&
+            getNepaliMonth(p.purchaseDate) === monthNumber
+        )
+        .reduce((sum, p) => {
+          return (
+            sum +
+            (p.items || []).reduce(
+              (itemSum, item) =>
+                itemSum +
+                (item.quantityPurchased || 0) *
+                (item.purchasePrice || 0),
+              0
+            )
+          )
+        }, 0)
       return { month: monthName, sales: monthSales, purchases: monthPurchases, profit: monthSales - monthPurchases };
     });
   };
@@ -169,36 +221,79 @@ export default function ReportsPage() {
     .filter((sale) => {
       const saleNepaliYear = getNepaliYear(sale.saleDate)
       const saleNepaliMonth = getNepaliMonth(sale.saleDate)
-      return saleNepaliYear === currentNepaliYear && saleNepaliMonth === currentNepaliMonth
+      return (
+        saleNepaliYear === currentNepaliYear &&
+        saleNepaliMonth === currentNepaliMonth
+      )
     })
-    .reduce((total, sale) => total + sale.quantitySold * sale.salePrice, 0)
+    .reduce((total, sale) => {
+      return (
+        total +
+        (sale.items || []).reduce(
+          (itemSum, item) =>
+            itemSum +
+            (item.quantitySold || 0) *
+            (item.salePrice || 0),
+          0
+        )
+      )
+    }, 0)
 
   const monthlyPurchases = purchases
     .filter((purchase) => {
       const purchaseNepaliYear = getNepaliYear(purchase.purchaseDate)
       const purchaseNepaliMonth = getNepaliMonth(purchase.purchaseDate)
-      return purchaseNepaliYear === currentNepaliYear && purchaseNepaliMonth === currentNepaliMonth
+      return (
+        purchaseNepaliYear === currentNepaliYear &&
+        purchaseNepaliMonth === currentNepaliMonth
+      )
     })
-    .reduce((total, purchase) => total + purchase.quantityPurchased * purchase.purchasePrice, 0)
+    .reduce((total, purchase) => {
+      return (
+        total +
+        (purchase.items || []).reduce(
+          (itemSum, item) =>
+            itemSum +
+            (item.quantityPurchased || 0) *
+            (item.purchasePrice || 0),
+          0
+        )
+      )
+    }, 0)
 
   const monthlyProfit = monthlySales - monthlyPurchases
 
   // Top selling products
-  const productSales = sales.reduce(
-    (acc, sale) => {
-      acc[sale.productId] = (acc[sale.productId] || 0) + sale.quantitySold
-      return acc
-    },
-    {} as Record<string, number>,
-  )
+  const productSales = sales.reduce((acc, sale) => {
+    const items = sale.items || []
+
+    for (const item of items) {
+      const id = item.productId
+      acc[id] = (acc[id] || 0) + (item.quantitySold || 0)
+    }
+
+    return acc
+  }, {} as Record<string, number>)
+
+  const productRevenue = sales.reduce((acc, sale) => {
+    const items = sale.items || []
+
+    for (const item of items) {
+      const id = item.productId
+      const value =
+        (item.quantitySold || 0) * (item.salePrice || 0)
+
+      acc[id] = (acc[id] || 0) + value
+    }
+
+    return acc
+  }, {} as Record<string, number>)
 
   const topProducts = products
     .map((product) => ({
       ...product,
       totalSold: productSales[product.id] || 0,
-      revenue: sales
-        .filter((sale) => sale.productId === product.id)
-        .reduce((total, sale) => total + sale.quantitySold * sale.salePrice, 0),
+      revenue: productRevenue[product.id] || 0,
     }))
     .sort((a, b) => b.totalSold - a.totalSold)
     .slice(0, 5)
@@ -416,8 +511,31 @@ export default function ReportsPage() {
                           return purchaseNepaliYear === currentNepaliYear && purchaseNepaliMonth === monthNumber
                         })
 
-                        const totalSales = monthSales.reduce((sum, sale) => sum + (sale.quantitySold * sale.salePrice), 0)
-                        const totalPurchases = monthPurchases.reduce((sum, purchase) => sum + (purchase.quantityPurchased * purchase.purchasePrice), 0)
+                        const totalSales = monthSales.reduce((sum, sale) => {
+                          return (
+                            sum +
+                            (sale.items || []).reduce(
+                              (itemSum, item) =>
+                                itemSum +
+                                (item.quantitySold || 0) *
+                                (item.salePrice || 0),
+                              0
+                            )
+                          )
+                        }, 0)
+
+                        const totalPurchases = monthPurchases.reduce((sum, purchase) => {
+                          return (
+                            sum +
+                            (purchase.items || []).reduce(
+                              (itemSum, item) =>
+                                itemSum +
+                                (item.quantityPurchased || 0) *
+                                (item.purchasePrice || 0),
+                              0
+                            )
+                          )
+                        }, 0)
                         const profit = totalSales - totalPurchases
                         const transactions = monthSales.length + monthPurchases.length
 
@@ -612,20 +730,56 @@ export default function ReportsPage() {
               <TableBody>
                 {/* Combine and sort recent sales and purchases */}
                 {[
-                  ...sales.slice(-5).map((sale) => ({
-                    ...sale,
-                    type: "Sale",
-                    date: sale.saleDate,
-                    quantity: sale.quantitySold,
-                    amount: sale.quantitySold * sale.salePrice,
-                  })),
-                  ...purchases.slice(-5).map((purchase) => ({
-                    ...purchase,
-                    type: "Purchase",
-                    date: purchase.purchaseDate,
-                    quantity: purchase.quantityPurchased,
-                    amount: purchase.quantityPurchased * purchase.purchasePrice,
-                  })),
+                  ...sales.slice(-5).map((sale) => {
+                    const items = sale.items || []
+
+                    const quantity = items.reduce(
+                      (sum, item) => sum + (item.quantitySold || 0),
+                      0
+                    )
+
+                    const amount = items.reduce(
+                      (sum, item) =>
+                        sum +
+                        (item.quantitySold || 0) *
+                        (item.salePrice || 0),
+                      0
+                    )
+
+                    return {
+                      ...sale,
+                      type: "Sale",
+                      date: sale.saleDate,
+                      quantity,
+                      amount,
+                    }
+                  }),
+
+                  ...purchases.slice(-5).map((purchase) => {
+                    const items = purchase.items || []
+
+                    const quantity = items.reduce(
+                      (sum, item) =>
+                        sum + (item.quantityPurchased || 0),
+                      0
+                    )
+
+                    const amount = items.reduce(
+                      (sum, item) =>
+                        sum +
+                        (item.quantityPurchased || 0) *
+                        (item.purchasePrice || 0),
+                      0
+                    )
+
+                    return {
+                      ...purchase,
+                      type: "Purchase",
+                      date: purchase.purchaseDate,
+                      quantity,
+                      amount,
+                    }
+                  }),
                 ]
                   .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
                   .slice(0, 10)
@@ -635,7 +789,14 @@ export default function ReportsPage() {
                       <TableCell className=" text-gray-700">
                         <Badge className=" text-gray-700" >{activity.type}</Badge>
                       </TableCell>
-                      <TableCell className="font-medium dark:text-gray-200  text-gray-700">{activity.productName}</TableCell>
+                      <TableCell className="font-medium dark:text-gray-200 text-gray-700">
+                        {activity.items?.map((item, index) => (
+                          <span key={index}>
+                            {item.productId}
+                            {index < activity.items.length - 1 ? ", " : ""}
+                          </span>
+                        ))}
+                      </TableCell>
                       <TableCell className="dark:text-gray-300  text-gray-700">{activity.quantity}</TableCell>
                       <TableCell
                         className={

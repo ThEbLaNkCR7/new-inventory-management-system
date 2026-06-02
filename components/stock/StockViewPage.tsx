@@ -41,23 +41,27 @@ export default function StockViewPage() {
 
   // Sold items = build from sales data
   const soldItems = sales
-    .map((sale) => {
-      const product = products.find((p) => p.id === sale.productId)
-      const batch = batches.find((b) => b.id === sale.batchId)
+    .flatMap((sale) => {
+      const items = sale.items || []
 
-      if (!product) return null
+      return items.map((item) => {
+        const product = products.find((p) => p.id === item.productId)
+        const batch = batches.find((b) => b.id === sale.batchId)
 
-      return {
-        ...product,
-        batchId: batch?.id,
-        client: sale.client,
-        clientType: sale.clientType,
-        soldQuantity: sale.quantitySold,
-        unitPrice: sale.salePrice,
-        total: sale.quantitySold * sale.salePrice,
-        batchNumber: batch?.batchNumber,
-        lastSold: sale.saleDate,
-      }
+        if (!product) return null
+
+        return {
+          ...product,
+          batchId: batch?.id,
+          client: sale.client,
+          clientType: sale.clientType,
+          soldQuantity: item.quantitySold,
+          unitPrice: item.salePrice,
+          total: (item.quantitySold || 0) * (item.salePrice || 0),
+          batchNumber: batch?.batchNumber,
+          lastSold: sale.saleDate,
+        }
+      })
     })
     .filter(Boolean)
 

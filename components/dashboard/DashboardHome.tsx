@@ -30,7 +30,7 @@ export default function DashboardHome() {
   const totalSuppliers = suppliers.length
   const averageProductPrice = totalProducts > 0 ? products.reduce((sum, p) => sum + p.unitPrice, 0) / totalProducts : 0
   const totalInventoryValue = products.reduce((sum, p) => sum + (p.stockQuantity * p.unitPrice), 0)
-  
+
   // Recent activity (last 7 days)
   const lastWeek = new Date()
   lastWeek.setDate(lastWeek.getDate() - 7)
@@ -374,25 +374,40 @@ export default function DashboardHome() {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {sales.slice(-5).reverse().map((sale) => (
-                <div
-                  key={sale.id}
-                  className="flex items-center justify-between p-3 rounded-lg bg-green-50 dark:bg-green-900/10 border border-green-200 dark:border-green-800"
-                >
-                  <div>
-                    <p className="font-medium text-gray-900 dark:text-gray-200">{sale.productName}</p>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">{sale.client}</p>
+              {(() => {
+                const saleItems: any[] = []
+                sales.forEach((s) => {
+                  if (s.items && s.items.length > 0) {
+                    s.items.forEach((item: any) => {
+                      saleItems.push({
+                        ...item,
+                        client: s.client,
+                        saleDate: s.saleDate,
+                        id: s.id,
+                      })
+                    })
+                  }
+                })
+                return saleItems.slice(-5).reverse().map((item, idx) => (
+                  <div
+                    key={idx}
+                    className="flex items-center justify-between p-3 rounded-lg bg-green-50 dark:bg-green-900/10 border border-green-200 dark:border-green-800"
+                  >
+                    <div>
+                      <p className="font-medium text-gray-900 dark:text-gray-200">{item.productName}</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">{item.client}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-medium text-green-600">
+                        Rs {((item.quantitySold || 0) * (item.salePrice || 0)).toLocaleString()}
+                      </p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        {formatNepaliDateForTable(item.saleDate)}
+                      </p>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <p className="font-medium text-green-600">
-                      Rs {(sale.quantitySold * sale.salePrice).toLocaleString()}
-                    </p>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                      {formatNepaliDateForTable(sale.saleDate)}
-                    </p>
-                  </div>
-                </div>
-              ))}
+                ))
+              })()}
               {sales.length === 0 && (
                 <div className="text-center py-6">
                   <XCircle className="h-12 w-12 text-gray-400 mx-auto mb-2" />
@@ -411,25 +426,40 @@ export default function DashboardHome() {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {purchases.slice(-5).reverse().map((purchase) => (
-                <div
-                  key={purchase.id}
-                  className="flex items-center justify-between p-3 rounded-lg bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800"
-                >
-                  <div>
-                    <p className="font-medium text-gray-900 dark:text-gray-200">{purchase.productName}</p>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">{purchase.supplier}</p>
+              {(() => {
+                const purchaseItems: any[] = []
+                purchases.forEach((p) => {
+                  if (p.items && p.items.length > 0) {
+                    p.items.forEach((item: any) => {
+                      purchaseItems.push({
+                        ...item,
+                        supplier: p.supplier,
+                        purchaseDate: p.purchaseDate,
+                        id: p.id,
+                      })
+                    })
+                  }
+                })
+                return purchaseItems.slice(-5).reverse().map((item, idx) => (
+                  <div
+                    key={idx}
+                    className="flex items-center justify-between p-3 rounded-lg bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800"
+                  >
+                    <div>
+                      <p className="font-medium text-gray-900 dark:text-gray-200">{item.productName}</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">{item.supplier}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-medium text-blue-600">
+                        Rs {((item.quantityPurchased || 0) * (item.purchasePrice || 0)).toLocaleString()}
+                      </p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        {formatNepaliDateForTable(item.purchaseDate)}
+                      </p>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <p className="font-medium text-blue-600">
-                      Rs {(purchase.quantityPurchased * purchase.purchasePrice).toLocaleString()}
-                    </p>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                      {formatNepaliDateForTable(purchase.purchaseDate)}
-                    </p>
-                  </div>
-                </div>
-              ))}
+                ))
+              })()}
               {purchases.length === 0 && (
                 <div className="text-center py-6">
                   <XCircle className="h-12 w-12 text-gray-400 mx-auto mb-2" />

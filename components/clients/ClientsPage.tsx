@@ -1071,15 +1071,56 @@ export default function ClientsPage() {
                     </p>
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Total Quantity</Label>
+                    <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">
+                      Total Quantity
+                    </Label>
+
                     <p className="text-gray-900 dark:text-gray-100 font-semibold text-lg">
-                      {sales.filter(s => s.client === selectedClientForHistory && getNepaliYear(s.saleDate) === getCurrentNepaliYear()).reduce((sum, s) => sum + s.quantitySold, 0)} units
+                      {sales
+                        .filter(
+                          (s) =>
+                            s.client === selectedClientForHistory &&
+                            getNepaliYear(s.saleDate) === getCurrentNepaliYear()
+                        )
+                        .reduce(
+                          (sum, s) =>
+                            sum +
+                            (s.items?.reduce(
+                              (itemSum, item) =>
+                                itemSum + (item.quantitySold || 0),
+                              0
+                            ) || 0),
+                          0
+                        )}{" "}
+                      units
                     </p>
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Total Value</Label>
+                    <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">
+                      Total Value
+                    </Label>
+
                     <p className="font-semibold text-lg text-teal-600 dark:text-teal-400">
-                      Rs {sales.filter(s => s.client === selectedClientForHistory && getNepaliYear(s.saleDate) === getCurrentNepaliYear()).reduce((sum, s) => sum + (s.quantitySold * s.salePrice), 0).toLocaleString()}
+                      Rs{" "}
+                      {sales
+                        .filter(
+                          (s) =>
+                            s.client === selectedClientForHistory &&
+                            getNepaliYear(s.saleDate) === getCurrentNepaliYear()
+                        )
+                        .reduce(
+                          (sum, s) =>
+                            sum +
+                            (s.items?.reduce(
+                              (itemSum, item) =>
+                                itemSum +
+                                (item.quantitySold || 0) *
+                                (item.salePrice || 0),
+                              0
+                            ) || 0),
+                          0
+                        )
+                        .toLocaleString()}
                     </p>
                   </div>
                 </div>
@@ -1117,16 +1158,41 @@ export default function ClientsPage() {
                                 {formatNepaliDateForTable(sale.saleDate)}
                               </TableCell>
                               <TableCell className="font-medium text-gray-900 dark:text-gray-100">
-                                {sale.productName}
+                                {sale.items
+                                  ?.map((i) => i.productName || "")
+                                  .filter(Boolean)
+                                  .join(", ")}
                               </TableCell>
+
                               <TableCell className="text-gray-700 dark:text-gray-300">
-                                {sale.quantitySold} units
+                                {sale.items?.reduce(
+                                  (sum, i) => sum + (i.quantitySold || 0),
+                                  0
+                                )}{" "}
+                                units
                               </TableCell>
+
                               <TableCell className="text-gray-700 dark:text-gray-300">
-                                Rs {sale.salePrice.toLocaleString()}
+                                Rs{" "}
+                                {(
+                                  sale.items?.reduce(
+                                    (sum, i) => sum + (i.salePrice || 0),
+                                    0
+                                  ) || 0
+                                ).toLocaleString()}
                               </TableCell>
+
                               <TableCell className="font-semibold text-green-600 dark:text-green-400">
-                                Rs {(sale.quantitySold * sale.salePrice).toLocaleString()}
+                                Rs{" "}
+                                {(
+                                  sale.items?.reduce(
+                                    (sum, i) =>
+                                      sum +
+                                      (i.quantitySold || 0) *
+                                      (i.salePrice || 0),
+                                    0
+                                  ) || 0
+                                ).toLocaleString()}
                               </TableCell>
                             </TableRow>
                           ))

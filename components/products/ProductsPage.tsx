@@ -1576,25 +1576,92 @@ export default function ProductsPage() {
                 <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
                   {(() => {
                     const currentYear = getCurrentNepaliYear()
-                    const productSales = sales.filter(sale =>
-                      sale.productName === selectedProductForHistory.name &&
-                      getNepaliYear(sale.saleDate) === currentYear
-                    ).sort((a, b) => new Date(b.saleDate).getTime() - new Date(a.saleDate).getTime())
 
-                    const productPurchases = purchases.filter(purchase =>
-                      purchase.productName === selectedProductForHistory.name &&
-                      getNepaliYear(purchase.purchaseDate) === currentYear
+                    const productSales = sales
+                      .filter((sale) => {
+                        const itemNames = sale.items?.map((i) => i.productId) || []
+
+                        return (
+                          itemNames.includes(selectedProductForHistory.name) &&
+                          getNepaliYear(sale.saleDate) === currentYear
+                        )
+                      })
+
+                    const productPurchases = purchases
+                      .filter((purchase) => {
+                        const itemNames = purchase.items?.map((i) => i.productId) || []
+
+                        return (
+                          itemNames.includes(selectedProductForHistory.name) &&
+                          getNepaliYear(purchase.purchaseDate) === currentYear
+                        )
+                      })
+
+                    const totalSalesQuantity = productSales.reduce(
+                      (sum, sale) =>
+                        sum +
+                        (sale.items || []).reduce(
+                          (itemSum, item) =>
+                            item.productId === selectedProductForHistory.name
+                              ? itemSum + (item.quantitySold || 0)
+                              : itemSum,
+                          0
+                        ),
+                      0
                     )
 
-                    const totalSalesQuantity = productSales.reduce((sum, sale) => sum + sale.quantitySold, 0)
-                    const totalSalesValue = productSales.reduce((sum, sale) => sum + (sale.quantitySold * sale.salePrice), 0)
-                    const totalPurchaseQuantity = productPurchases.reduce((sum, purchase) => sum + purchase.quantityPurchased, 0)
-                    const totalPurchaseValue = productPurchases.reduce((sum, purchase) => sum + (purchase.quantityPurchased * purchase.purchasePrice), 0)
+                    const totalSalesValue = productSales.reduce(
+                      (sum, sale) =>
+                        sum +
+                        (sale.items || []).reduce(
+                          (itemSum, item) =>
+                            item.productId === selectedProductForHistory.name
+                              ? itemSum +
+                              (item.quantitySold || 0) *
+                              (item.salePrice || 0)
+                              : itemSum,
+                          0
+                        ),
+                      0
+                    )
+
+                    const totalPurchaseQuantity = productPurchases.reduce(
+                      (sum, purchase) =>
+                        sum +
+                        (purchase.items || []).reduce(
+                          (itemSum, item) =>
+                            item.productId === selectedProductForHistory.name
+                              ? itemSum + (item.quantityPurchased || 0)
+                              : itemSum,
+                          0
+                        ),
+                      0
+                    )
+
+                    const totalPurchaseValue = productPurchases.reduce(
+                      (sum, purchase) =>
+                        sum +
+                        (purchase.items || []).reduce(
+                          (itemSum, item) =>
+                            item.productId === selectedProductForHistory.name
+                              ? itemSum +
+                              (item.quantityPurchased || 0) *
+                              (item.purchasePrice || 0)
+                              : itemSum,
+                          0
+                        ),
+                      0
+                    )
+
+                    const netMovement = totalPurchaseQuantity - totalSalesQuantity
+                    const profit = totalSalesValue - totalPurchaseValue
 
                     return (
                       <>
                         <div className="space-y-2">
-                          <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Total Sales</Label>
+                          <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">
+                            Total Sales
+                          </Label>
                           <p className="font-semibold text-lg text-green-600 dark:text-green-400">
                             {totalSalesQuantity} units
                           </p>
@@ -1602,8 +1669,11 @@ export default function ProductsPage() {
                             Rs {totalSalesValue.toLocaleString()}
                           </p>
                         </div>
+
                         <div className="space-y-2">
-                          <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Total Purchases</Label>
+                          <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">
+                            Total Purchases
+                          </Label>
                           <p className="font-semibold text-lg text-blue-600 dark:text-blue-400">
                             {totalPurchaseQuantity} units
                           </p>
@@ -1611,22 +1681,42 @@ export default function ProductsPage() {
                             Rs {totalPurchaseValue.toLocaleString()}
                           </p>
                         </div>
+
                         <div className="space-y-2">
-                          <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Net Movement</Label>
-                          <p className={`font-semibold text-lg ${totalPurchaseQuantity - totalSalesQuantity >= 0 ? 'text-blue-600 dark:text-blue-400' : 'text-red-600 dark:text-red-400'}`}>
-                            {totalPurchaseQuantity - totalSalesQuantity} units
+                          <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">
+                            Net Movement
+                          </Label>
+                          <p
+                            className={`font-semibold text-lg ${netMovement >= 0
+                                ? "text-blue-600 dark:text-blue-400"
+                                : "text-red-600 dark:text-red-400"
+                              }`}
+                          >
+                            {netMovement} units
                           </p>
                           <p className="text-gray-700 dark:text-gray-300 text-sm">
-                            {totalPurchaseQuantity - totalSalesQuantity >= 0 ? 'Net Inflow' : 'Net Outflow'}
+                            {netMovement >= 0 ? "Net Inflow" : "Net Outflow"}
                           </p>
                         </div>
+
                         <div className="space-y-2">
-                          <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Profit Margin</Label>
-                          <p className={`font-semibold text-lg ${totalSalesValue - totalPurchaseValue >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                            Rs {(totalSalesValue - totalPurchaseValue).toLocaleString()}
+                          <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">
+                            Profit Margin
+                          </Label>
+                          <p
+                            className={`font-semibold text-lg ${profit >= 0
+                                ? "text-green-600 dark:text-green-400"
+                                : "text-red-600 dark:text-red-400"
+                              }`}
+                          >
+                            Rs {profit.toLocaleString()}
                           </p>
                           <p className="text-gray-700 dark:text-gray-300 text-sm">
-                            {totalPurchaseValue > 0 ? `${(((totalSalesValue - totalPurchaseValue) / totalPurchaseValue) * 100).toFixed(1)}% margin` : 'N/A'}
+                            {totalPurchaseValue > 0
+                              ? `${((profit / totalPurchaseValue) * 100).toFixed(
+                                1
+                              )}% margin`
+                              : "N/A"}
                           </p>
                         </div>
                       </>
@@ -1639,13 +1729,22 @@ export default function ProductsPage() {
               <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-6">
                 <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center space-x-2">
                   <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                  <span>Sales Transactions ({(() => {
-                    const currentYear = getCurrentNepaliYear()
-                    return sales.filter(sale =>
-                      sale.productName === selectedProductForHistory.name &&
-                      getNepaliYear(sale.saleDate) === currentYear
-                    ).length
-                  })()})</span>
+                  <span>
+                    Sales Transactions (
+                    {(() => {
+                      const currentYear = getCurrentNepaliYear()
+
+                      return sales.filter((sale) => {
+                        const itemNames = sale.items?.map((i) => i.productId) || []
+
+                        return (
+                          itemNames.includes(selectedProductForHistory.name) &&
+                          getNepaliYear(sale.saleDate) === currentYear
+                        )
+                      }).length
+                    })()}
+                    )
+                  </span>
                 </h3>
                 <div className="overflow-x-auto">
                   <Table>
@@ -1661,39 +1760,73 @@ export default function ProductsPage() {
                     <TableBody>
                       {(() => {
                         const currentYear = getCurrentNepaliYear()
-                        const productSales = sales.filter(sale =>
-                          sale.productName === selectedProductForHistory.name &&
-                          getNepaliYear(sale.saleDate) === currentYear
-                        ).sort((a, b) => new Date(b.saleDate).getTime() - new Date(a.saleDate).getTime())
 
-                        return productSales.length > 0 ? (
-                          productSales.map((sale) => (
-                            <TableRow key={sale.id} className="hover:bg-gray-100 dark:hover:bg-gray-700/50">
-                              <TableCell className="text-gray-700 dark:text-gray-300">
-                                {formatNepaliDateForTable(sale.saleDate)}
-                              </TableCell>
-                              <TableCell className="font-medium text-gray-900 dark:text-gray-100">
-                                <span
-                                  className="cursor-pointer hover:text-teal-600 dark:hover:text-teal-400 transition-colors"
-                                  onClick={() => handleClientClick(sale.client)}
-                                >
-                                  {sale.client}
-                                </span>
-                              </TableCell>
-                              <TableCell className="text-gray-700 dark:text-gray-300">
-                                {sale.quantitySold} units
-                              </TableCell>
-                              <TableCell className="text-gray-700 dark:text-gray-300">
-                                Rs {sale.salePrice.toLocaleString()}
-                              </TableCell>
-                              <TableCell className="font-semibold text-green-600 dark:text-green-400">
-                                Rs {(sale.quantitySold * sale.salePrice).toLocaleString()}
-                              </TableCell>
-                            </TableRow>
-                          ))
+                        const productSales = sales
+                          .filter((sale) => {
+                            const itemNames = sale.items?.map((i) => i.productId) || []
+
+                            return (
+                              itemNames.includes(selectedProductForHistory.name) &&
+                              getNepaliYear(sale.saleDate) === currentYear
+                            )
+                          })
+                          .sort(
+                            (a, b) =>
+                              new Date(b.saleDate).getTime() -
+                              new Date(a.saleDate).getTime()
+                          )
+
+                        const rows = productSales.flatMap((sale) =>
+                          (sale.items || []).map((item, index) => {
+                            if (item.productId !== selectedProductForHistory.name) return null
+
+                            const total =
+                              (item.quantitySold || 0) * (item.salePrice || 0)
+
+                            return (
+                              <TableRow
+                                key={`${sale.id}-${index}`}
+                                className="hover:bg-gray-100 dark:hover:bg-gray-700/50"
+                              >
+                                <TableCell className="text-gray-700 dark:text-gray-300">
+                                  {formatNepaliDateForTable(sale.saleDate)}
+                                </TableCell>
+
+                                <TableCell className="font-medium text-gray-900 dark:text-gray-100">
+                                  <span
+                                    className="cursor-pointer hover:text-teal-600 dark:hover:text-teal-400 transition-colors"
+                                    onClick={() => handleClientClick(sale.client)}
+                                  >
+                                    {sale.client}
+                                  </span>
+                                </TableCell>
+
+                                <TableCell className="text-gray-700 dark:text-gray-300">
+                                  {item.quantitySold} units
+                                </TableCell>
+
+                                <TableCell className="text-gray-700 dark:text-gray-300">
+                                  Rs {Number(item.salePrice || 0).toLocaleString()}
+                                </TableCell>
+
+                                <TableCell className="font-semibold text-green-600 dark:text-green-400">
+                                  Rs {total.toLocaleString()}
+                                </TableCell>
+                              </TableRow>
+                            )
+                          })
+                        )
+
+                        const filteredRows = rows.filter(Boolean)
+
+                        return filteredRows.length > 0 ? (
+                          filteredRows
                         ) : (
                           <TableRow>
-                            <TableCell colSpan={5} className="text-center py-8 text-gray-500 dark:text-gray-400">
+                            <TableCell
+                              colSpan={5}
+                              className="text-center py-8 text-gray-500 dark:text-gray-400"
+                            >
                               No sales transactions found for this product in {currentYear}
                             </TableCell>
                           </TableRow>
@@ -1708,13 +1841,22 @@ export default function ProductsPage() {
               <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-6">
                 <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center space-x-2">
                   <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                  <span>Purchase Transactions ({(() => {
-                    const currentYear = getCurrentNepaliYear()
-                    return purchases.filter(purchase =>
-                      purchase.productName === selectedProductForHistory.name &&
-                      getNepaliYear(purchase.purchaseDate) === currentYear
-                    ).length
-                  })()})</span>
+                  <span>
+                    Purchase Transactions (
+                    {(() => {
+                      const currentYear = getCurrentNepaliYear()
+
+                      return purchases.filter((purchase) => {
+                        const itemNames = purchase.items?.map((i) => i.productId) || []
+
+                        return (
+                          itemNames.includes(selectedProductForHistory.name) &&
+                          getNepaliYear(purchase.purchaseDate) === currentYear
+                        )
+                      }).length
+                    })()}
+                    )
+                  </span>
                 </h3>
                 <div className="overflow-x-auto">
                   <Table>
@@ -1730,39 +1872,74 @@ export default function ProductsPage() {
                     <TableBody>
                       {(() => {
                         const currentYear = getCurrentNepaliYear()
-                        const productPurchases = purchases.filter(purchase =>
-                          purchase.productName === selectedProductForHistory.name &&
-                          getNepaliYear(purchase.purchaseDate) === currentYear
-                        ).sort((a, b) => new Date(b.purchaseDate).getTime() - new Date(a.purchaseDate).getTime())
 
-                        return productPurchases.length > 0 ? (
-                          productPurchases.map((purchase) => (
-                            <TableRow key={purchase.id} className="hover:bg-gray-100 dark:hover:bg-gray-700/50">
-                              <TableCell className="text-gray-700 dark:text-gray-300">
-                                {formatNepaliDateForTable(purchase.purchaseDate)}
-                              </TableCell>
-                              <TableCell className="font-medium text-gray-900 dark:text-gray-100">
-                                <span
-                                  className="cursor-pointer hover:text-orange-600 dark:hover:text-orange-400 transition-colors"
-                                  onClick={() => handleSupplierClick(purchase.supplier)}
-                                >
-                                  {purchase.supplier}
-                                </span>
-                              </TableCell>
-                              <TableCell className="text-gray-700 dark:text-gray-300">
-                                {purchase.quantityPurchased} units
-                              </TableCell>
-                              <TableCell className="text-gray-700 dark:text-gray-300">
-                                Rs {purchase.purchasePrice.toLocaleString()}
-                              </TableCell>
-                              <TableCell className="font-semibold text-blue-600 dark:text-blue-400">
-                                Rs {(purchase.quantityPurchased * purchase.purchasePrice).toLocaleString()}
-                              </TableCell>
-                            </TableRow>
-                          ))
+                        const productPurchases = purchases
+                          .filter((purchase) => {
+                            const itemNames = purchase.items?.map((i) => i.productId) || []
+
+                            return (
+                              itemNames.includes(selectedProductForHistory.name) &&
+                              getNepaliYear(purchase.purchaseDate) === currentYear
+                            )
+                          })
+                          .sort(
+                            (a, b) =>
+                              new Date(b.purchaseDate).getTime() -
+                              new Date(a.purchaseDate).getTime()
+                          )
+
+                        const rows = productPurchases.flatMap((purchase) =>
+                          (purchase.items || []).map((item, index) => {
+                            if (item.productId !== selectedProductForHistory.name) return null
+
+                            const total =
+                              (item.quantityPurchased || 0) *
+                              (item.purchasePrice || 0)
+
+                            return (
+                              <TableRow
+                                key={`${purchase.id}-${index}`}
+                                className="hover:bg-gray-100 dark:hover:bg-gray-700/50"
+                              >
+                                <TableCell className="text-gray-700 dark:text-gray-300">
+                                  {formatNepaliDateForTable(purchase.purchaseDate)}
+                                </TableCell>
+
+                                <TableCell className="font-medium text-gray-900 dark:text-gray-100">
+                                  <span
+                                    className="cursor-pointer hover:text-orange-600 dark:hover:text-orange-400 transition-colors"
+                                    onClick={() => handleSupplierClick(purchase.supplier)}
+                                  >
+                                    {purchase.supplier}
+                                  </span>
+                                </TableCell>
+
+                                <TableCell className="text-gray-700 dark:text-gray-300">
+                                  {item.quantityPurchased} units
+                                </TableCell>
+
+                                <TableCell className="text-gray-700 dark:text-gray-300">
+                                  Rs {Number(item.purchasePrice || 0).toLocaleString()}
+                                </TableCell>
+
+                                <TableCell className="font-semibold text-blue-600 dark:text-blue-400">
+                                  Rs {total.toLocaleString()}
+                                </TableCell>
+                              </TableRow>
+                            )
+                          })
+                        )
+
+                        const filteredRows = rows.filter(Boolean)
+
+                        return filteredRows.length > 0 ? (
+                          filteredRows
                         ) : (
                           <TableRow>
-                            <TableCell colSpan={6} className="text-center py-8 text-gray-500 dark:text-gray-400">
+                            <TableCell
+                              colSpan={6}
+                              className="text-center py-8 text-gray-500 dark:text-gray-400"
+                            >
                               No purchase transactions found for this product in {currentYear}
                             </TableCell>
                           </TableRow>
@@ -1858,27 +2035,90 @@ export default function ProductsPage() {
                 <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
                   {(() => {
                     const currentYear = getCurrentNepaliYear()
-                    const categoryProducts = products.filter(p => p.category === selectedCategoryForHistory)
-                    const categoryProductNames = categoryProducts.map(p => p.name)
 
-                    const categorySales = sales.filter(sale =>
-                      categoryProductNames.includes(sale.productName) &&
-                      getNepaliYear(sale.saleDate) === currentYear
+                    const categoryProducts = products.filter(
+                      (p) => p.category === selectedCategoryForHistory
                     )
-                    const categoryPurchases = purchases.filter(purchase =>
-                      categoryProductNames.includes(purchase.productName) &&
-                      getNepaliYear(purchase.purchaseDate) === currentYear
+                    const categoryProductNames = categoryProducts.map((p) => p.name)
+
+                    const categorySales = sales.filter((sale) => {
+                      const itemNames = sale.items?.map((i) => i.productId) || []
+
+                      return (
+                        itemNames.some((name) =>
+                          categoryProductNames.includes(name)
+                        ) &&
+                        getNepaliYear(sale.saleDate) === currentYear
+                      )
+                    })
+
+                    const categoryPurchases = purchases.filter((purchase) => {
+                      const itemNames = purchase.items?.map((i) => i.productId) || []
+
+                      return (
+                        itemNames.some((name) =>
+                          categoryProductNames.includes(name)
+                        ) &&
+                        getNepaliYear(purchase.purchaseDate) === currentYear
+                      )
+                    })
+
+                    const totalSalesQuantity = categorySales.reduce(
+                      (sum, sale) =>
+                        sum +
+                        (sale.items || []).reduce(
+                          (itemSum, item) => itemSum + (item.quantitySold || 0),
+                          0
+                        ),
+                      0
                     )
 
-                    const totalSalesQuantity = categorySales.reduce((sum, sale) => sum + sale.quantitySold, 0)
-                    const totalSalesValue = categorySales.reduce((sum, sale) => sum + (sale.quantitySold * sale.salePrice), 0)
-                    const totalPurchaseQuantity = categoryPurchases.reduce((sum, purchase) => sum + purchase.quantityPurchased, 0)
-                    const totalPurchaseValue = categoryPurchases.reduce((sum, purchase) => sum + (purchase.quantityPurchased * purchase.purchasePrice), 0)
+                    const totalSalesValue = categorySales.reduce(
+                      (sum, sale) =>
+                        sum +
+                        (sale.items || []).reduce(
+                          (itemSum, item) =>
+                            itemSum +
+                            (item.quantitySold || 0) *
+                            (item.salePrice || 0),
+                          0
+                        ),
+                      0
+                    )
+
+                    const totalPurchaseQuantity = categoryPurchases.reduce(
+                      (sum, purchase) =>
+                        sum +
+                        (purchase.items || []).reduce(
+                          (itemSum, item) =>
+                            itemSum + (item.quantityPurchased || 0),
+                          0
+                        ),
+                      0
+                    )
+
+                    const totalPurchaseValue = categoryPurchases.reduce(
+                      (sum, purchase) =>
+                        sum +
+                        (purchase.items || []).reduce(
+                          (itemSum, item) =>
+                            itemSum +
+                            (item.quantityPurchased || 0) *
+                            (item.purchasePrice || 0),
+                          0
+                        ),
+                      0
+                    )
+
+                    const netMovement = totalPurchaseQuantity - totalSalesQuantity
+                    const profit = totalSalesValue - totalPurchaseValue
 
                     return (
                       <>
                         <div className="space-y-2">
-                          <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Total Sales</Label>
+                          <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">
+                            Total Sales
+                          </Label>
                           <p className="font-semibold text-lg text-green-600 dark:text-green-400">
                             {totalSalesQuantity} units
                           </p>
@@ -1886,8 +2126,11 @@ export default function ProductsPage() {
                             Rs {totalSalesValue.toLocaleString()}
                           </p>
                         </div>
+
                         <div className="space-y-2">
-                          <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Total Purchases</Label>
+                          <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">
+                            Total Purchases
+                          </Label>
                           <p className="font-semibold text-lg text-blue-600 dark:text-blue-400">
                             {totalPurchaseQuantity} units
                           </p>
@@ -1895,22 +2138,42 @@ export default function ProductsPage() {
                             Rs {totalPurchaseValue.toLocaleString()}
                           </p>
                         </div>
+
                         <div className="space-y-2">
-                          <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Net Movement</Label>
-                          <p className={`font-semibold text-lg ${totalPurchaseQuantity - totalSalesQuantity >= 0 ? 'text-blue-600 dark:text-blue-400' : 'text-red-600 dark:text-red-400'}`}>
-                            {totalPurchaseQuantity - totalSalesQuantity} units
+                          <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">
+                            Net Movement
+                          </Label>
+                          <p
+                            className={`font-semibold text-lg ${netMovement >= 0
+                              ? "text-blue-600 dark:text-blue-400"
+                              : "text-red-600 dark:text-red-400"
+                              }`}
+                          >
+                            {netMovement} units
                           </p>
                           <p className="text-gray-700 dark:text-gray-300 text-sm">
-                            {totalPurchaseQuantity - totalSalesQuantity >= 0 ? 'Net Inflow' : 'Net Outflow'}
+                            {netMovement >= 0 ? "Net Inflow" : "Net Outflow"}
                           </p>
                         </div>
+
                         <div className="space-y-2">
-                          <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Profit Margin</Label>
-                          <p className={`font-semibold text-lg ${totalSalesValue - totalPurchaseValue >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                            Rs {(totalSalesValue - totalPurchaseValue).toLocaleString()}
+                          <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">
+                            Profit Margin
+                          </Label>
+                          <p
+                            className={`font-semibold text-lg ${profit >= 0
+                              ? "text-green-600 dark:text-green-400"
+                              : "text-red-600 dark:text-red-400"
+                              }`}
+                          >
+                            Rs {profit.toLocaleString()}
                           </p>
                           <p className="text-gray-700 dark:text-gray-300 text-sm">
-                            {totalPurchaseValue > 0 ? `${(((totalSalesValue - totalPurchaseValue) / totalPurchaseValue) * 100).toFixed(1)}% margin` : 'N/A'}
+                            {totalPurchaseValue > 0
+                              ? `${((profit / totalPurchaseValue) * 100).toFixed(
+                                1
+                              )}% margin`
+                              : "N/A"}
                           </p>
                         </div>
                       </>
@@ -1971,15 +2234,29 @@ export default function ProductsPage() {
               <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-6">
                 <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center space-x-2">
                   <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                  <span>Sales Transactions ({(() => {
-                    const currentYear = getCurrentNepaliYear()
-                    const categoryProducts = products.filter(p => p.category === selectedCategoryForHistory)
-                    const categoryProductNames = categoryProducts.map(p => p.name)
-                    return sales.filter(sale =>
-                      categoryProductNames.includes(sale.productName) &&
-                      getNepaliYear(sale.saleDate) === currentYear
-                    ).length
-                  })()})</span>
+                  <span>
+                    Sales Transactions (
+                    {(() => {
+                      const currentYear = getCurrentNepaliYear()
+
+                      const categoryProducts = products.filter(
+                        (p) => p.category === selectedCategoryForHistory
+                      )
+                      const categoryProductNames = categoryProducts.map((p) => p.name)
+
+                      return sales.filter((sale) => {
+                        const itemNames = sale.items?.map((i) => i.productId) || []
+
+                        return (
+                          itemNames.some((name) =>
+                            categoryProductNames.includes(name)
+                          ) &&
+                          getNepaliYear(sale.saleDate) === currentYear
+                        )
+                      }).length
+                    })()}
+                    )
+                  </span>
                 </h3>
                 <div className="overflow-x-auto">
                   <Table>
@@ -1996,44 +2273,80 @@ export default function ProductsPage() {
                     <TableBody>
                       {(() => {
                         const currentYear = getCurrentNepaliYear()
-                        const categoryProducts = products.filter(p => p.category === selectedCategoryForHistory)
-                        const categoryProductNames = categoryProducts.map(p => p.name)
-                        const categorySales = sales.filter(sale =>
-                          categoryProductNames.includes(sale.productName) &&
-                          getNepaliYear(sale.saleDate) === currentYear
-                        ).sort((a, b) => new Date(b.saleDate).getTime() - new Date(a.saleDate).getTime())
 
-                        return categorySales.length > 0 ? (
-                          categorySales.map((sale) => (
-                            <TableRow key={sale.id} className="hover:bg-gray-100 dark:hover:bg-gray-700/50">
-                              <TableCell className="text-gray-700 dark:text-gray-300">
-                                {formatNepaliDateForTable(sale.saleDate)}
-                              </TableCell>
-                              <TableCell className="font-medium text-gray-900 dark:text-gray-100">
-                                {sale.productName}
-                              </TableCell>
-                              <TableCell className="font-medium text-gray-900 dark:text-gray-100">
-                                <span
-                                  className="cursor-pointer hover:text-teal-600 dark:hover:text-teal-400 transition-colors"
-                                  onClick={() => handleClientClick(sale.client)}
-                                >
-                                  {sale.client}
-                                </span>
-                              </TableCell>
-                              <TableCell className="text-gray-700 dark:text-gray-300">
-                                {sale.quantitySold} units
-                              </TableCell>
-                              <TableCell className="text-gray-700 dark:text-gray-300">
-                                Rs {sale.salePrice.toLocaleString()}
-                              </TableCell>
-                              <TableCell className="font-semibold text-green-600 dark:text-green-400">
-                                Rs {(sale.quantitySold * sale.salePrice).toLocaleString()}
-                              </TableCell>
-                            </TableRow>
-                          ))
+                        const categoryProducts = products.filter(
+                          (p) => p.category === selectedCategoryForHistory
+                        )
+                        const categoryProductNames = categoryProducts.map((p) => p.name)
+
+                        const categorySales = sales
+                          .filter((sale) => {
+                            const itemNames = sale.items?.map((i) => i.productId) || []
+
+                            return (
+                              itemNames.some((name) =>
+                                categoryProductNames.includes(name)
+                              ) &&
+                              getNepaliYear(sale.saleDate) === currentYear
+                            )
+                          })
+                          .sort(
+                            (a, b) =>
+                              new Date(b.saleDate).getTime() -
+                              new Date(a.saleDate).getTime()
+                          )
+
+                        const rows = categorySales.flatMap((sale) =>
+                          (sale.items || []).map((item, index) => {
+                            const total =
+                              (item.quantitySold || 0) * (item.salePrice || 0)
+
+                            return (
+                              <TableRow
+                                key={`${sale.id}-${index}`}
+                                className="hover:bg-gray-100 dark:hover:bg-gray-700/50"
+                              >
+                                <TableCell className="text-gray-700 dark:text-gray-300">
+                                  {formatNepaliDateForTable(sale.saleDate)}
+                                </TableCell>
+
+                                <TableCell className="font-medium text-gray-900 dark:text-gray-100">
+                                  {item.productId}
+                                </TableCell>
+
+                                <TableCell className="font-medium text-gray-900 dark:text-gray-100">
+                                  <span
+                                    className="cursor-pointer hover:text-teal-600 dark:hover:text-teal-400 transition-colors"
+                                    onClick={() => handleClientClick(sale.client)}
+                                  >
+                                    {sale.client}
+                                  </span>
+                                </TableCell>
+
+                                <TableCell className="text-gray-700 dark:text-gray-300">
+                                  {item.quantitySold} units
+                                </TableCell>
+
+                                <TableCell className="text-gray-700 dark:text-gray-300">
+                                  Rs {Number(item.salePrice || 0).toLocaleString()}
+                                </TableCell>
+
+                                <TableCell className="font-semibold text-green-600 dark:text-green-400">
+                                  Rs {total.toLocaleString()}
+                                </TableCell>
+                              </TableRow>
+                            )
+                          })
+                        )
+
+                        return rows.length > 0 ? (
+                          rows
                         ) : (
                           <TableRow>
-                            <TableCell colSpan={6} className="text-center py-8 text-gray-500 dark:text-gray-400">
+                            <TableCell
+                              colSpan={6}
+                              className="text-center py-8 text-gray-500 dark:text-gray-400"
+                            >
                               No sales transactions found for this category in {currentYear}
                             </TableCell>
                           </TableRow>
@@ -2048,15 +2361,29 @@ export default function ProductsPage() {
               <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-6">
                 <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center space-x-2">
                   <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                  <span>Purchase Transactions ({(() => {
-                    const currentYear = getCurrentNepaliYear()
-                    const categoryProducts = products.filter(p => p.category === selectedCategoryForHistory)
-                    const categoryProductNames = categoryProducts.map(p => p.name)
-                    return purchases.filter(purchase =>
-                      categoryProductNames.includes(purchase.productName) &&
-                      getNepaliYear(purchase.purchaseDate) === currentYear
-                    ).length
-                  })()})</span>
+                  <span>
+                    Purchase Transactions (
+                    {(() => {
+                      const currentYear = getCurrentNepaliYear()
+
+                      const categoryProducts = products.filter(
+                        (p) => p.category === selectedCategoryForHistory
+                      )
+                      const categoryProductNames = categoryProducts.map((p) => p.name)
+
+                      return purchases.filter((purchase) => {
+                        const itemNames = purchase.items?.map((i) => i.productId) || []
+
+                        return (
+                          itemNames.some((name) =>
+                            categoryProductNames.includes(name)
+                          ) &&
+                          getNepaliYear(purchase.purchaseDate) === currentYear
+                        )
+                      }).length
+                    })()}
+                    )
+                  </span>
                 </h3>
                 <div className="overflow-x-auto">
                   <Table>
@@ -2073,44 +2400,79 @@ export default function ProductsPage() {
                     <TableBody>
                       {(() => {
                         const currentYear = getCurrentNepaliYear()
-                        const categoryProducts = products.filter(p => p.category === selectedCategoryForHistory)
-                        const categoryProductNames = categoryProducts.map(p => p.name)
-                        const categoryPurchases = purchases.filter(purchase =>
-                          categoryProductNames.includes(purchase.productName) &&
-                          getNepaliYear(purchase.purchaseDate) === currentYear
-                        ).sort((a, b) => new Date(b.purchaseDate).getTime() - new Date(a.purchaseDate).getTime())
 
-                        return categoryPurchases.length > 0 ? (
-                          categoryPurchases.map((purchase) => (
-                            <TableRow key={purchase.id} className="hover:bg-gray-100 dark:hover:bg-gray-700/50">
-                              <TableCell className="text-gray-700 dark:text-gray-300">
-                                {formatNepaliDateForTable(purchase.purchaseDate)}
-                              </TableCell>
-                              <TableCell className="font-medium text-gray-900 dark:text-gray-100">
-                                {purchase.productName}
-                              </TableCell>
-                              <TableCell className="font-medium text-gray-900 dark:text-gray-100">
-                                <span
-                                  className="cursor-pointer hover:text-orange-600 dark:hover:text-orange-400 transition-colors"
-                                  onClick={() => handleSupplierClick(purchase.supplier)}
-                                >
-                                  {purchase.supplier}
-                                </span>
-                              </TableCell>
-                              <TableCell className="text-gray-700 dark:text-gray-300">
-                                {purchase.quantityPurchased} units
-                              </TableCell>
-                              <TableCell className="text-gray-700 dark:text-gray-300">
-                                Rs {purchase.purchasePrice.toLocaleString()}
-                              </TableCell>
-                              <TableCell className="font-semibold text-blue-600 dark:text-blue-400">
-                                Rs {(purchase.quantityPurchased * purchase.purchasePrice).toLocaleString()}
-                              </TableCell>
-                            </TableRow>
-                          ))
+                        const categoryProducts = products.filter(
+                          (p) => p.category === selectedCategoryForHistory
+                        )
+                        const categoryProductNames = categoryProducts.map((p) => p.name)
+
+                        const categoryPurchases = purchases
+                          .filter((purchase) => {
+                            const itemNames = purchase.items?.map((i) => i.productId) || []
+
+                            return (
+                              itemNames.some((name) => categoryProductNames.includes(name)) &&
+                              getNepaliYear(purchase.purchaseDate) === currentYear
+                            )
+                          })
+                          .sort(
+                            (a, b) =>
+                              new Date(b.purchaseDate).getTime() -
+                              new Date(a.purchaseDate).getTime()
+                          )
+
+                        const rows = categoryPurchases.flatMap((purchase) =>
+                          (purchase.items || []).map((item, index) => {
+                            const total =
+                              (item.quantityPurchased || 0) *
+                              (item.purchasePrice || 0)
+
+                            return (
+                              <TableRow
+                                key={`${purchase.id}-${index}`}
+                                className="hover:bg-gray-100 dark:hover:bg-gray-700/50"
+                              >
+                                <TableCell className="text-gray-700 dark:text-gray-300">
+                                  {formatNepaliDateForTable(purchase.purchaseDate)}
+                                </TableCell>
+
+                                <TableCell className="font-medium text-gray-900 dark:text-gray-100">
+                                  {item.productId}
+                                </TableCell>
+
+                                <TableCell className="font-medium text-gray-900 dark:text-gray-100">
+                                  <span
+                                    className="cursor-pointer hover:text-orange-600 dark:hover:text-orange-400 transition-colors"
+                                    onClick={() => handleSupplierClick(purchase.supplier)}
+                                  >
+                                    {purchase.supplier}
+                                  </span>
+                                </TableCell>
+
+                                <TableCell className="text-gray-700 dark:text-gray-300">
+                                  {item.quantityPurchased} units
+                                </TableCell>
+
+                                <TableCell className="text-gray-700 dark:text-gray-300">
+                                  Rs {Number(item.purchasePrice || 0).toLocaleString()}
+                                </TableCell>
+
+                                <TableCell className="font-semibold text-blue-600 dark:text-blue-400">
+                                  Rs {total.toLocaleString()}
+                                </TableCell>
+                              </TableRow>
+                            )
+                          })
+                        )
+
+                        return rows.length > 0 ? (
+                          rows
                         ) : (
                           <TableRow>
-                            <TableCell colSpan={6} className="text-center py-8 text-gray-500 dark:text-gray-400">
+                            <TableCell
+                              colSpan={6}
+                              className="text-center py-8 text-gray-500 dark:text-gray-400"
+                            >
                               No purchase transactions found for this category in {currentYear}
                             </TableCell>
                           </TableRow>
@@ -2173,15 +2535,55 @@ export default function ProductsPage() {
                     </p>
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Total Quantity</Label>
+                    <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">
+                      Total Quantity
+                    </Label>
                     <p className="text-gray-900 dark:text-gray-100 font-semibold text-lg">
-                      {purchases.filter(p => p.supplier === selectedSupplierForHistory && getNepaliYear(p.purchaseDate) === getCurrentNepaliYear()).reduce((sum, p) => sum + p.quantityPurchased, 0)} units
+                      {purchases
+                        .filter(
+                          (p) =>
+                            p.supplier === selectedSupplierForHistory &&
+                            getNepaliYear(p.purchaseDate) === getCurrentNepaliYear()
+                        )
+                        .reduce(
+                          (sum, p) =>
+                            sum +
+                            (p.items || []).reduce(
+                              (itemSum, item) =>
+                                itemSum + (item.quantityPurchased || 0),
+                              0
+                            ),
+                          0
+                        )}{" "}
+                      units
                     </p>
                   </div>
+
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Total Value</Label>
+                    <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">
+                      Total Value
+                    </Label>
                     <p className="font-semibold text-lg text-orange-600 dark:text-orange-400">
-                      Rs {purchases.filter(p => p.supplier === selectedSupplierForHistory && getNepaliYear(p.purchaseDate) === getCurrentNepaliYear()).reduce((sum, p) => sum + (p.quantityPurchased * p.purchasePrice), 0).toLocaleString()}
+                      Rs{" "}
+                      {purchases
+                        .filter(
+                          (p) =>
+                            p.supplier === selectedSupplierForHistory &&
+                            getNepaliYear(p.purchaseDate) === getCurrentNepaliYear()
+                        )
+                        .reduce(
+                          (sum, p) =>
+                            sum +
+                            (p.items || []).reduce(
+                              (itemSum, item) =>
+                                itemSum +
+                                (item.quantityPurchased || 0) *
+                                (item.purchasePrice || 0),
+                              0
+                            ),
+                          0
+                        )
+                        .toLocaleString()}
                     </p>
                   </div>
                 </div>
@@ -2207,34 +2609,62 @@ export default function ProductsPage() {
                     <TableBody>
                       {(() => {
                         const currentYear = getCurrentNepaliYear()
-                        const supplierPurchases = purchases.filter(purchase =>
-                          purchase.supplier === selectedSupplierForHistory &&
-                          getNepaliYear(purchase.purchaseDate) === currentYear
-                        ).sort((a, b) => new Date(b.purchaseDate).getTime() - new Date(a.purchaseDate).getTime())
 
-                        return supplierPurchases.length > 0 ? (
-                          supplierPurchases.map((purchase) => (
-                            <TableRow key={purchase.id} className="hover:bg-gray-100 dark:hover:bg-gray-700/50">
-                              <TableCell className="text-gray-700 dark:text-gray-300">
-                                {formatNepaliDateForTable(purchase.purchaseDate)}
-                              </TableCell>
-                              <TableCell className="font-medium text-gray-900 dark:text-gray-100">
-                                {purchase.productName}
-                              </TableCell>
-                              <TableCell className="text-gray-700 dark:text-gray-300">
-                                {purchase.quantityPurchased} units
-                              </TableCell>
-                              <TableCell className="text-gray-700 dark:text-gray-300">
-                                Rs {purchase.purchasePrice.toLocaleString()}
-                              </TableCell>
-                              <TableCell className="font-semibold text-blue-600 dark:text-blue-400">
-                                Rs {(purchase.quantityPurchased * purchase.purchasePrice).toLocaleString()}
-                              </TableCell>
-                            </TableRow>
-                          ))
+                        const supplierPurchases = purchases
+                          .filter(
+                            (purchase) =>
+                              purchase.supplier === selectedSupplierForHistory &&
+                              getNepaliYear(purchase.purchaseDate) === currentYear
+                          )
+                          .sort(
+                            (a, b) =>
+                              new Date(b.purchaseDate).getTime() -
+                              new Date(a.purchaseDate).getTime()
+                          )
+
+                        const rows = supplierPurchases.flatMap((purchase) =>
+                          (purchase.items || []).map((item, index) => {
+                            const totalPrice =
+                              (item.quantityPurchased || 0) *
+                              (item.purchasePrice || 0)
+
+                            return (
+                              <TableRow
+                                key={`${purchase.id}-${index}`}
+                                className="hover:bg-gray-100 dark:hover:bg-gray-700/50"
+                              >
+                                <TableCell className="text-gray-700 dark:text-gray-300">
+                                  {formatNepaliDateForTable(purchase.purchaseDate)}
+                                </TableCell>
+
+                                <TableCell className="font-medium text-gray-900 dark:text-gray-100">
+                                  {item.productId}
+                                </TableCell>
+
+                                <TableCell className="text-gray-700 dark:text-gray-300">
+                                  {item.quantityPurchased} units
+                                </TableCell>
+
+                                <TableCell className="text-gray-700 dark:text-gray-300">
+                                  Rs {Number(item.purchasePrice || 0).toLocaleString()}
+                                </TableCell>
+
+                                <TableCell className="font-semibold text-blue-600 dark:text-blue-400">
+                                  Rs {totalPrice.toLocaleString()}
+                                </TableCell>
+                              </TableRow>
+                            )
+                          })
+                        )
+
+                        return rows.length > 0 ? (
+                          rows
                         ) : (
                           <TableRow>
-                            <TableCell colSpan={5} className="text-center py-8 text-gray-500 dark:text-gray-400">
+                            <TableCell
+                              colSpan={5}
+                              className="text-center py-8 text-gray-500 dark:text-gray-400"
+                            >
                               No purchase transactions found for this supplier in {currentYear}
                             </TableCell>
                           </TableRow>
@@ -2297,15 +2727,54 @@ export default function ProductsPage() {
                     </p>
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Total Quantity</Label>
+                    <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">
+                      Total Quantity
+                    </Label>
                     <p className="text-gray-900 dark:text-gray-100 font-semibold text-lg">
-                      {sales.filter(s => s.client === selectedClientForHistory && getNepaliYear(s.saleDate) === getCurrentNepaliYear()).reduce((sum, s) => sum + s.quantitySold, 0)} units
+                      {purchases
+                        .filter(
+                          (p) =>
+                            p.supplier === selectedSupplierForHistory &&
+                            getNepaliYear(p.purchaseDate) === getCurrentNepaliYear()
+                        )
+                        .reduce(
+                          (sum, p) =>
+                            sum +
+                            (p.items || []).reduce(
+                              (itemSum, item) => itemSum + (item.quantityPurchased || 0),
+                              0
+                            ),
+                          0
+                        )}{" "}
+                      units
                     </p>
                   </div>
+
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Total Value</Label>
+                    <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">
+                      Total Value
+                    </Label>
                     <p className="font-semibold text-lg text-teal-600 dark:text-teal-400">
-                      Rs {sales.filter(s => s.client === selectedClientForHistory && getNepaliYear(s.saleDate) === getCurrentNepaliYear()).reduce((sum, s) => sum + (s.quantitySold * s.salePrice), 0).toLocaleString()}
+                      Rs{" "}
+                      {purchases
+                        .filter(
+                          (p) =>
+                            p.supplier === selectedSupplierForHistory &&
+                            getNepaliYear(p.purchaseDate) === getCurrentNepaliYear()
+                        )
+                        .reduce(
+                          (sum, p) =>
+                            sum +
+                            (p.items || []).reduce(
+                              (itemSum, item) =>
+                                itemSum +
+                                (item.quantityPurchased || 0) *
+                                (item.purchasePrice || 0),
+                              0
+                            ),
+                          0
+                        )
+                        .toLocaleString()}
                     </p>
                   </div>
                 </div>
@@ -2331,35 +2800,63 @@ export default function ProductsPage() {
                     <TableBody>
                       {(() => {
                         const currentYear = getCurrentNepaliYear()
-                        const clientSales = sales.filter(sale =>
-                          sale.client === selectedClientForHistory &&
-                          getNepaliYear(sale.saleDate) === currentYear
-                        ).sort((a, b) => new Date(b.saleDate).getTime() - new Date(a.saleDate).getTime())
 
-                        return clientSales.length > 0 ? (
-                          clientSales.map((sale) => (
-                            <TableRow key={sale.id} className="hover:bg-gray-100 dark:hover:bg-gray-700/50">
-                              <TableCell className="text-gray-700 dark:text-gray-300">
-                                {formatNepaliDateForTable(sale.saleDate)}
-                              </TableCell>
-                              <TableCell className="font-medium text-gray-900 dark:text-gray-100">
-                                {sale.productName}
-                              </TableCell>
-                              <TableCell className="text-gray-700 dark:text-gray-300">
-                                {sale.quantitySold} units
-                              </TableCell>
-                              <TableCell className="text-gray-700 dark:text-gray-300">
-                                Rs {sale.salePrice.toLocaleString()}
-                              </TableCell>
-                              <TableCell className="font-semibold text-green-600 dark:text-green-400">
-                                Rs {(sale.quantitySold * sale.salePrice).toLocaleString()}
-                              </TableCell>
-                            </TableRow>
-                          ))
+                        const clientPurchases = purchases
+                          .filter(
+                            (purchase) =>
+                              purchase.supplier === selectedSupplierForHistory &&
+                              getNepaliYear(purchase.purchaseDate) === currentYear
+                          )
+                          .sort(
+                            (a, b) =>
+                              new Date(b.purchaseDate).getTime() -
+                              new Date(a.purchaseDate).getTime()
+                          )
+
+                        const rows = clientPurchases.flatMap((purchase) =>
+                          (purchase.items || []).map((item, index) => {
+                            const totalPrice =
+                              (item.quantityPurchased || 0) *
+                              (item.purchasePrice || 0)
+
+                            return (
+                              <TableRow
+                                key={`${purchase.id}-${index}`}
+                                className="hover:bg-gray-100 dark:hover:bg-gray-700/50"
+                              >
+                                <TableCell className="text-gray-700 dark:text-gray-300">
+                                  {formatNepaliDateForTable(purchase.purchaseDate)}
+                                </TableCell>
+
+                                <TableCell className="font-medium text-gray-900 dark:text-gray-100">
+                                  {item.productId}
+                                </TableCell>
+
+                                <TableCell className="text-gray-700 dark:text-gray-300">
+                                  {item.quantityPurchased} units
+                                </TableCell>
+
+                                <TableCell className="text-gray-700 dark:text-gray-300">
+                                  Rs {Number(item.purchasePrice || 0).toLocaleString()}
+                                </TableCell>
+
+                                <TableCell className="font-semibold text-green-600 dark:text-green-400">
+                                  Rs {totalPrice.toLocaleString()}
+                                </TableCell>
+                              </TableRow>
+                            )
+                          })
+                        )
+
+                        return rows.length > 0 ? (
+                          rows
                         ) : (
                           <TableRow>
-                            <TableCell colSpan={5} className="text-center py-8 text-gray-500 dark:text-gray-400">
-                              No sales transactions found for this client in {currentYear}
+                            <TableCell
+                              colSpan={5}
+                              className="text-center py-8 text-gray-500 dark:text-gray-400"
+                            >
+                              No purchase transactions found for this supplier in {currentYear}
                             </TableCell>
                           </TableRow>
                         )
