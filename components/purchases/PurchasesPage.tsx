@@ -33,6 +33,14 @@ import PurchasesTable from "./PurchasesTable"
 import SupplierHistoryDialog from "./SupplierHistoryDialog"
 import ViewPurchaseDialog from "./ViewPurchaseDialog"
 
+type PurchaseItem = {
+  productId: string
+  quantityPurchased: number
+  purchasePrice: number
+}
+
+type ItemKey = keyof PurchaseItem
+
 export default function PurchasesPage() {
   const { products, purchases, suppliers, sales, addPurchase, updatePurchase, deletePurchase } = useInventory()
   const { user } = useAuth()
@@ -55,17 +63,20 @@ export default function PurchasesPage() {
   const [productFilter, setProductFilter] = useState("all")
   const [billUrl, setBillUrl] = useState<string>("");
   const initialFormData = {
-    productId: "",
-    customProductName: "",
+    items: [
+      {
+        productId: "",
+        quantityPurchased: 0,
+        purchasePrice: 0,
+      },
+    ],
     supplier: "",
     supplierType: "Company",
     customSupplier: "",
-    quantityPurchased: 0,
-    purchasePrice: 0,
-    category: "",
     purchaseDate: new Date().toISOString().split("T")[0],
-    netWeight: 0,
+    category: "",
   }
+
 
   const { formData, updateForm, resetForm } = usePersistentForm('purchases-form', initialFormData)
   const [editReason, setEditReason] = useState("")
@@ -81,6 +92,24 @@ export default function PurchasesPage() {
   const [newCategoryName, setNewCategoryName] = useState("")
   const [categoryFilter, setCategoryFilter] = useState("all")
 
+  const addItem = () => {
+    updateForm({
+      items: [...formData.items, { productId: "", quantityPurchased: 0, purchasePrice: 0 }],
+    })
+  }
+
+  const removeItem = (index: number) => {
+    updateForm({
+      items: formData.items.filter((_: any, i: number) => i !== index),
+    })
+  }
+
+  const updateItem = (index: number, key: ItemKey, value: any) => {
+    const updated = [...formData.items]
+    updated[index] = { ...updated[index], [key]: value }
+    updateForm({ items: updated })
+  }
+
   useEffect(() => {
     if (showSuccessAlert) {
       const timer = setTimeout(() => {
@@ -92,9 +121,9 @@ export default function PurchasesPage() {
 
   // Filter purchases based on search term (tab filter handled in PurchasesTable)
   const filteredPurchases = purchases.filter(
-    (purchase) =>
-      purchase.productName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      purchase.supplier.toLowerCase().includes(searchTerm.toLowerCase()),
+    (p) =>
+      (p.items?.map(i => i.productName).join(" ") || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (p?.supplier || "").toLowerCase().includes(searchTerm.toLowerCase())
   )
 
   const uploadBillToCloudinary = async (file: File): Promise<string> => {
@@ -193,74 +222,140 @@ export default function PurchasesPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    // Close form instantly
+
     setIsAddDialogOpen(false)
-    if (isLoading) return
     setIsLoading(true)
     setProgress(0)
+
     try {
-      toast({ title: "Processing...", description: "Validating purchase data...", duration: 2000 })
-      updateProgress("Validating purchase data...", 1, 5)
-      await new Promise(resolve => setTimeout(resolve, 500))
+      toast({
+        title: "Processing...",
+        description: "Validating purchase data...",
+        duration: 2000,
+      })
 
-      let uploadedBillUrl = "";
+      updateProgress("Validating purchase data...", 1, 6)
+      await new Promise((r) => setTimeout(r, 400))
+
+      // 1. Upload bill if exists
+      let uploadedBillUrl = ""
       if (billImage) {
-        uploadedBillUrl = await uploadBillToCloudinary(billImage);
+        uploadedBillUrl = await uploadBillToCloudinary(billImage)
       }
 
-      const isCustomProduct = productFilter === "custom"
-      const product = products.find((p) => p.id === formData.productId)
-      const productName = isCustomProduct ? formData.customProductName : product?.name
-      if (!productName) {
-        toast({
-          title: "Error",
-          description: "Please select or enter a product name.",
-          variant: "destructive",
-        })
+      updateProgress("Checking stock availability...", 2, 6)
 
-        return
-      }
-      if (productName) {
-        updateProgress("Checking product availability...", 2, 5)
-        await new Promise(resolve => setTimeout(resolve, 500))
+      // 2. VALIDATION FOR ALL ITEMS (optional since purchases add stock, but still validate)
+      for (const item of formData.items) {
+        const product = products.find((p) => p.id === item.productId)
 
-        if (user?.role === "admin") {
-          updateProgress("Recording purchase transaction...", 3, 5)
-          await new Promise(resolve => setTimeout(resolve, 500))
-
-          updateProgress("Updating inventory levels...", 4, 5)
-          const supplierName = formData.supplier === "custom" ? formData.customSupplier : formData.supplier
-          const { customSupplier, ...purchaseData } = formData
-          await addPurchase({
-            ...purchaseData, productName, supplier: supplierName, billUrl: uploadedBillUrl, category: isAddingNewCategory ? newCategoryName : formData.category,
+        if (!product) {
+          toast({
+            title: "Error",
+            description: "One or more products not found.",
+            variant: "destructive",
           })
+          setIsLoading(false)
+          return
+        }
 
-          updateProgress("Operation completed!", 5, 5)
-          await new Promise(resolve => setTimeout(resolve, 300))
-          resetForm()
-          toast({ title: "Success", description: "Purchase recorded successfully!", })
-        } else {
-          updateProgress("Preparing approval request...", 3, 4)
-          await new Promise(resolve => setTimeout(resolve, 500))
-
-          updateProgress("Submitting for approval...", 4, 4)
-          const supplierName = formData.supplier === "custom" ? formData.customSupplier : formData.supplier
-          const { customSupplier, ...purchaseData } = formData
-          requestPurchaseChange(
-            "create",
-            {
-              ...purchaseData,
-              productName,
-              supplier: supplierName,
-            },
-            undefined,
-            editReason || "New purchase record"
-          )
-          toast({ title: "Submitted", description: "Purchase submitted for admin approval." })
+        if (item.quantityPurchased <= 0) {
+          toast({
+            title: "Error",
+            description: "All quantities must be greater than 0.",
+            variant: "destructive",
+          })
+          setIsLoading(false)
+          return
         }
       }
+
+      await new Promise((r) => setTimeout(r, 400))
+
+      updateProgress("Preparing purchase items...", 3, 6)
+
+      // 3. FORMAT ITEMS FOR BACKEND
+      const enrichedItems = formData.items.map((item: any) => {
+        const product = products.find((p) => p.id === item.productId)
+
+        return {
+          productId: item.productId,
+          productName: product?.name || "",
+          quantityPurchased: item.quantityPurchased,
+          purchasePrice: item.purchasePrice,
+        }
+      })
+
+      await new Promise((r) => setTimeout(r, 400))
+
+      updateProgress("Processing supplier data...", 4, 6)
+
+      const supplierName =
+        formData.supplier === "custom"
+          ? formData.customSupplier
+          : formData.supplier
+
+      const payload = {
+        supplier: supplierName,
+        supplierType: formData.supplierType,
+        purchaseDate: formData.purchaseDate,
+        billUrl: uploadedBillUrl,
+        items: formData.items.map((item) => {
+          const product = products.find((p) => p.id === item.productId)
+
+          return {
+            productId: item.productId,
+            productName: product?.name || "",
+            quantityPurchased: item.quantityPurchased,
+            purchasePrice: item.purchasePrice,
+          }
+        }),
+      }
+
+      await new Promise((r) => setTimeout(r, 400))
+
+      updateProgress("Saving transaction...", 5, 6)
+
+      // 4. ADMIN vs APPROVAL FLOW
+      if (user?.role === "admin") {
+        await addPurchase(payload)
+
+        updateProgress("Updating inventory...", 6, 6)
+
+        toast({
+          title: "Success",
+          description: "Purchase recorded successfully!",
+        })
+      } else {
+        requestPurchaseChange(
+          "create",
+          payload,
+          undefined,
+          editReason || "New purchase request"
+        )
+
+        toast({
+          title: "Submitted",
+          description: "Purchase submitted for admin approval.",
+        })
+      }
+
+      await new Promise((r) => setTimeout(r, 300))
+
+      resetForm()
+      setBillImage(null)
+      setBillUrl("")
+
+      setShowSuccessAlert(true)
+      setAlertMessage("Purchase added successfully!")
     } catch (err) {
-      toast({ title: "Error", description: "Failed to record purchase.", variant: "destructive" })
+      console.error(err)
+
+      toast({
+        title: "Error",
+        description: "Failed to record purchase.",
+        variant: "destructive",
+      })
     } finally {
       setIsLoading(false)
       setProgress(0)
@@ -270,20 +365,22 @@ export default function PurchasesPage() {
 
   const handleEdit = (purchase: Purchase) => {
     setEditingPurchase(purchase)
-    const product = products.find((p) => p.name === purchase.productName)
 
     // Convert date to YYYY-MM-DD format for HTML date input
     const formattedDate = new Date(purchase.purchaseDate).toISOString().split('T')[0]
 
+    // Map purchase items to form items
+    const items = purchase.items.map((item: any) => ({
+      productId: item.productId || "",
+      quantityPurchased: item.quantityPurchased || 0,
+      purchasePrice: item.purchasePrice || 0,
+    }))
+
     updateForm({
-      productId: product?.id || "",
+      items,
       supplier: purchase.supplier,
       supplierType: purchase.supplierType,
-      customSupplier: "",
-      quantityPurchased: purchase.quantityPurchased,
-      purchasePrice: purchase.purchasePrice,
       purchaseDate: formattedDate,
-      netWeight: product?.netWeight ?? 0,
     })
     setBillUrl(purchase.billUrl || "")
     setBillImage(null)
@@ -308,8 +405,7 @@ export default function PurchasesPage() {
         uploadedBillUrl = await uploadBillToCloudinary(billImage)
       }
 
-      const product = products.find((p) => p.id === formData.productId)
-      if (product && editingPurchase && (user?.role === "admin" || editReason.trim())) {
+      if (editingPurchase && (user?.role === "admin" || editReason.trim())) {
         updateProgress("Checking product availability...", 2, 5)
         await new Promise(resolve => setTimeout(resolve, 500))
 
@@ -320,7 +416,19 @@ export default function PurchasesPage() {
           updateProgress("Adjusting inventory...", 4, 5)
           const supplierName = formData.supplier === "custom" ? formData.customSupplier : formData.supplier
           const { customSupplier, ...purchaseData } = formData
-          await updatePurchase(editingPurchase.id, { ...purchaseData, productName: product.name, supplier: supplierName, billUrl: uploadedBillUrl })
+
+          // Build items with product names
+          const itemsWithNames = purchaseData.items.map((item: any) => {
+            const product = products.find((p) => p.id === item.productId)
+            return {
+              productId: item.productId,
+              productName: product?.name || "",
+              quantityPurchased: item.quantityPurchased,
+              purchasePrice: item.purchasePrice,
+            }
+          })
+
+          await updatePurchase(editingPurchase.id, { ...purchaseData, items: itemsWithNames, supplier: supplierName, billUrl: uploadedBillUrl })
 
           updateProgress("Operation completed!", 5, 5)
           await new Promise(resolve => setTimeout(resolve, 300))
@@ -333,7 +441,19 @@ export default function PurchasesPage() {
           updateProgress("Submitting for approval...", 4, 4)
           const supplierName = formData.supplier === "custom" ? formData.customSupplier : formData.supplier
           const { customSupplier, ...purchaseData } = formData
-          requestPurchaseChange("update", { ...purchaseData, productName: product.name, supplier: supplierName, billUrl: uploadedBillUrl }, editingPurchase.id, editReason)
+
+          // Build items with product names
+          const itemsWithNames = purchaseData.items.map((item: any) => {
+            const product = products.find((p) => p.id === item.productId)
+            return {
+              productId: item.productId,
+              productName: product?.name || "",
+              quantityPurchased: item.quantityPurchased,
+              purchasePrice: item.purchasePrice,
+            }
+          })
+
+          requestPurchaseChange("update", { ...purchaseData, items: itemsWithNames, supplier: supplierName, billUrl: uploadedBillUrl }, editingPurchase.id, editReason)
           toast({ title: "Submitted", description: "Purchase changes submitted for admin approval." })
         }
       } else if (user?.role !== "admin" && !editReason.trim()) {
@@ -345,6 +465,7 @@ export default function PurchasesPage() {
       setIsLoading(false)
       setProgress(0)
       setCurrentStep("")
+      resetForm()
     }
   }
 
@@ -362,25 +483,6 @@ export default function PurchasesPage() {
     setSelectedProduct(product)
     setIsProductHistoryDialogOpen(true)
   }
-
-  useEffect(() => {
-    console.log("All Purchases:", purchases);
-
-    purchases.forEach((purchase) => {
-      console.log("Product Name:", purchase.productName);
-    });
-  }, [purchases]);
-
-  // Get all products for selection
-  const filteredProducts = React.useMemo(() => {
-    return products
-  }, [products])
-
-  const categories = React.useMemo(() => {
-    return Array.from(
-      new Set(products.map((p) => p.category).filter(Boolean))
-    ).sort()
-  }, [products])
 
   const handleSupplierClick = (supplier: string) => {
     setSelectedSupplierForHistory(supplier)
@@ -424,13 +526,12 @@ export default function PurchasesPage() {
   }
 
   React.useEffect(() => {
-    if (formData.productId) {
-      const product = products.find((p) => p.id === formData.productId)
-      if (product && typeof product.netWeight === "number") {
-        updateForm({ netWeight: product.netWeight ?? 0 })
-      }
-    }
-  }, [formData.productId, products])
+    console.log("All Purchases:", purchases);
+
+    purchases.forEach((purchase) => {
+      console.log("Purchase Items:", purchase.items);
+    });
+  }, [purchases]);
 
   return (
     <div className="space-y-6 p-6 min-h-screen transition-colors duration-300">
@@ -517,176 +618,82 @@ export default function PurchasesPage() {
                 </DialogDescription>
               </DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="product">Product *</Label>
-                  <Select
-                    value={productFilter}
-                    onValueChange={(value) => {
-                      setProductFilter(value)
-                      if (value === "custom") {
-                        updateForm({
-                          ...formData,
-                          productId: "custom",
-                          customProductName: "",
-                          netWeight: 0,
-                        })
+                <div className="space-y-3">
+                  <Label>Products *</Label>
 
-                        return
-                      }
-                      updateForm({
-                        ...formData,
-                        productId: "",
-                        customProductName: "",
-                        netWeight: 0,
-                      })
-                    }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select product" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">
-                        All Product
-                      </SelectItem>
-                      {uniqueProductNames.map((name) => (
-                        <SelectItem
-                          key={name}
-                          value={name}
-                        >
-                          {name}
-                        </SelectItem>
-                      ))}
-                      <SelectItem value="custom">
-                        + Add Custom Product
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                  {/* main product Dropdown */}
-                  {isCustomProductSelected ? (
-                    <Input
-                      placeholder="Enter custom product name"
-                      value={formData.customProductName}
-                      onChange={(e) =>
-                        updateForm({
-                          ...formData,
-                          customProductName: e.target.value,
-                        })
-                      }
-                      required
-                    />
-                  ) : (
-                    <Select
-                      value={formData.productId}
-                      onValueChange={(value) => {
-                        const selectedProduct =
-                          products.find(
-                            (p) => p.id === value
-                          )
-                        updateForm({
-                          ...formData,
-                          productId: value,
-                          netWeight:
-                            selectedProduct?.netWeight || 0,
-                        })
-                      }}
-                      required
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select product">
-                          {
-                            filteredProducts.find(
-                              (p) => p.id === formData.productId
-                            )?.name
-                          }
-                        </SelectValue>
-                      </SelectTrigger>
+                  {formData.items.map((item: any, index: number) => {
+                    const selectedProduct = products.find(p => p.id === item.productId)
 
-                      <SelectContent>
-                        {filteredProducts
-                          .filter(
-                            (product) =>
-                              (categoryFilter === "all" ||
-                                product.category === categoryFilter) &&
-                              (productFilter === "all" ||
-                                product.name === productFilter)
-                          )
-                          .map((product) => (
-                            <SelectItem
-                              key={product.id}
-                              value={product.id}
+                    return (
+                      <Card key={index} className="p-3 space-y-3">
+                        <div className="flex justify-between items-center">
+                          <span className="font-semibold">Item #{index + 1}</span>
+
+                          {formData.items.length > 1 && (
+                            <Button
+                              type="button"
+                              variant="neutralOutline"
+                              onClick={() => removeItem(index)}
                             >
-                              <div className="flex flex-col">
-                                <span className="font-medium">
-                                  {product.name}
-                                </span>
-                                <span className="text-sm text-gray-500">
-                                  Stock:
-                                  {product.stockQuantity}
-                                </span>
-                                <span className="text-sm text-gray-500">
-                                  netWeight:
-                                  {product.netWeight}kg
-                                </span>
-                              </div>
-                            </SelectItem>
-                          ))}
-                      </SelectContent>
-                    </Select>
-                  )}
-                </div>
+                              Remove
+                            </Button>
+                          )}
+                        </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="category">Category *</Label>
+                        {/* PRODUCT SELECT */}
+                        <Select
+                          value={item.productId}
+                          onValueChange={(value) =>
+                            updateItem(index, "productId", value)
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select product" />
+                          </SelectTrigger>
 
-                  {isAddingNewCategory && (
-                    <Input
-                      id="category-new"
-                      value={newCategoryName}
-                      onChange={(e) => setNewCategoryName(e.target.value)}
-                      placeholder="Enter new category name"
-                      required
-                    />
-                  )}
+                          <SelectContent>
+                            {products.map((product) => (
+                              <SelectItem key={product.id} value={product.id}>
+                                {product.name} (Stock: {product.stockQuantity})
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
 
-                  <Select
-                    value={isAddingNewCategory ? "__new__" : formData.category}
-                    onValueChange={(value) => {
-                      if (value === "__new__") {
-                        setIsAddingNewCategory(true)
-                        setNewCategoryName("")
+                        {/* QUANTITY + PRICE */}
+                        <div className="grid grid-cols-2 gap-3">
+                          <Input
+                            type="number"
+                            placeholder="Quantity"
+                            value={item.quantityPurchased || ""}
+                            onChange={(e) =>
+                              updateItem(index, "quantityPurchased", Number(e.target.value))
+                            }
+                          />
 
-                        updateForm({
-                          ...formData,
-                          category: "",
-                        })
-                      } else {
-                        setIsAddingNewCategory(false)
+                          <Input
+                            type="number"
+                            placeholder="Unit Price"
+                            value={item.purchasePrice || ""}
+                            onChange={(e) =>
+                              updateItem(index, "purchasePrice", Number(e.target.value))
+                            }
+                          />
+                        </div>
 
-                        updateForm({
-                          ...formData,
-                          category: value,
-                        })
-                      }
-                    }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select or add category" />
-                    </SelectTrigger>
+                        {selectedProduct && (
+                          <p className="text-xs text-gray-500">
+                            Stock: {selectedProduct.stockQuantity}
+                          </p>
+                        )}
+                      </Card>
+                    )
+                  })}
 
-                    <SelectContent>
-                      <SelectItem value="all">All Categories</SelectItem>
-
-                      {categories.map((cat) => (
-                        <SelectItem key={cat} value={cat}>
-                          {cat}
-                        </SelectItem>
-                      ))}
-
-                      <SelectItem value="__new__">
-                        Add new category...
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Button type="button" onClick={addItem}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Another Product
+                  </Button>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="supplier">Supplier *</Label>
@@ -719,6 +726,7 @@ export default function PurchasesPage() {
                     )}
                   </div>
                 </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="supplierType">Supplier Type *</Label>
                   <Select
@@ -735,39 +743,7 @@ export default function PurchasesPage() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="quantity">Quantity *</Label>
-                    <Input
-                      id="quantity"
-                      type="number"
-                      min={1}
-                      value={formData.quantityPurchased === 0 ? "" : formData.quantityPurchased}
-                      onChange={(e) => {
-                        const value = e.target.value
-                        updateForm({ ...formData, quantityPurchased: value === "" ? 0 : Number.parseInt(value) })
-                      }}
-                      placeholder="Enter the quantity"
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="price">Unit Price (Rs) *</Label>
-                    <Input
-                      id="price"
-                      type="number"
-                      step="0.01"
-                      min={0}
-                      value={formData.purchasePrice === 0 ? "" : formData.purchasePrice}
-                      onChange={(e) => {
-                        const value = e.target.value
-                        updateForm({ ...formData, purchasePrice: value === "" ? 0 : Number.parseFloat(value) })
-                      }}
-                      placeholder="Enter the unit price"
-                      required
-                    />
-                  </div>
-                </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="date">Purchase Date *</Label>
                   <MaterialDatePicker
@@ -837,7 +813,7 @@ export default function PurchasesPage() {
       <EditPurchaseDialog
         isOpen={isEditDialogOpen}
         onOpenChange={setIsEditDialogOpen}
-        formData={formData}
+        formData={formData as any}
         onFormChange={updateForm}
         editReason={editReason}
         onEditReasonChange={setEditReason}

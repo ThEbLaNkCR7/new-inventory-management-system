@@ -52,6 +52,18 @@ export default function PurchasesTable({
   onProductClick,
   onSupplierClick,
 }: PurchasesTableProps) {
+  const [activeItemIndex, setActiveItemIndex] = React.useState<{
+    [key: string]: number;
+  }>({});
+
+  const getActiveIndex = (purchaseId: string) => {
+    return activeItemIndex[purchaseId] ?? 0;
+  };
+
+  const getActiveItem = (purchase: any) => {
+    return purchase.items?.[getActiveIndex(purchase.id)];
+  };
+
   const tabPurchases = React.useMemo(() => {
     if (activeTab === "individual") {
       return filteredPurchases.filter(
@@ -75,7 +87,7 @@ export default function PurchasesTable({
         <TableHeader>
           <TableRow className="bg-gray-50 dark:bg-gray-700">
             <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">
-              Product
+              Items
             </TableHead>
             <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">
               Supplier
@@ -109,17 +121,7 @@ export default function PurchasesTable({
               className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-150"
             >
               <TableCell className="font-medium">
-                <span
-                  className="text-gray-700 dark:text-gray-100 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-                  onClick={() => {
-                    const product = products.find(
-                      (p) => p.name === purchase.productName,
-                    );
-                    if (product) onProductClick(product);
-                  }}
-                >
-                  {purchase.productName}
-                </span>
+                {purchase.items?.length || 0}
               </TableCell>
               <TableCell className="font-medium">
                 <span
@@ -134,16 +136,26 @@ export default function PurchasesTable({
                   {purchase.supplierType || "Company"}
                 </TableCell>
               )}
-              <TableCell className="text-gray-700">
-                {purchase.quantityPurchased}
-              </TableCell>
-              <TableCell className="text-gray-700">
-                Rs {purchase.purchasePrice.toFixed(2)}
+              <TableCell className="font-medium">
+                {purchase.items?.reduce(
+                  (total: number, item: any) => total + (item.quantityPurchased || 0),
+                  0
+                ) || 0}
               </TableCell>
               <TableCell className="text-gray-700">
                 Rs{" "}
                 {(
-                  purchase.quantityPurchased * purchase.purchasePrice
+                  (getActiveItem(purchase)?.purchasePrice || 0)
+                ).toFixed(2)}
+              </TableCell>
+              <TableCell className="text-gray-700">
+                Rs{" "}
+                {(
+                  purchase.items?.reduce(
+                    (total: number, item: any) =>
+                      total + ((item.quantityPurchased || 0) * (item.purchasePrice || 0)),
+                    0
+                  ) || 0
                 ).toFixed(2)}
               </TableCell>
               <TableCell className="text-gray-700">

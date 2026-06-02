@@ -54,18 +54,18 @@ export default function ViewPurchaseDialog({
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">
-                  Product
-                </Label>
-                <p className="text-gray-900 dark:text-gray-100 font-medium text-base">
-                  {purchase.productName}
-                </p>
-              </div>
-              <div className="space-y-2">
-                <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">
                   Supplier
                 </Label>
                 <p className="text-gray-900 dark:text-gray-100 font-medium text-base">
                   {purchase.supplier}
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">
+                  Supplier Type
+                </Label>
+                <p className="text-gray-900 dark:text-gray-100 font-medium text-base">
+                  {purchase.supplierType || "Company"}
                 </p>
               </div>
               <div className="space-y-2">
@@ -90,33 +90,88 @@ export default function ViewPurchaseDialog({
           <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-6">
             <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center space-x-2">
               <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-              <span>Transaction Details</span>
+              <span>Items Purchased</span>
             </h3>
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <div className="space-y-2">
-                <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">
-                  Quantity Purchased
+            <div className="space-y-3">
+              {purchase.items && purchase.items.length > 0 ? (
+                purchase.items.map((item: any, index: number) => (
+                  <div
+                    key={index}
+                    className="border border-gray-200 dark:border-gray-600 rounded-lg p-4"
+                  >
+                    <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+                      <div>
+                        <Label className="text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">
+                          Product
+                        </Label>
+                        <p className="text-gray-900 dark:text-gray-100 font-medium mt-1">
+                          {item.productName || "N/A"}
+                        </p>
+                      </div>
+                      <div>
+                        <Label className="text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">
+                          Quantity
+                        </Label>
+                        <p className="text-gray-900 dark:text-gray-100 font-medium mt-1">
+                          {item.quantityPurchased || 0} units
+                        </p>
+                      </div>
+                      <div>
+                        <Label className="text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">
+                          Unit Price
+                        </Label>
+                        <p className="text-gray-900 dark:text-gray-100 font-medium mt-1">
+                          Rs {(item.purchasePrice || 0).toLocaleString()}
+                        </p>
+                      </div>
+                      <div>
+                        <Label className="text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">
+                          Total
+                        </Label>
+                        <p className="text-blue-600 dark:text-blue-400 font-semibold mt-1">
+                          Rs{" "}
+                          {(
+                            (item.quantityPurchased || 0) * (item.purchasePrice || 0)
+                          ).toLocaleString()}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <p className="text-gray-500 dark:text-gray-400">
+                  No items in this purchase
+                </p>
+              )}
+            </div>
+          </div>
+
+          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-6">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label className="text-sm font-medium text-blue-600 dark:text-blue-400 uppercase tracking-wide">
+                  Total Quantity
                 </Label>
-                <p className="text-gray-900 dark:text-gray-100 font-semibold text-lg">
-                  {purchase.quantityPurchased} units
+                <p className="text-blue-900 dark:text-blue-200 font-semibold text-lg mt-1">
+                  {(purchase.items || []).reduce(
+                    (sum: number, item: any) => sum + (item.quantityPurchased || 0),
+                    0
+                  )}{" "}
+                  units
                 </p>
               </div>
-              <div className="space-y-2">
-                <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">
-                  Unit Price
-                </Label>
-                <p className="text-gray-900 dark:text-gray-100 font-semibold text-lg">
-                  Rs {purchase.purchasePrice.toLocaleString()}
-                </p>
-              </div>
-              <div className="space-y-2">
-                <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">
+              <div>
+                <Label className="text-sm font-medium text-blue-600 dark:text-blue-400 uppercase tracking-wide">
                   Total Amount
                 </Label>
-                <p className="font-semibold text-lg text-blue-600 dark:text-blue-400">
+                <p className="text-blue-900 dark:text-blue-200 font-semibold text-lg mt-1">
                   Rs{" "}
                   {(
-                    purchase.quantityPurchased * purchase.purchasePrice
+                    (purchase.items || []).reduce(
+                      (sum: number, item: any) =>
+                        sum + ((item.quantityPurchased || 0) * (item.purchasePrice || 0)),
+                      0
+                    )
                   ).toLocaleString()}
                 </p>
               </div>

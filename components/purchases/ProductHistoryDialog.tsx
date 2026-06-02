@@ -74,11 +74,30 @@ export default function ProductHistoryDialog({
     product.name,
     currentYear,
   );
-  const productPurchases = purchases.filter(
-    (purchase) =>
-      purchase.productName === product.name &&
-      getNepaliYear(purchase.purchaseDate) === currentYear,
-  );
+
+  // Get purchases with this specific product (item) from the items array
+  const getProductPurchaseItems = () => {
+    const items: any[] = [];
+    purchases.forEach((purchase) => {
+      const productItem = purchase.items?.find(
+        (item: any) => item.productName === product.name,
+      );
+      if (
+        productItem &&
+        getNepaliYear(purchase.purchaseDate) === currentYear
+      ) {
+        items.push({
+          ...productItem,
+          id: purchase.id,
+          supplier: purchase.supplier,
+          purchaseDate: purchase.purchaseDate,
+        });
+      }
+    });
+    return items;
+  };
+
+  const productPurchases = getProductPurchaseItems();
 
   const totalSalesQuantity = productSales.reduce(
     (sum, line) => sum + line.quantitySold,
@@ -89,12 +108,13 @@ export default function ProductHistoryDialog({
     0,
   );
   const totalPurchaseQuantity = productPurchases.reduce(
-    (sum, purchase) => sum + purchase.quantityPurchased,
+    (sum, purchase) => sum + (purchase.quantityPurchased || 0),
     0,
   );
   const totalPurchaseValue = productPurchases.reduce(
     (sum, purchase) =>
-      sum + purchase.quantityPurchased * purchase.purchasePrice,
+      sum +
+      ((purchase.quantityPurchased || 0) * (purchase.purchasePrice || 0)),
     0,
   );
 
@@ -311,27 +331,28 @@ export default function ProductHistoryDialog({
                 </TableHeader>
                 <TableBody>
                   {productPurchases.length > 0 ? (
-                    productPurchases.map((purchase) => (
+                    productPurchases.map((item, idx) => (
                       <TableRow
-                        key={purchase.id}
+                        key={idx}
                         className="hover:bg-gray-100 dark:hover:bg-gray-700/50"
                       >
                         <TableCell className="text-gray-700 dark:text-gray-300">
-                          {formatNepaliDateForTable(purchase.purchaseDate)}
+                          {formatNepaliDateForTable(item.purchaseDate)}
                         </TableCell>
                         <TableCell className="font-medium text-gray-900 dark:text-gray-100">
-                          {purchase.supplier}
+                          {item.supplier}
                         </TableCell>
                         <TableCell className="text-gray-700 dark:text-gray-300">
-                          {purchase.quantityPurchased} units
+                          {item.quantityPurchased || 0} units
                         </TableCell>
                         <TableCell className="text-gray-700 dark:text-gray-300">
-                          Rs {purchase.purchasePrice.toLocaleString()}
+                          Rs {(item.purchasePrice || 0).toLocaleString()}
                         </TableCell>
                         <TableCell className="font-semibold text-blue-600 dark:text-blue-400">
                           Rs{" "}
                           {(
-                            purchase.quantityPurchased * purchase.purchasePrice
+                            (item.quantityPurchased || 0) *
+                            (item.purchasePrice || 0)
                           ).toLocaleString()}
                         </TableCell>
                       </TableRow>

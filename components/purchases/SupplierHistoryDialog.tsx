@@ -52,12 +52,32 @@ export default function SupplierHistoryDialog({
         new Date(a.purchaseDate).getTime(),
     );
 
-  const totalQuantity = supplierPurchases.reduce(
-    (sum, p) => sum + p.quantityPurchased,
+  // Get all items from supplier purchases
+  const getSupplierItems = () => {
+    const items: any[] = [];
+    supplierPurchases.forEach((purchase) => {
+      if (purchase.items && purchase.items.length > 0) {
+        purchase.items.forEach((item: any) => {
+          items.push({
+            ...item,
+            id: purchase.id,
+            purchaseDate: purchase.purchaseDate,
+          });
+        });
+      }
+    });
+    return items;
+  };
+
+  const supplierItems = getSupplierItems();
+
+  const totalQuantity = supplierItems.reduce(
+    (sum, item) => sum + (item.quantityPurchased || 0),
     0,
   );
-  const totalValue = supplierPurchases.reduce(
-    (sum, p) => sum + p.quantityPurchased * p.purchasePrice,
+  const totalValue = supplierItems.reduce(
+    (sum, item) =>
+      sum + ((item.quantityPurchased || 0) * (item.purchasePrice || 0)),
     0,
   );
 
@@ -150,29 +170,29 @@ export default function SupplierHistoryDialog({
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {supplierPurchases.length > 0 ? (
-                      supplierPurchases.map((purchase) => (
+                    {supplierItems.length > 0 ? (
+                      supplierItems.map((item, idx) => (
                         <TableRow
-                          key={purchase.id}
+                          key={idx}
                           className="hover:bg-gray-100 dark:hover:bg-gray-700/50"
                         >
                           <TableCell className="text-gray-700 dark:text-gray-300">
-                            {formatNepaliDateForTable(purchase.purchaseDate)}
+                            {formatNepaliDateForTable(item.purchaseDate)}
                           </TableCell>
                           <TableCell className="font-medium text-gray-900 dark:text-gray-100">
-                            {purchase.productName}
+                            {item.productName}
                           </TableCell>
                           <TableCell className="text-gray-700 dark:text-gray-300">
-                            {purchase.quantityPurchased} units
+                            {item.quantityPurchased || 0} units
                           </TableCell>
                           <TableCell className="text-gray-700 dark:text-gray-300">
-                            Rs {purchase.purchasePrice.toLocaleString()}
+                            Rs {(item.purchasePrice || 0).toLocaleString()}
                           </TableCell>
                           <TableCell className="font-semibold text-blue-600 dark:text-blue-400">
                             Rs{" "}
                             {(
-                              purchase.quantityPurchased *
-                              purchase.purchasePrice
+                              (item.quantityPurchased || 0) *
+                              (item.purchasePrice || 0)
                             ).toLocaleString()}
                           </TableCell>
                         </TableRow>

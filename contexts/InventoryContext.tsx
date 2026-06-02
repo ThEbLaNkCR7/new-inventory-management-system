@@ -1,9 +1,8 @@
 "use client"
 
+import { getCurrentNepaliYear, getNepaliMonth, getNepaliYear } from "@/lib/utils"
 import type React from "react"
-import { createContext, useContext, useState, useEffect, useCallback } from "react"
-import { getCurrentNepaliYear, getNepaliYear, getNepaliMonth, getNepaliMonthName } from "@/lib/utils"
-import { useAuth } from "./AuthContext"
+import { createContext, useCallback, useContext, useEffect, useState } from "react"
 
 export interface Product {
   id: string
@@ -25,18 +24,21 @@ export interface Product {
 
 export interface Purchase {
   id: string
-  productId: string
-  productName: string
   supplier: string
   supplierType?: string
+  purchaseDate: string
+  billUrl?: string
+  isActive?: boolean
+  items: PurchaseItem[]
+  createdAt?: Date
+  updatedAt?: Date
+}
+
+export type PurchaseItem = {
+  productId: string
+  productName: string
   quantityPurchased: number
   purchasePrice: number
-  billUrl?: string
-  category?: string
-  purchaseDate: string
-  isActive?: boolean
-  createdAt?:Date
-  updatedAt?:Date
 }
 
 export type SaleItem = {
@@ -276,7 +278,7 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
   // Purchases
   const addPurchase = async (purchase: Omit<Purchase, "id">) => {
     try {
-      console.log("📦 Adding new purchase:", purchase.productName)
+      // console.log("📦 Adding new purchase:", purchase.productName)
       const res = await fetch("/api/purchases", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -285,7 +287,7 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
       if (!res.ok) throw new Error("Failed to add purchase")
       const newPurchase = await res.json()
       setPurchases((prev) => [...prev, { ...newPurchase, id: newPurchase._id || newPurchase.id }])
-      console.log("✅ Purchase added successfully:", purchase.productName)
+      // console.log("✅ Purchase added successfully:", purchase.productName)
 
       // Update supplier statistics
       await updateSupplierStats(purchase.supplier)
@@ -546,7 +548,15 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
   }
 
   const getTotalPurchases = () => {
-    return purchases.reduce((total, purchase) => total + purchase.quantityPurchased * purchase.purchasePrice, 0)
+    return purchases.reduce(
+      (total, purchase) =>
+        total +
+        purchase.items.reduce(
+          (sum, item) => sum + item.quantityPurchased * item.purchasePrice,
+          0
+        ),
+      0
+    )
   }
 
   const getProfit = () => {
@@ -563,9 +573,20 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
   // Calculate total spent for a specific supplier
   const getSupplierTotalSpent = (supplierName: string) => {
     return purchases
-      .filter(purchase => purchase.supplier === supplierName && purchase.isActive !== false)
-      .reduce((total, purchase) => total + (purchase.quantityPurchased * purchase.purchasePrice), 0)
-  }
+      .filter(
+        (purchase) =>
+          purchase.supplier === supplierName && purchase.isActive !== false
+      )
+      .reduce(
+        (total, purchase) =>
+          total +
+          purchase.items.reduce(
+            (sum, item) => sum + item.quantityPurchased * item.purchasePrice,
+            0
+          ),
+        0
+      );
+  };
 
   // Calculate order count for a specific client
   const getClientOrderCount = (clientName: string) => {
@@ -710,9 +731,14 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
         return total + saleTotal
       }, 0)
       const purchasesAmount = monthPurchases.reduce(
-        (total, purchase) => total + purchase.quantityPurchased * purchase.purchasePrice,
-        0,
-      )
+        (total, purchase) =>
+          total +
+          purchase.items.reduce(
+            (sum, item) => sum + item.quantityPurchased * item.purchasePrice,
+            0
+          ),
+        0
+      );
 
       return {
         month,
