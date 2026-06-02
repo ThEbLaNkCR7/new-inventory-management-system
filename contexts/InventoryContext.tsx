@@ -35,6 +35,8 @@ export interface Purchase {
   category?: string
   purchaseDate: string
   isActive?: boolean
+  createdAt?:Date
+  updatedAt?:Date
 }
 
 export type SaleItem = {

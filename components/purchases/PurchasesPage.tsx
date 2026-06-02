@@ -3,7 +3,7 @@
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import {
   Dialog,
   DialogContent,
@@ -17,17 +17,21 @@ import { Label } from "@/components/ui/label"
 import { MaterialDatePicker } from "@/components/ui/MaterialDatePicker"
 import { Progress } from "@/components/ui/progress"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/components/ui/use-toast"
 import { useAuth } from "@/contexts/AuthContext"
 import { usePersistentForm } from "@/contexts/FormPersistenceContext"
+import type { Product, Purchase } from "@/contexts/InventoryContext"
 import { useInventory } from "@/contexts/InventoryContext"
 import { usePurchaseChange } from "@/hooks/usePurchaseChange"
-import { formatNepaliDateForTable, getNepaliYear } from "@/lib/utils"
-import { AlertTriangle, Building2, CheckCircle, Clock, Edit, Eye, Loader2, Plus, Search, Trash2, TrendingUp, Users } from "lucide-react"
+import { formatNepaliDateForTable } from "@/lib/utils"
+import { CheckCircle, Clock, Loader2, Plus, Search } from "lucide-react"
 import React, { useEffect, useState } from "react"
+import DeletePurchaseDialog from "./DeletePurchaseDialog"
+import EditPurchaseDialog from "./EditPurchaseDialog"
+import ProductHistoryDialog from "./ProductHistoryDialog"
+import PurchasesTable from "./PurchasesTable"
+import SupplierHistoryDialog from "./SupplierHistoryDialog"
+import ViewPurchaseDialog from "./ViewPurchaseDialog"
 
 export default function PurchasesPage() {
   const { products, purchases, suppliers, sales, addPurchase, updatePurchase, deletePurchase } = useInventory()
@@ -44,10 +48,10 @@ export default function PurchasesPage() {
   const [isProductHistoryDialogOpen, setIsProductHistoryDialogOpen] = useState(false)
   const [isSupplierHistoryDialogOpen, setIsSupplierHistoryDialogOpen] = useState(false)
   const [selectedSupplierForHistory, setSelectedSupplierForHistory] = useState<string>("")
-  const [editingPurchase, setEditingPurchase] = useState<any>(null)
-  const [deletingPurchase, setDeletingPurchase] = useState<any>(null)
-  const [viewingPurchase, setViewingPurchase] = useState<any>(null)
-  const [selectedProduct, setSelectedProduct] = useState<any>(null)
+  const [editingPurchase, setEditingPurchase] = useState<Purchase | null>(null)
+  const [deletingPurchase, setDeletingPurchase] = useState<Purchase | null>(null)
+  const [viewingPurchase, setViewingPurchase] = useState<Purchase | null>(null)
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
   const [productFilter, setProductFilter] = useState("all")
   const [billUrl, setBillUrl] = useState<string>("");
   const initialFormData = {
@@ -86,23 +90,12 @@ export default function PurchasesPage() {
     }
   }, [showSuccessAlert])
 
-  // Filter purchases based on search term and active tab
-  const getFilteredPurchases = () => {
-    let filtered = purchases.filter(
-      (purchase) =>
-        purchase.productName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        purchase.supplier.toLowerCase().includes(searchTerm.toLowerCase()),
-    )
-
-    // Apply tab filter
-    if (activeTab === "individual") {
-      filtered = filtered.filter(purchase => purchase.supplierType === "Individual")
-    } else if (activeTab === "company") {
-      filtered = filtered.filter(purchase => purchase.supplierType === "Company")
-    }
-
-    return filtered
-  }
+  // Filter purchases based on search term (tab filter handled in PurchasesTable)
+  const filteredPurchases = purchases.filter(
+    (purchase) =>
+      purchase.productName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      purchase.supplier.toLowerCase().includes(searchTerm.toLowerCase()),
+  )
 
   const uploadBillToCloudinary = async (file: File): Promise<string> => {
     const formData = new FormData();
@@ -131,8 +124,6 @@ export default function PurchasesPage() {
     return data.url;
   };
 
-
-  const filteredPurchases = getFilteredPurchases()
 
   // Get counts for each tab
   const getPurchasesCounts = () => {
@@ -277,7 +268,7 @@ export default function PurchasesPage() {
     }
   }
 
-  const handleEdit = (purchase: any) => {
+  const handleEdit = (purchase: Purchase) => {
     setEditingPurchase(purchase)
     const product = products.find((p) => p.name === purchase.productName)
 
@@ -294,6 +285,8 @@ export default function PurchasesPage() {
       purchaseDate: formattedDate,
       netWeight: product?.netWeight ?? 0,
     })
+    setBillUrl(purchase.billUrl || "")
+    setBillImage(null)
     setIsEditDialogOpen(true)
   }
 
@@ -355,17 +348,17 @@ export default function PurchasesPage() {
     }
   }
 
-  const handleDelete = (purchase: any) => {
+  const handleDelete = (purchase: Purchase) => {
     setDeletingPurchase(purchase)
     setIsDeleteDialogOpen(true)
   }
 
-  const handleView = (purchase: any) => {
+  const handleView = (purchase: Purchase) => {
     setViewingPurchase(purchase)
     setIsViewDialogOpen(true)
   }
 
-  const handleProductClick = (product: any) => {
+  const handleProductClick = (product: Product) => {
     setSelectedProduct(product)
     setIsProductHistoryDialogOpen(true)
   }
@@ -821,759 +814,71 @@ export default function PurchasesPage() {
         </CardContent>
       </Card>
 
-      {/* Purchases Table with Tabs */}
-      <Card className="dark:bg-gray-800 dark:border-gray-700">
-        <CardHeader>
-          <CardTitle>Purchase Orders</CardTitle>
-          <CardDescription>Track all purchase orders and inventory restocking by supplier type</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-3 mb-6 bg-gray-100 dark:bg-gray-800 p-1.5 rounded-xl h-14">
-              <TabsTrigger
-                value="all"
-                className="flex items-center justify-center space-x-2 data-[state=active]:bg-white dark:data-[state=active]:bg-gray-700 data-[state=active]:shadow-lg data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-400 data-[state=active]:font-semibold transition-all duration-300 ease-in-out rounded-lg px-3 py-2.5 h-full"
-              >
-                <TrendingUp className="h-4 w-4" />
-                <span>All Purchases</span>
-                <Badge variant="secondary" className="ml-1 bg-blue-100 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400 text-xs px-1.5 py-0.5">{purchasesCounts.allCount}</Badge>
-              </TabsTrigger>
-              <TabsTrigger
-                value="individual"
-                className="flex items-center justify-center space-x-2 data-[state=active]:bg-white dark:data-[state=active]:bg-gray-700 data-[state=active]:shadow-lg data-[state=active]:text-teal-600 dark:data-[state=active]:text-teal-400 data-[state=active]:font-semibold transition-all duration-300 ease-in-out rounded-lg px-3 py-2.5 h-full"
-              >
-                <Users className="h-4 w-4" />
-                <span>Individual</span>
-                <Badge variant="secondary" className="ml-1 bg-teal-100 text-teal-700 dark:bg-teal-900/20 dark:text-teal-400 text-xs px-1.5 py-0.5">{purchasesCounts.individualCount}</Badge>
-              </TabsTrigger>
-              <TabsTrigger
-                value="company"
-                className="flex items-center justify-center space-x-2 data-[state=active]:bg-white dark:data-[state=active]:bg-gray-700 data-[state=active]:shadow-lg data-[state=active]:text-orange-600 dark:data-[state=active]:text-orange-400 data-[state=active]:font-semibold transition-all duration-300 ease-in-out rounded-lg px-3 py-2.5 h-full"
-              >
-                <Building2 className="h-4 w-4" />
-                <span>Company</span>
-                <Badge variant="secondary" className="ml-1 bg-orange-100 text-orange-700 dark:bg-orange-900/20 dark:text-orange-400 text-xs px-1.5 py-0.5">{purchasesCounts.companyCount}</Badge>
-              </TabsTrigger>
-            </TabsList>
+      <PurchasesTable
+        filteredPurchases={filteredPurchases}
+        activeTab={activeTab}
+        onActiveTabChange={setActiveTab}
+        purchasesCounts={purchasesCounts}
+        products={products}
+        onView={handleView}
+        onEdit={handleEdit}
+        onDelete={handleDelete}
+        onProductClick={handleProductClick}
+        onSupplierClick={handleSupplierClick}
+      />
 
-            <TabsContent value="all" className="space-y-4 animate-in fade-in-0 slide-in-from-left-2 duration-300">
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-gray-50 dark:bg-gray-700">
-                      <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">Product</TableHead>
-                      <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">Supplier</TableHead>
-                      <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">Supplier Type</TableHead>
-                      <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">Quantity</TableHead>
-                      <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">Unit Price</TableHead>
-                      <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">Total</TableHead>
-                      <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">Date</TableHead>
-                      <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredPurchases.map((purchase) => (
-                      <TableRow key={purchase.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-150">
-                        <TableCell className="font-medium">
-                          <span
-                            className="text-gray-700 dark:text-gray-100 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-                            onClick={() => {
-                              const product = products.find(p => p.name === purchase.productName)
-                              if (product) handleProductClick(product)
-                            }}
-                          >
-                            {purchase.productName}
-                          </span>
-                        </TableCell>
-                        <TableCell className="font-medium">
-                          <span
-                            className="text-gray-700 dark:text-gray-100 cursor-pointer hover:text-orange-600 dark:hover:text-orange-400 transition-colors"
-                            onClick={() => {
-                              handleSupplierClick(purchase.supplier)
-                            }}
-                          >
-                            {purchase.supplier}
-                          </span>
-                        </TableCell>
-                        <TableCell className="text-gray-700">{purchase.supplierType || "Company"}</TableCell>
-                        <TableCell className="text-gray-700">{purchase.quantityPurchased}</TableCell>
-                        <TableCell className="text-gray-700">Rs {purchase.purchasePrice.toFixed(2)}</TableCell>
-                        <TableCell className="text-gray-700">
-                          Rs {(purchase.quantityPurchased * purchase.purchasePrice).toFixed(2)}
-                        </TableCell>
-                        <TableCell className="text-gray-700">{formatNepaliDateForTable(purchase.purchaseDate)}</TableCell>
-                        <TableCell>
-                          <div className="flex space-x-2">
-                            <Button
-                              size="sm"
-                              variant="neutralOutline"
-                              onClick={() => handleView(purchase)}
-                              className="hover:bg-blue-50 hover:border-blue-300 dark:hover:bg-blue-900/20 dark:hover:border-blue-600 text-blue-600 dark:text-blue-400 transition-colors"
-                            >
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="neutralOutline"
-                              onClick={() => handleEdit(purchase)}
-                              className="hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="neutralOutline"
-                              onClick={() => handleDelete(purchase)}
-                              className="hover:bg-red-50 hover:border-red-300 dark:hover:bg-red-900/20 dark:hover:border-red-600 text-red-600 dark:text-red-400 transition-colors"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-                {filteredPurchases.length === 0 && (
-                  <div className="text-center py-8 animate-in fade-in-0 duration-300">
-                    <p className="text-gray-500">No purchases found</p>
-                  </div>
-                )}
-              </div>
-            </TabsContent>
+      <ViewPurchaseDialog
+        isOpen={isViewDialogOpen}
+        onOpenChange={setIsViewDialogOpen}
+        purchase={viewingPurchase}
+        onEdit={handleEdit}
+      />
 
-            <TabsContent value="individual" className="space-y-4 animate-in fade-in-0 slide-in-from-left-2 duration-300">
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-gray-50 dark:bg-gray-700">
-                      <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">Product</TableHead>
-                      <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">Supplier</TableHead>
-                      <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">Quantity</TableHead>
-                      <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">Unit Price</TableHead>
-                      <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">Total</TableHead>
-                      <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">Date</TableHead>
-                      <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredPurchases.map((purchase) => (
-                      <TableRow key={purchase.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-150">
-                        <TableCell className="font-medium">
-                          <span
-                            className="text-gray-700 dark:text-gray-100 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-                            onClick={() => {
-                              const product = products.find(p => p.name === purchase.productName)
-                              if (product) handleProductClick(product)
-                            }}
-                          >
-                            {purchase.productName}
-                          </span>
-                        </TableCell>
-                        <TableCell className="font-medium">
-                          <span
-                            className="text-gray-700 dark:text-gray-100 cursor-pointer hover:text-orange-600 dark:hover:text-orange-400 transition-colors"
-                            onClick={() => {
-                              handleSupplierClick(purchase.supplier)
-                            }}
-                          >
-                            {purchase.supplier}
-                          </span>
-                        </TableCell>
-                        <TableCell className="text-gray-700">{purchase.quantityPurchased}</TableCell>
-                        <TableCell className="text-gray-700">Rs {purchase.purchasePrice.toFixed(2)}</TableCell>
-                        <TableCell className="text-gray-700">
-                          Rs {(purchase.quantityPurchased * purchase.purchasePrice).toFixed(2)}
-                        </TableCell>
-                        <TableCell className="text-gray-700">{formatNepaliDateForTable(purchase.purchaseDate)}</TableCell>
-                        <TableCell>
-                          <div className="flex space-x-2">
-                            <Button
-                              size="sm"
-                              variant="neutralOutline"
-                              onClick={() => handleView(purchase)}
-                              className="hover:bg-blue-50 hover:border-blue-300 dark:hover:bg-blue-900/20 dark:hover:border-blue-600 text-blue-600 dark:text-blue-400 transition-colors"
-                            >
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="neutralOutline"
-                              onClick={() => handleEdit(purchase)}
-                              className="hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="neutralOutline"
-                              onClick={() => handleDelete(purchase)}
-                              className="hover:bg-red-50 hover:border-red-300 dark:hover:bg-red-900/20 dark:hover:border-red-600 text-red-600 dark:text-red-400 transition-colors"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-                {filteredPurchases.length === 0 && (
-                  <div className="text-center py-8 animate-in fade-in-0 duration-300">
-                    <p className="text-gray-500">No individual purchases found</p>
-                  </div>
-                )}
-              </div>
-            </TabsContent>
+      <EditPurchaseDialog
+        isOpen={isEditDialogOpen}
+        onOpenChange={setIsEditDialogOpen}
+        formData={formData}
+        onFormChange={updateForm}
+        editReason={editReason}
+        onEditReasonChange={setEditReason}
+        billUrl={billUrl}
+        onBillImageChange={setBillImage}
+        products={products}
+        suppliers={suppliers}
+        userRole={user?.role}
+        onSubmit={handleEditSubmit}
+        onCancel={() => {
+          clearForm()
+          setIsEditDialogOpen(false)
+        }}
+      />
 
-            <TabsContent value="company" className="space-y-4 animate-in fade-in-0 slide-in-from-left-2 duration-300">
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-gray-50 dark:bg-gray-700">
-                      <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">Product</TableHead>
-                      <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">Supplier</TableHead>
-                      <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">Quantity</TableHead>
-                      <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">Unit Price</TableHead>
-                      <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">Total</TableHead>
-                      <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">Date</TableHead>
-                      <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredPurchases.map((purchase) => (
-                      <TableRow key={purchase.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-150">
-                        <TableCell className="font-medium">
-                          <span
-                            className="text-gray-700 dark:text-gray-100 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-                            onClick={() => {
-                              const product = products.find(p => p.name === purchase.productName)
-                              if (product) handleProductClick(product)
-                            }}
-                          >
-                            {purchase.productName}
-                          </span>
-                        </TableCell>
-                        <TableCell className="font-medium">
-                          <span
-                            className="text-gray-700 dark:text-gray-100 cursor-pointer hover:text-orange-600 dark:hover:text-orange-400 transition-colors"
-                            onClick={() => {
-                              handleSupplierClick(purchase.supplier)
-                            }}
-                          >
-                            {purchase.supplier}
-                          </span>
-                        </TableCell>
-                        <TableCell className="text-gray-700">{purchase.quantityPurchased}</TableCell>
-                        <TableCell className="text-gray-700">Rs {purchase.purchasePrice.toFixed(2)}</TableCell>
-                        <TableCell className="text-gray-700">
-                          Rs {(purchase.quantityPurchased * purchase.purchasePrice).toFixed(2)}
-                        </TableCell>
-                        <TableCell className="text-gray-700">{formatNepaliDateForTable(purchase.purchaseDate)}</TableCell>
-                        <TableCell>
-                          <div className="flex space-x-2">
-                            <Button
-                              size="sm"
-                              variant="neutralOutline"
-                              onClick={() => handleView(purchase)}
-                              className="hover:bg-blue-50 hover:border-blue-300 dark:hover:bg-blue-900/20 dark:hover:border-blue-600 text-blue-600 dark:text-blue-400 transition-colors"
-                            >
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="neutralOutline"
-                              onClick={() => handleEdit(purchase)}
-                              className="hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="neutralOutline"
-                              onClick={() => handleDelete(purchase)}
-                              className="hover:bg-red-50 hover:border-red-300 dark:hover:bg-red-900/20 dark:hover:border-red-600 text-red-600 dark:text-red-400 transition-colors"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-                {filteredPurchases.length === 0 && (
-                  <div className="text-center py-8 animate-in fade-in-0 duration-300">
-                    <p className="text-gray-500">No company purchases found</p>
-                  </div>
-                )}
-              </div>
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
+      <DeletePurchaseDialog
+        isOpen={isDeleteDialogOpen}
+        onOpenChange={setIsDeleteDialogOpen}
+        deleteReason={deleteReason}
+        onDeleteReasonChange={setDeleteReason}
+        userRole={user?.role}
+        onConfirm={async (e) => {
+          e.preventDefault()
+          await handleDeleteConfirm()
+        }}
+      />
 
-      {/* View Purchase Dialog */}
-      <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-white dark:bg-gray-800 border dark:border-gray-700">
-          <DialogHeader className="pb-6">
-            <DialogTitle className="text-2xl font-bold text-gray-800 dark:text-gray-200 flex items-center space-x-3">
-              <div className="p-2 bg-blue-100 dark:bg-blue-900/20 rounded-lg">
-                <Eye className="h-6 w-6 text-blue-600 dark:text-blue-400" />
-              </div>
-              <span>Purchase Details</span>
-            </DialogTitle>
-            <DialogDescription className="text-gray-600 dark:text-gray-400">
-              Complete information about the selected purchase transaction
-            </DialogDescription>
-          </DialogHeader>
+      <ProductHistoryDialog
+        isOpen={isProductHistoryDialogOpen}
+        onOpenChange={setIsProductHistoryDialogOpen}
+        product={selectedProduct}
+        sales={sales}
+        purchases={purchases}
+      />
 
-          {viewingPurchase && (
-            <div className="space-y-6">
-              {/* Purchase Information */}
-              <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-6">
-                <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center space-x-2">
-                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                  <span>Purchase Information</span>
-                </h3>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Product</Label>
-                    <p className="text-gray-900 dark:text-gray-100 font-medium text-base">{viewingPurchase.productName}</p>
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Supplier</Label>
-                    <p className="text-gray-900 dark:text-gray-100 font-medium text-base">{viewingPurchase.supplier}</p>
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Purchase Date</Label>
-                    <p className="text-gray-700 dark:text-gray-300 font-medium text-base">
-                      {formatNepaliDateForTable(viewingPurchase.purchaseDate)}
-                    </p>
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Transaction ID</Label>
-                    <p className="text-gray-700 dark:text-gray-300 font-mono text-base">{viewingPurchase.id}</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Transaction Details */}
-              <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-6">
-                <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center space-x-2">
-                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                  <span>Transaction Details</span>
-                </h3>
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Quantity Purchased</Label>
-                    <p className="text-gray-900 dark:text-gray-100 font-semibold text-lg">{viewingPurchase.quantityPurchased} units</p>
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Unit Price</Label>
-                    <p className="text-gray-900 dark:text-gray-100 font-semibold text-lg">
-                      Rs {viewingPurchase.purchasePrice.toLocaleString()}
-                    </p>
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Total Amount</Label>
-                    <p className="font-semibold text-lg text-blue-600 dark:text-blue-400">
-                      Rs {(viewingPurchase.quantityPurchased * viewingPurchase.purchasePrice).toLocaleString()}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Timestamps */}
-              <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-6">
-                <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center space-x-2">
-                  <div className="w-2 h-2 bg-indigo-500 rounded-full"></div>
-                  <span>Timestamps</span>
-                </h3>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Created</Label>
-                    <p className="text-gray-700 dark:text-gray-300 font-medium text-base">
-                      {formatNepaliDateForTable(viewingPurchase.createdAt)}
-                    </p>
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Last Updated</Label>
-                    <p className="text-gray-700 dark:text-gray-300 font-medium text-base">
-                      {formatNepaliDateForTable(viewingPurchase.updatedAt || viewingPurchase.createdAt)}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Status */}
-              <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-6">
-                <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center space-x-2">
-                  <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                  <span>Status</span>
-                </h3>
-                <div className="flex items-center space-x-6">
-                  <div className="flex items-center space-x-3">
-                    <div className={`w-4 h-4 rounded-full ${viewingPurchase.isActive !== false ? "bg-green-500" : "bg-red-500"}`}></div>
-                    <span className="text-gray-700 dark:text-gray-300 font-medium text-base">
-                      {viewingPurchase.isActive !== false ? "Active" : "Inactive"}
-                    </span>
-                  </div>
-                  <Badge variant="secondary" className="bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400 px-4 py-2 text-sm font-medium">
-                    Completed
-                  </Badge>
-                </div>
-              </div>
-              {/* Bill Image */}
-              {viewingPurchase.billUrl && (
-                <div className="space-y-2">
-                  <Label>Bill Image</Label>
-
-                  <img
-                    src={viewingPurchase.billUrl}
-                    alt="Bill"
-                    className="rounded-lg border object-contain"
-                  />
-
-                  <a
-                    href={viewingPurchase.billUrl}
-                    target="_blank"
-                    className="text-blue-600 underline text-sm"
-                  >
-                    Open Full Image
-                  </a>
-                </div>
-              )}
-            </div>
-          )}
-
-          <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200 dark:border-gray-700">
-            <Button
-              type="button"
-              variant="neutralOutline"
-              onClick={() => setIsViewDialogOpen(false)}
-              className="px-6 py-2"
-            >
-              Close
-            </Button>
-            <Button
-              type="button"
-              onClick={() => {
-                setIsViewDialogOpen(false)
-                handleEdit(viewingPurchase)
-              }}
-              className="px-6 py-2"
-            >
-              Edit Purchase
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Edit Dialog */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center space-x-2">
-              <Edit className="h-5 w-5" />
-              <span>Edit Purchase</span>
-            </DialogTitle>
-            <DialogDescription>
-              {user?.role === "admin" ? "Edit purchase order" : "Submit purchase changes for admin approval"}
-            </DialogDescription>
-          </DialogHeader>
-          {user?.role !== "admin" && (
-            <Alert className="border-amber-200 bg-amber-50">
-              <AlertTriangle className="h-4 w-4 text-amber-600" />
-              <AlertDescription className="text-amber-800">
-                Your changes will be submitted for admin approval before being applied.
-              </AlertDescription>
-            </Alert>
-          )}
-          <form onSubmit={handleEditSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="edit-product">Product *</Label>
-              <Select
-                value={formData.productId}
-                onValueChange={(value) => updateForm({ ...formData, productId: value })}
-                required
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select product" />
-                </SelectTrigger>
-                <SelectContent>
-                  {products.map((product) => (
-                    <SelectItem key={product.id} value={product.id}>
-                      {product.name} - {product.netWeight}kg (Stock: {product.stockQuantity})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-supplier">Supplier *</Label>
-              <div className="space-y-2">
-                <Select
-                  value={formData.supplier}
-                  onValueChange={(value) => updateForm({ ...formData, supplier: value })}
-                  required
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select supplier or enter custom name" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="custom">+ Add Custom Supplier</SelectItem>
-                    {suppliers.map((supplier) => (
-                      <SelectItem key={supplier.id} value={supplier.name}>
-                        {supplier.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {formData.supplier === "custom" && (
-                  <Input
-                    placeholder="Enter custom supplier name"
-                    value={formData.customSupplier || ""}
-                    onChange={(e) => updateForm({ ...formData, customSupplier: e.target.value })}
-                    className="mt-2"
-                    required
-                  />
-                )}
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-supplierType">Supplier Type *</Label>
-              <Select
-                value={formData.supplierType}
-                onValueChange={(value) => updateForm({ ...formData, supplierType: value })}
-                required
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select supplier type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Individual">Individual</SelectItem>
-                  <SelectItem value="Company">Company</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="edit-quantity">Quantity *</Label>
-                <Input
-                  id="edit-quantity"
-                  type="number"
-                  min={1}
-                  value={formData.quantityPurchased === 0 ? "" : formData.quantityPurchased}
-                  onChange={(e) => {
-                    const value = e.target.value
-                    updateForm({ ...formData, quantityPurchased: value === "" ? 0 : Number.parseInt(value) })
-                  }}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="edit-price">Unit Price (Rs) *</Label>
-                <Input
-                  id="edit-price"
-                  type="number"
-                  step="0.01"
-                  min={0}
-                  value={formData.purchasePrice === 0 ? "" : formData.purchasePrice}
-                  onChange={(e) => {
-                    const value = e.target.value
-                    updateForm({ ...formData, purchasePrice: value === "" ? 0 : Number.parseFloat(value) })
-                  }}
-                  required
-                />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-date">Purchase Date *</Label>
-              <MaterialDatePicker
-                value={formData.purchaseDate ? new Date(formData.purchaseDate) : undefined}
-                onChange={(date: Date | undefined) => updateForm({ ...formData, purchaseDate: date ? date.toISOString().split("T")[0] : "" })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Bill Image</Label>
-
-              <Input
-                type="file"
-                accept="image/*"
-                onChange={(e) => {
-                  if (e.target.files?.[0]) {
-                    setBillImage(e.target.files[0])
-                  }
-                }}
-              />
-
-              {billUrl && (
-                <a
-                  href={billUrl}
-                  target="_blank"
-                  className="text-blue-600 text-sm underline"
-                >
-                  View Existing Bill
-                </a>
-              )}
-            </div>
-            <div className="flex justify-end space-x-2">
-              <Button type="button" variant="neutralOutline" onClick={() => {
-                clearForm()
-                setIsEditDialogOpen(false)
-              }}>
-                Cancel
-              </Button>
-              <Button type="submit">{user?.role === "admin" ? "Update Purchase" : "Submit Changes"}</Button>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* Delete Dialog */}
-      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center space-x-2">
-              <Trash2 className="h-5 w-5" />
-              <span>Delete Purchase</span>
-            </DialogTitle>
-            <DialogDescription>
-              {user?.role === "admin" ? "Delete purchase order" : "Submit purchase deletion for admin approval"}
-            </DialogDescription>
-          </DialogHeader>
-          {user?.role !== "admin" && (
-            <Alert className="border-amber-200 bg-amber-50">
-              <AlertTriangle className="h-4 w-4 text-amber-600" />
-              <AlertDescription className="text-amber-800">
-                Your deletion will be submitted for admin approval before being applied.
-              </AlertDescription>
-            </Alert>
-          )}
-          <form onSubmit={(e) => { e.preventDefault(); handleDeleteConfirm(); }} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="delete-reason">Reason for Deletion {user?.role !== "admin" && "*"}</Label>
-              <Textarea
-                id="delete-reason"
-                value={deleteReason}
-                onChange={(e) => setDeleteReason(e.target.value)}
-                placeholder="Explain why you're deleting this purchase..."
-                rows={3}
-                required={user?.role !== "admin"}
-              />
-            </div>
-            <div className="flex justify-end space-x-2">
-              <Button type="button" variant="neutralOutline" onClick={() => setIsDeleteDialogOpen(false)}>
-                Cancel
-              </Button>
-              <Button type="submit">{user?.role === "admin" ? "Delete Purchase" : "Submit Deletion"}</Button>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* Product History Dialog */}
-      <Dialog open={isProductHistoryDialogOpen} onOpenChange={setIsProductHistoryDialogOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-white dark:bg-gray-800 border dark:border-gray-700">
-          <DialogHeader className="pb-6">
-            <DialogTitle className="text-2xl font-bold text-gray-800 dark:text-gray-200 flex items-center space-x-3">
-              <div className="p-2 bg-blue-100 dark:bg-blue-900/20 rounded-lg">
-                <TrendingUp className="h-6 w-6 text-blue-600 dark:text-blue-400" />
-              </div>
-              <span>Product Transaction History</span>
-            </DialogTitle>
-            <DialogDescription className="text-gray-600 dark:text-gray-400">
-              Complete transaction history for {selectedProduct?.name}
-            </DialogDescription>
-          </DialogHeader>
-
-          {selectedProduct && (() => {
-            const currentYear = getNepaliYear(new Date().toISOString())
-            const productSales = sales.filter(sale =>
-              sale.productName === selectedProduct.name &&
-              getNepaliYear(sale.saleDate) === currentYear
-            )
-            const productPurchases = purchases.filter(purchase =>
-              purchase.productName === selectedProduct.name &&
-              getNepaliYear(purchase.purchaseDate) === currentYear
-            )
-
-            const totalSalesQuantity = productSales.reduce((sum, sale) => sum + sale.quantitySold, 0)
-            const totalSalesValue = productSales.reduce((sum, sale) => sum + (sale.quantitySold * sale.salePrice), 0)
-            const totalPurchaseQuantity = productPurchases.reduce((sum, purchase) => sum + purchase.quantityPurchased, 0)
-            const totalPurchaseValue = productPurchases.reduce((sum, purchase) => sum + (purchase.quantityPurchased * purchase.purchasePrice), 0)
-
-            return (
-              <div className="space-y-6">
-                {/* Product Summary */}
-                <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-6">
-                  <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center space-x-2">
-                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                    <span>Product Summary</span>
-                  </h3>
-                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Product Name</Label>
-                      <p className="text-gray-900 dark:text-gray-100 font-semibold text-lg">{selectedProduct.name}</p>
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Current Stock</Label>
-                      <p className="text-gray-900 dark:text-gray-100 font-semibold text-lg">{selectedProduct.stockQuantity} units</p>
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Unit Price</Label>
-                      <p className="text-gray-900 dark:text-gray-100 font-semibold text-lg">Rs {selectedProduct.unitPrice.toLocaleString()}</p>
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Unit Weight</Label>
-                      <p className="text-gray-900 dark:text-gray-100 font-semibold text-lg">Unit Weight: {selectedProduct.netWeight ?? '-'} kg</p>
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Total Weight</Label>
-                      <p className="text-gray-900 dark:text-gray-100 font-semibold text-lg">Total Weight: {selectedProduct.netWeight && selectedProduct.stockQuantity ? (selectedProduct.netWeight * selectedProduct.stockQuantity).toFixed(2) : '-'} kg</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Year Statistics */}
-                <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-6">
-                  <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center space-x-2">
-                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                    <span>{currentYear} Statistics</span>
-                  </h3>
-                  <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Total Sales</Label>
-                      <p className="font-semibold text-lg text-green-600 dark:text-green-400">
-                        {totalSalesQuantity} units
-                      </p>
-                      <p className="text-gray-700 dark:text-gray-300 text-sm">
-                        Rs {totalSalesValue.toLocaleString()}
-                      </p>
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Total Purchases</Label>
-                      <p className="font-semibold text-lg text-blue-600 dark:text-blue-400">
-                        {totalPurchaseQuantity} units
-                      </p>
-                      <p className="text-gray-700 dark:text-gray-300 text-sm">
-                        Rs {totalPurchaseValue.toLocaleString()}
-                      </p>
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Net Movement</Label>
-                      <p className={`font-semibold text-lg ${totalPurchaseQuantity - totalSalesQuantity >= 0 ? 'text-blue-600 dark:text-blue-400' : 'text-red-600 dark:text-red-400'}`}>
-                        {totalPurchaseQuantity - totalSalesQuantity} units
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            );
-          })()}
-        </DialogContent>
-      </Dialog>
+      <SupplierHistoryDialog
+        isOpen={isSupplierHistoryDialogOpen}
+        onOpenChange={setIsSupplierHistoryDialogOpen}
+        supplierName={selectedSupplierForHistory}
+        purchases={purchases}
+      />
     </div>
   );
 }
