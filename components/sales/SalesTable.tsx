@@ -137,6 +137,7 @@ export default function SalesTable({
             </TabsTrigger>
           </TabsList>
 
+          {/* all */}
           <TabsContent
             value="all"
             className="space-y-4 animate-in fade-in-0 slide-in-from-left-2 duration-300"
@@ -158,9 +159,6 @@ export default function SalesTable({
                       Quantity
                     </TableHead>
                     <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">
-                      Unit Price
-                    </TableHead>
-                    <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">
                       Total
                     </TableHead>
                     <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">
@@ -178,28 +176,7 @@ export default function SalesTable({
                       className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-150"
                     >
                       <TableCell className="font-medium">
-                        <div className="flex items-center gap-2">
-                          <select
-                            className="appearance-none w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 pr-10 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-100 cursor-pointer hover:border-blue-400 dark:hover:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent transition-all duration-200"
-                            onClick={(e) => e.stopPropagation()}
-                            onChange={(e) =>
-                              setActiveIndex(sale.id, Number(e.target.value))
-                            }
-                            value={getActiveIndex(sale.id)}
-                          >
-                            {sale.items?.map((item: any, idx: number) => {
-                              const product = products.find(
-                                (p) => p.id === item.productId
-                              );
-
-                              return (
-                                <option key={idx} value={idx}>
-                                  {product?.name || "Unknown"}
-                                </option>
-                              );
-                            })}
-                          </select>
-                        </div>
+                        {sale.items?.length || 0}
                       </TableCell>
                       <TableCell className="font-medium">
                         <span
@@ -214,11 +191,11 @@ export default function SalesTable({
                       <TableCell className="text-gray-700">
                         {sale.clientType || "Company"}
                       </TableCell>
-                      <TableCell className="text-gray-700">
-                        {getActiveItem(sale)?.quantitySold || 0}
-                      </TableCell>
-                      <TableCell className="text-gray-700">
-                        Rs {(getActiveItem(sale)?.salePrice || 0).toFixed(2)}
+                      <TableCell className="font-medium">
+                        {sale.items?.reduce(
+                          (total: number, item: any) => total + (item.quantitySold || 0),
+                          0
+                        ) || 0}
                       </TableCell>
                       <TableCell className="text-gray-700">
                         Rs{" "}
@@ -270,6 +247,7 @@ export default function SalesTable({
             </div>
           </TabsContent>
 
+          {/* individual */}
           <TabsContent
             value="individual"
             className="space-y-4 animate-in fade-in-0 slide-in-from-left-2 duration-300"
@@ -286,9 +264,6 @@ export default function SalesTable({
                     </TableHead>
                     <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">
                       Quantity
-                    </TableHead>
-                    <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">
-                      Unit Price
                     </TableHead>
                     <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">
                       Total
@@ -308,28 +283,7 @@ export default function SalesTable({
                       className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-150"
                     >
                       <TableCell className="font-medium">
-                        <div className="flex items-center gap-2">
-                          <select
-                            className="border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-100 cursor-pointer hover:border-blue-400 dark:hover:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent transition-all duration-200"
-                            onClick={(e) => e.stopPropagation()}
-                            onChange={(e) =>
-                              setActiveIndex(sale.id, Number(e.target.value))
-                            }
-                            value={getActiveIndex(sale.id)}
-                          >
-                            {sale.items?.map((item: any, idx: number) => {
-                              const product = products.find(
-                                (p) => p.id === item.productId
-                              );
-
-                              return (
-                                <option key={idx} value={idx}>
-                                  {product?.name || "Unknown"}
-                                </option>
-                              );
-                            })}
-                          </select>
-                        </div>
+                        {sale.items?.length || 0}
                       </TableCell>
                       <TableCell className="font-medium">
                         <span
@@ -341,11 +295,11 @@ export default function SalesTable({
                           {sale.client}
                         </span>
                       </TableCell>
-                      <TableCell className="text-gray-700">
-                        {getActiveItem(sale)?.quantitySold || 0}
-                      </TableCell>
-                      <TableCell>
-                        Rs {(getActiveItem(sale)?.salePrice || 0).toFixed(2)}
+                      <TableCell className="font-medium">
+                        {sale.items?.reduce(
+                          (total: number, item: any) => total + (item.quantitySold || 0),
+                          0
+                        ) || 0}
                       </TableCell>
                       <TableCell>
                         Rs {((getActiveItem(sale)?.quantitySold || 0) * (getActiveItem(sale)?.salePrice || 0)).toFixed(2)}
@@ -393,6 +347,7 @@ export default function SalesTable({
             </div>
           </TabsContent>
 
+          {/* company */}
           <TabsContent
             value="company"
             className="space-y-4 animate-in fade-in-0 slide-in-from-left-2 duration-300"
@@ -409,9 +364,6 @@ export default function SalesTable({
                     </TableHead>
                     <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">
                       Quantity
-                    </TableHead>
-                    <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">
-                      Unit Price
                     </TableHead>
                     <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">
                       Total
@@ -431,28 +383,7 @@ export default function SalesTable({
                       className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-150"
                     >
                       <TableCell className="font-medium">
-                        <div className="flex items-center gap-2">
-                          <select
-                            className="border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-100 cursor-pointer hover:border-blue-400 dark:hover:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent transition-all duration-200"
-                            onClick={(e) => e.stopPropagation()}
-                            onChange={(e) =>
-                              setActiveIndex(sale.id, Number(e.target.value))
-                            }
-                            value={getActiveIndex(sale.id)}
-                          >
-                            {sale.items?.map((item: any, idx: number) => {
-                              const product = products.find(
-                                (p) => p.id === item.productId
-                              );
-
-                              return (
-                                <option key={idx} value={idx}>
-                                  {product?.name || "Unknown"}
-                                </option>
-                              );
-                            })}
-                          </select>
-                        </div>
+                        {sale.items?.length || 0}
                       </TableCell>
                       <TableCell className="font-medium">
                         <span
@@ -464,11 +395,11 @@ export default function SalesTable({
                           {sale.client}
                         </span>
                       </TableCell>
-                      <TableCell className="text-gray-700">
-                        {getActiveItem(sale)?.quantitySold || 0}
-                      </TableCell>
-                      <TableCell>
-                        Rs {(getActiveItem(sale)?.salePrice || 0).toFixed(2)}
+                      <TableCell className="font-medium">
+                        {sale.items?.reduce(
+                          (total: number, item: any) => total + (item.quantitySold || 0),
+                          0
+                        ) || 0}
                       </TableCell>
                       <TableCell>
                         Rs {((getActiveItem(sale)?.quantitySold || 0) * (getActiveItem(sale)?.salePrice || 0)).toFixed(2)}
