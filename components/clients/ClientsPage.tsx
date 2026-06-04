@@ -908,7 +908,7 @@ export default function ClientsPage() {
           onClick={() => setPaymentFilter("Received")}
           className="text-green-600 border-green-300 hover:bg-green-50"
         >
-          Received
+          Payment Received
         </Button>
 
         <Button
@@ -916,7 +916,7 @@ export default function ClientsPage() {
           onClick={() => setPaymentFilter("Pending")}
           className="text-red-600 border-red-300 hover:bg-red-50"
         >
-          Pending
+          Payment Pending
         </Button>
       </div>
 
