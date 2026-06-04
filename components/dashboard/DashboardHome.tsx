@@ -31,12 +31,17 @@ export default function DashboardHome() {
   const averageProductPrice = totalProducts > 0 ? products.reduce((sum, p) => sum + p.unitPrice, 0) / totalProducts : 0
   const totalInventoryValue = products.reduce((sum, p) => sum + (p.stockQuantity * p.unitPrice), 0)
 
-  // Recent activity (last 7 days)
-  const lastWeek = new Date()
-  lastWeek.setDate(lastWeek.getDate() - 7)
-  const recentSales = sales.filter(sale => new Date(sale.saleDate) >= lastWeek)
-  const recentPurchases = purchases.filter(purchase => new Date(purchase.purchaseDate) >= lastWeek)
+  // Recent activity (last 30 days)
+  const lastMonth = new Date();
+  lastMonth.setMonth(lastMonth.getMonth() - 1);
 
+  const monthlySales = sales.filter(
+    (sale) => new Date(sale.saleDate) >= lastMonth
+  );
+
+  const monthlyPurchases = purchases.filter(
+    (purchase) => new Date(purchase.purchaseDate) >= lastMonth
+  );
   const ninetyDaysAgo = new Date();
   ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
 
@@ -60,6 +65,80 @@ export default function DashboardHome() {
   const topSellingProducts = Array.from(productSalesMap.entries())
     .sort((a, b) => b[1] - a[1])
     .slice(0, 3);
+
+
+  const OVERDUE_DAYS = 30;
+
+  const overdueDate = new Date();
+  overdueDate.setDate(overdueDate.getDate() - OVERDUE_DAYS);
+
+  // CLIENT OVERDUE (receivables)
+  const clientReceivables = clients.map((client) => {
+    const clientSales = sales.filter((s) => s.client === client.name);
+
+    const total = clientSales.reduce(
+      (sum, s) =>
+        sum +
+        (s.items || []).reduce(
+          (iSum: number, item: any) =>
+            iSum +
+            (item.quantitySold || 0) * (item.salePrice || 0),
+          0,
+        ),
+      0,
+    );
+
+    const lastSaleDate = clientSales.reduce((latest, s) => {
+      const d = new Date(s.saleDate);
+      return !latest || d > latest ? d : latest;
+    }, null as Date | null);
+
+    const isOverdue =
+      lastSaleDate && lastSaleDate < overdueDate;
+
+    return {
+      name: client.name,
+      total,
+      isOverdue,
+    };
+  });
+
+  // SUPPLIER OVERDUE (payables)
+  const supplierPayables = suppliers.map((supplier) => {
+    const supplierPurchases = purchases.filter(
+      (p) => p.supplier === supplier.name,
+    );
+
+    const total = supplierPurchases.reduce(
+      (sum, p) =>
+        sum +
+        (p.items || []).reduce(
+          (iSum: number, item: any) =>
+            iSum +
+            (item.quantityPurchased || 0) *
+            (item.purchasePrice || 0),
+          0,
+        ),
+      0,
+    );
+
+    const lastPurchaseDate = supplierPurchases.reduce(
+      (latest, p) => {
+        const d = new Date(p.purchaseDate);
+        return !latest || d > latest ? d : latest;
+      },
+      null as Date | null,
+    );
+
+    const isOverdue =
+      lastPurchaseDate && lastPurchaseDate < overdueDate;
+
+    return {
+      name: supplier.name,
+      total,
+      isOverdue,
+    };
+  });
 
   const stats = [
     {
@@ -114,7 +193,7 @@ export default function DashboardHome() {
 
   const quickStats = [
     {
-      title: "Suppliers",
+      title: "Active Suppliers",
       value: totalSuppliers,
       icon: Truck,
       color: "text-gray-700 dark:text-gray-200",
@@ -132,8 +211,8 @@ export default function DashboardHome() {
       color: "text-amber-600",
     },
     {
-      title: "This Week Sales",
-      value: recentSales.length,
+      title: "This Monthly Sales",
+      value: monthlySales.length,
       icon: Calendar,
       color: "text-gray-700 dark:text-gray-200",
     },
@@ -316,8 +395,8 @@ export default function DashboardHome() {
               </Card>
             )
           })}
-          {/* This Week Sales (from quickStats) */}
-          {quickStats.filter(q => q.title === "This Week Sales").map((stat, index) => {
+          {/* This Monthly Sales (from quickStats) */}
+          {quickStats.filter(q => q.title === "This Monthly Sales").map((stat, index) => {
             const Icon = stat.icon
             return (
               <Card key={index} className="dark:bg-gray-800 dark:border-gray-700">
@@ -336,9 +415,9 @@ export default function DashboardHome() {
         </div>
       </div>
 
-      {/* People Section */}
+      {/* Business Associate Section */}
       <div className="space-y-4 mt-12">
-        <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100 border-b dark:border-gray-700 pb-2 mb-6 tracking-tight pl-4 border-l-4 border-indigo-500 bg-indigo-50/60 dark:bg-indigo-900/20">People</h2>
+        <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100 border-b dark:border-gray-700 pb-2 mb-6 tracking-tight pl-4 border-l-4 border-indigo-500 bg-indigo-50/60 dark:bg-indigo-900/20">Business Associate</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {/* Active Clients */}
           {stats.filter(s => s.title === "Active Clients").map((stat, index) => {
@@ -359,7 +438,7 @@ export default function DashboardHome() {
             )
           })}
           {/* Suppliers (from quickStats) */}
-          {quickStats.filter(q => q.title === "Suppliers").map((stat, index) => {
+          {quickStats.filter(q => q.title === "Active Suppliers").map((stat, index) => {
             const Icon = stat.icon
             return (
               <Card key={index} className="dark:bg-gray-800 dark:border-gray-700">
@@ -543,6 +622,82 @@ export default function DashboardHome() {
             </div>
           </CardContent>
         </Card>
+
+        {/* CLIENT OVERDUE RECEIVABLES */}
+        <Card className="dark:bg-gray-800 dark:border-gray-700">
+          <CardHeader>
+            <CardTitle className="flex items-center text-red-600">
+              <AlertTriangle className="mr-2 h-5 w-5" />
+              Client Receivables (Overdue)
+            </CardTitle>
+            <CardDescription>
+              Payments pending over {OVERDUE_DAYS} days
+            </CardDescription>
+          </CardHeader>
+
+          <CardContent>
+            <div className="space-y-3">
+              {clientReceivables
+                .filter((c) => c.isOverdue)
+                .slice(0, 5)
+                .map((c, i) => (
+                  <div
+                    key={i}
+                    className="flex justify-between p-3 bg-red-50 dark:bg-red-900/10 rounded-lg border border-red-200"
+                  >
+                    <p className="font-medium">{c.name}</p>
+                    <p className="text-red-600 font-semibold">
+                      Rs {c.total.toLocaleString()}
+                    </p>
+                  </div>
+                ))}
+
+              {clientReceivables.filter((c) => c.isOverdue).length === 0 && (
+                <p className="text-gray-500 text-center py-4">
+                  No overdue receivables 🎉
+                </p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* SUPPLIER OVERDUE PAYABLES */}
+        <Card className="dark:bg-gray-800 dark:border-gray-700">
+          <CardHeader>
+            <CardTitle className="flex items-center text-orange-600">
+              <Truck className="mr-2 h-5 w-5" />
+              Supplier Payables (Overdue)
+            </CardTitle>
+            <CardDescription>
+              Payments pending over {OVERDUE_DAYS} days
+            </CardDescription>
+          </CardHeader>
+
+          <CardContent>
+            <div className="space-y-3">
+              {supplierPayables
+                .filter((s) => s.isOverdue)
+                .slice(0, 5)
+                .map((s, i) => (
+                  <div
+                    key={i}
+                    className="flex justify-between p-3 bg-orange-50 dark:bg-orange-900/10 rounded-lg border border-orange-200"
+                  >
+                    <p className="font-medium">{s.name}</p>
+                    <p className="text-orange-600 font-semibold">
+                      Rs {s.total.toLocaleString()}
+                    </p>
+                  </div>
+                ))}
+
+              {supplierPayables.filter((s) => s.isOverdue).length === 0 && (
+                <p className="text-gray-500 text-center py-4">
+                  No overdue payables 🎉
+                </p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Performance Summary */}
@@ -559,14 +714,14 @@ export default function DashboardHome() {
                   <TrendingUp className="h-5 w-5 text-green-600 mr-2" />
                   <span className="text-gray-900 dark:text-gray-200">Sales</span>
                 </div>
-                <span className="font-semibold text-green-600">{recentSales.length} transactions</span>
+                <span className="font-semibold text-green-600">{monthlySales.length} transactions</span>
               </div>
               <div className="flex justify-between items-center p-3 bg-blue-50 dark:bg-blue-900/10 rounded-lg">
                 <div className="flex items-center">
                   <ShoppingCart className="h-5 w-5 text-blue-600 mr-2" />
                   <span className="text-gray-900 dark:text-gray-200">Purchases</span>
                 </div>
-                <span className="font-semibold text-blue-600">{recentPurchases.length} orders</span>
+                <span className="font-semibold text-blue-600">{monthlyPurchases.length} orders</span>
               </div>
             </div>
           </CardContent>
