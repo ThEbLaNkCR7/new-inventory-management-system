@@ -37,6 +37,30 @@ export default function DashboardHome() {
   const recentSales = sales.filter(sale => new Date(sale.saleDate) >= lastWeek)
   const recentPurchases = purchases.filter(purchase => new Date(purchase.purchaseDate) >= lastWeek)
 
+  const ninetyDaysAgo = new Date();
+  ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+
+  const deadStockProducts = products.filter((p) => {
+    const createdDate = new Date(p.createdAt);
+    return p.stockQuantity > 0 && createdDate < ninetyDaysAgo;
+  });
+
+  const productSalesMap = new Map<string, number>();
+
+  sales.forEach((sale) => {
+    sale.items?.forEach((item: any) => {
+      const current = productSalesMap.get(item.productName) || 0;
+      productSalesMap.set(
+        item.productName,
+        current + (item.quantitySold || 0),
+      );
+    });
+  });
+
+  const topSellingProducts = Array.from(productSalesMap.entries())
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3);
+
   const stats = [
     {
       title: "Total Products",
@@ -113,6 +137,12 @@ export default function DashboardHome() {
       icon: Calendar,
       color: "text-gray-700 dark:text-gray-200",
     },
+    {
+      title: "Dead Stock (90+ days)",
+      value: deadStockProducts.length,
+      icon: Clock,
+      color: "text-red-600",
+    }
   ]
 
   return (
@@ -181,6 +211,50 @@ export default function DashboardHome() {
               </Card>
             )
           })}
+        </div>
+        {/* Dead Stock Warning */}
+        <div className="mt-10">
+          <h2 className="text-xl font-bold text-red-600 mb-4 flex items-center gap-2">
+            <AlertTriangle className="h-5 w-5" />
+            Dead Stock (90+ days)
+          </h2>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {deadStockProducts.length > 0 ? (
+              deadStockProducts.slice(0, 6).map((p) => (
+                <Card key={p.id} className="border-red-200 dark:border-red-900">
+                  <CardContent className="p-4">
+                    <p className="font-semibold text-gray-800 dark:text-gray-100">
+                      {p.name}
+                    </p>
+                    <p className="text-sm text-red-600">
+                      No sales in 90+ days
+                    </p>
+                  </CardContent>
+                </Card>
+              ))
+            ) : (
+              <p className="text-gray-500">No dead stock 🎉</p>
+            )}
+          </div>
+        </div>
+        <div className="mt-10">
+          <h2 className="text-xl font-bold text-green-600 mb-4">
+            Top Selling Products
+          </h2>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {topSellingProducts.map(([name, qty], idx) => (
+              <Card key={idx}>
+                <CardContent className="p-4 flex justify-between">
+                  <p className="font-medium">{name}</p>
+                  <Badge className="bg-green-100 text-green-700">
+                    {qty} sold
+                  </Badge>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         </div>
       </div>
 
