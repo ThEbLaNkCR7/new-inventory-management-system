@@ -27,6 +27,16 @@ export default function ViewSaleDialog({
 }: ViewSaleDialogProps) {
   if (!sale) return null;
 
+  const total =
+    sale.items?.reduce(
+      (sum: number, item: any) =>
+        sum + (item.quantitySold || 0) * (item.salePrice || 0),
+      0
+    ) || 0;
+
+  const vat = sale.vatAmount || 0;
+  const grandTotal = total + vat;
+
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-white dark:bg-gray-800 border dark:border-gray-700">
@@ -45,7 +55,7 @@ export default function ViewSaleDialog({
         <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-6">
           <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center space-x-2">
             <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-            <span>Purchase Information</span>
+            <span>Sale Information</span>
           </h3>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="space-y-2">
@@ -66,7 +76,7 @@ export default function ViewSaleDialog({
             </div>
             <div className="space-y-2">
               <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">
-                Purchase Date
+                Sale Date
               </Label>
               <p className="text-gray-700 dark:text-gray-300 font-medium text-base">
                 {formatNepaliDateForTable(sale.saleDate)}
@@ -139,23 +149,36 @@ export default function ViewSaleDialog({
                 </tbody>
 
                 <tfoot className="bg-muted font-semibold">
+                  {/* TOTAL */}
+                  <tr>
+                    <td colSpan={3} className="p-3 text-right">
+                      Total
+                    </td>
+                    <td className="p-3">
+                      Rs {total.toFixed(2)}
+                    </td>
+                    <td colSpan={2}></td>
+                  </tr>
+
+                  {/* VAT (manual value) */}
+                  <tr>
+                    <td colSpan={3} className="p-3 text-right">
+                      VAT
+                    </td>
+                    <td className="p-3">
+                      Rs {vat.toFixed(2)}
+                    </td>
+                    <td colSpan={2}></td>
+                  </tr>
+
+                  {/* GRAND TOTAL */}
                   <tr>
                     <td colSpan={3} className="p-3 text-right">
                       Grand Total
                     </td>
-
                     <td className="p-3 text-green-600">
-                      Rs {sale.items
-                        ?.reduce(
-                          (sum: number, item: any) =>
-                            sum +
-                            (item.quantitySold || 0) *
-                            (item.salePrice || 0),
-                          0
-                        )
-                        .toFixed(2)}
+                      Rs {grandTotal.toFixed(2)}
                     </td>
-
                     <td colSpan={2}></td>
                   </tr>
                 </tfoot>
