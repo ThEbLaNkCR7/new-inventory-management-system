@@ -236,7 +236,6 @@ export default function StockViewPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">Product</TableHead>
-                    <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">SKU</TableHead>
                     <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">Category</TableHead>
                     <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">Units</TableHead>
                     <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">Unit Weight</TableHead>
@@ -259,10 +258,6 @@ export default function StockViewPage() {
                             {product.description}
                           </p>
                         </div>
-                      </TableCell>
-
-                      <TableCell className="text-gray-700">
-                        {product.hsCode}
                       </TableCell>
 
                       <TableCell className="text-gray-700">
