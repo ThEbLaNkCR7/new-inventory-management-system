@@ -10,8 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { formatNepaliDateForTable } from "@/lib/utils";
-import { Badge, Eye } from "lucide-react";
-import React from "react";
+import { Eye } from "lucide-react";
 
 interface ViewSaleDialogProps {
   isOpen: boolean;
@@ -42,6 +41,47 @@ export default function ViewSaleDialog({
             Complete information about the selected sale transaction
           </DialogDescription>
         </DialogHeader>
+
+        <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-6">
+          <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center space-x-2">
+            <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+            <span>Purchase Information</span>
+          </h3>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">
+                Client
+              </Label>
+              <p className="text-gray-900 dark:text-gray-100 font-medium text-base">
+                {sale.client}
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">
+                Client Type
+              </Label>
+              <p className="text-gray-900 dark:text-gray-100 font-medium text-base">
+                {sale.clientType || "Company"}
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">
+                Purchase Date
+              </Label>
+              <p className="text-gray-700 dark:text-gray-300 font-medium text-base">
+                {formatNepaliDateForTable(sale.saleDate)}
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">
+                Transaction ID
+              </Label>
+              <p className="text-gray-700 dark:text-gray-300 font-mono text-base">
+                {sale.id}
+              </p>
+            </div>
+          </div>
+        </div>
 
         {sale && (
           <div className="space-y-6">
