@@ -30,6 +30,15 @@ export default function ViewPurchaseDialog({
 }: ViewPurchaseDialogProps) {
   if (!purchase) return null;
 
+  const total =
+    purchase.items?.reduce(
+      (sum: number, item: any) =>
+        sum +
+        (item.quantityPurchased || 0) *
+        (item.purchasePrice || 0),
+      0
+    ) || 0;
+
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-white dark:bg-gray-800 border dark:border-gray-700">
@@ -46,192 +55,106 @@ export default function ViewPurchaseDialog({
         </DialogHeader>
 
         <div className="space-y-6">
+
+          {/* PURCHASE INFO */}
           <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-6">
             <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center space-x-2">
               <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
               <span>Purchase Information</span>
             </h3>
+
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">
                   Supplier
                 </Label>
-                <p className="text-gray-900 dark:text-gray-100 font-medium text-base">
+                <p className="text-gray-900 dark:text-gray-100 font-medium">
                   {purchase.supplier}
                 </p>
               </div>
+
               <div className="space-y-2">
                 <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">
                   Supplier Type
                 </Label>
-                <p className="text-gray-900 dark:text-gray-100 font-medium text-base">
+                <p className="text-gray-900 dark:text-gray-100 font-medium">
                   {purchase.supplierType || "Company"}
                 </p>
               </div>
+
               <div className="space-y-2">
                 <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">
                   Purchase Date
                 </Label>
-                <p className="text-gray-700 dark:text-gray-300 font-medium text-base">
+                <p className="text-gray-700 dark:text-gray-300 font-medium">
                   {formatNepaliDateForTable(purchase.purchaseDate)}
                 </p>
               </div>
+
               <div className="space-y-2">
                 <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">
-                  Transaction ID
+                  Updated Date
                 </Label>
-                <p className="text-gray-700 dark:text-gray-300 font-mono text-base">
-                  {purchase.id}
+                <p className="text-gray-700 dark:text-gray-300 font-mono">
+                  {purchase.updatedAt ? formatNepaliDateForTable(purchase.updatedAt) : "N/A"}
                 </p>
               </div>
             </div>
           </div>
 
-          <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-6">
-            <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center space-x-2">
-              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-              <span>Items Purchased</span>
-            </h3>
-            <div className="space-y-3">
-              {purchase.items && purchase.items.length > 0 ? (
-                purchase.items.map((item: any, index: number) => (
-                  <div
-                    key={index}
-                    className="border border-gray-200 dark:border-gray-600 rounded-lg p-4"
-                  >
-                    <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
-                      <div>
-                        <Label className="text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">
-                          Product
-                        </Label>
-                        <p className="text-gray-900 dark:text-gray-100 font-medium mt-1">
-                          {item.productName || "N/A"}
-                        </p>
-                      </div>
-                      <div>
-                        <Label className="text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">
-                          Quantity
-                        </Label>
-                        <p className="text-gray-900 dark:text-gray-100 font-medium mt-1">
-                          {item.quantityPurchased || 0} units
-                        </p>
-                      </div>
-                      <div>
-                        <Label className="text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">
-                          Unit Price
-                        </Label>
-                        <p className="text-gray-900 dark:text-gray-100 font-medium mt-1">
-                          Rs {(item.purchasePrice || 0).toLocaleString()}
-                        </p>
-                      </div>
-                      <div>
-                        <Label className="text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">
-                          Total
-                        </Label>
-                        <p className="text-blue-600 dark:text-blue-400 font-semibold mt-1">
-                          Rs{" "}
-                          {(
-                            (item.quantityPurchased || 0) * (item.purchasePrice || 0)
-                          ).toLocaleString()}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <p className="text-gray-500 dark:text-gray-400">
-                  No items in this purchase
-                </p>
-              )}
-            </div>
+          {/* ITEMS TABLE */}
+          <div className="rounded-xl border overflow-hidden">
+            <table className="w-full">
+              <thead className="bg-muted">
+                <tr>
+                  <th className="text-left p-3">Product Name</th>
+                  <th className="text-left p-3">Quantity</th>
+                  <th className="text-left p-3">Unit Price</th>
+                  <th className="text-left p-3">Total Price</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {purchase.items?.map((item: any, index: number) => (
+                  <tr key={index} className="border-t dark:border-gray-700">
+                    <td className="p-3 font-medium">
+                      {item.productName || "Unknown Product"}
+                    </td>
+
+                    <td className="p-3">
+                      {item.quantityPurchased || 0}
+                    </td>
+
+                    <td className="p-3">
+                      Rs {(item.purchasePrice || 0).toFixed(2)}
+                    </td>
+
+                    <td className="p-3 font-semibold text-blue-600">
+                      Rs {(
+                        (item.quantityPurchased || 0) *
+                        (item.purchasePrice || 0)
+                      ).toFixed(2)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+
+              {/* FOOTER */}
+              <tfoot className="bg-muted font-semibold">
+                <tr>
+                  <td colSpan={3} className="p-3 text-right">
+                    Grand Total
+                  </td>
+                  <td className="p-3 text-green-600">
+                    Rs {total.toFixed(2)}
+                  </td>
+                  <td colSpan={2}></td>
+                </tr>
+              </tfoot>
+            </table>
           </div>
 
-          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-6">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label className="text-sm font-medium text-blue-600 dark:text-blue-400 uppercase tracking-wide">
-                  Total Quantity
-                </Label>
-                <p className="text-blue-900 dark:text-blue-200 font-semibold text-lg mt-1">
-                  {(purchase.items || []).reduce(
-                    (sum: number, item: any) => sum + (item.quantityPurchased || 0),
-                    0
-                  )}{" "}
-                  units
-                </p>
-              </div>
-              <div>
-                <Label className="text-sm font-medium text-blue-600 dark:text-blue-400 uppercase tracking-wide">
-                  Total Amount
-                </Label>
-                <p className="text-blue-900 dark:text-blue-200 font-semibold text-lg mt-1">
-                  Rs{" "}
-                  {(
-                    (purchase.items || []).reduce(
-                      (sum: number, item: any) =>
-                        sum + ((item.quantityPurchased || 0) * (item.purchasePrice || 0)),
-                      0
-                    )
-                  ).toLocaleString()}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-6">
-            <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center space-x-2">
-              <div className="w-2 h-2 bg-indigo-500 rounded-full"></div>
-              <span>Timestamps</span>
-            </h3>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">
-                  Created
-                </Label>
-                <p className="text-gray-700 dark:text-gray-300 font-medium text-base">
-                  {purchase.createdAt
-                    ? formatNepaliDateForTable(purchase.createdAt)
-                    : "N/A"}
-                </p>
-              </div>
-              <div className="space-y-2">
-                <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">
-                  Last Updated
-                </Label>
-                <p className="text-gray-700 dark:text-gray-300 font-medium text-base">
-                  {purchase.updatedAt || purchase.createdAt
-                    ? formatNepaliDateForTable(
-                      purchase.updatedAt || purchase.createdAt!,
-                    )
-                    : "N/A"}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-6">
-            <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center space-x-2">
-              <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-              <span>Status</span>
-            </h3>
-            <div className="flex items-center space-x-6">
-              <div className="flex items-center space-x-3">
-                <div
-                  className={`w-4 h-4 rounded-full ${purchase.isActive !== false ? "bg-green-500" : "bg-red-500"}`}
-                ></div>
-                <span className="text-gray-700 dark:text-gray-300 font-medium text-base">
-                  {purchase.isActive !== false ? "Active" : "Inactive"}
-                </span>
-              </div>
-              <Badge
-                variant="secondary"
-                className="bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400 px-4 py-2 text-sm font-medium"
-              >
-                Completed
-              </Badge>
-            </div>
-          </div>
-
+          {/* BILL */}
           {purchase.billUrl && (
             <div className="space-y-2">
               <Label>Bill Image</Label>
@@ -252,22 +175,22 @@ export default function ViewPurchaseDialog({
           )}
         </div>
 
+        {/* ACTIONS */}
         <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200 dark:border-gray-700">
           <Button
             type="button"
             variant="neutralOutline"
             onClick={() => onOpenChange(false)}
-            className="px-6 py-2"
           >
             Close
           </Button>
+
           <Button
             type="button"
             onClick={() => {
               onOpenChange(false);
               onEdit(purchase);
             }}
-            className="px-6 py-2"
           >
             Edit Purchase
           </Button>
