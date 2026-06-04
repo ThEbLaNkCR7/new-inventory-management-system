@@ -55,7 +55,7 @@ export type Sale = {
   saleDate: string
   billUrl?: string
   isActive?: boolean
-  batchId: string
+  batchId?: string
   items: SaleItem[]
 }
 

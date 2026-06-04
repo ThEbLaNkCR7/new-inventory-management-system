@@ -323,6 +323,7 @@ export default function SalesPage() {
         clientType: formData.clientType,
         saleDate: formData.saleDate,
         billUrl: uploadedBillUrl,
+        batchId: "",
         items: formData.items.map((item) => {
           const product = products.find((p) => p.id === item.productId)
 

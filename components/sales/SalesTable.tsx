@@ -147,7 +147,7 @@ export default function SalesTable({
                 <TableHeader>
                   <TableRow className="bg-gray-50 dark:bg-gray-700">
                     <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">
-                      Product
+                      Items
                     </TableHead>
                     <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">
                       Client
@@ -257,7 +257,7 @@ export default function SalesTable({
                 <TableHeader>
                   <TableRow>
                     <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">
-                      Product
+                      Items
                     </TableHead>
                     <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">
                       Client
@@ -357,7 +357,7 @@ export default function SalesTable({
                 <TableHeader>
                   <TableRow className="bg-gray-50 dark:bg-gray-700">
                     <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">
-                      Product
+                      Items
                     </TableHead>
                     <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">
                       Client

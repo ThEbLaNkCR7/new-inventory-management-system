@@ -146,7 +146,7 @@ export default function SupplierHistoryDialog({
             <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-6">
               <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center space-x-2">
                 <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                <span>Purchase Transactions ({supplierPurchases.length})</span>
+                <span>Purchase Transactions ({supplierItems.length})</span>
               </h3>
               <div className="overflow-x-auto">
                 <Table>

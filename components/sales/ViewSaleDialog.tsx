@@ -84,10 +84,10 @@ export default function ViewSaleDialog({
             </div>
             <div className="space-y-2">
               <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">
-                Transaction ID
+                Updated Date
               </Label>
               <p className="text-gray-700 dark:text-gray-300 font-mono text-base">
-                {sale.id}
+                {sale.updatedAt ? formatNepaliDateForTable(sale.updatedAt) : "N/A"}
               </p>
             </div>
           </div>
@@ -103,8 +103,6 @@ export default function ViewSaleDialog({
                     <th className="text-left p-3">Quantity</th>
                     <th className="text-left p-3">Unit Price</th>
                     <th className="text-left p-3">Total Price</th>
-                    <th className="text-left p-3">Created Date</th>
-                    <th className="text-left p-3">Updated Date</th>
                   </tr>
                 </thead>
 
@@ -131,18 +129,6 @@ export default function ViewSaleDialog({
                           (item.quantitySold || 0) *
                           (item.salePrice || 0)
                         ).toFixed(2)}
-                      </td>
-
-                      <td className="p-3">
-                        {sale.createdAt
-                          ? formatNepaliDateForTable(sale.createdAt)
-                          : "N/A"}
-                      </td>
-
-                      <td className="p-3">
-                        {sale.updatedAt
-                          ? formatNepaliDateForTable(sale.updatedAt)
-                          : "N/A"}
                       </td>
                     </tr>
                   ))}
