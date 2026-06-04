@@ -99,9 +99,11 @@ export default function ProductsPage() {
   const categories = useMemo(() => [...new Set(products.map((p) => p.category))], [products])
 
   const filteredProducts = products.filter((product) => {
+    const search = searchTerm.toLowerCase();
+
     const matchesSearch =
-      product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.hsCode.toLowerCase().includes(searchTerm.toLowerCase())
+      (product.name ?? "").toLowerCase().includes(search) ||
+      (product.hsCode ?? "").toLowerCase().includes(search);
     const matchesCategory = categoryFilter === "all" || product.category === categoryFilter
     return matchesSearch && matchesCategory
   })
@@ -153,17 +155,26 @@ export default function ProductsPage() {
       groups[product.name].push(product)
     })
 
-    // Convert to array and sort by name
-    return Object.entries(groups).map(([name, variants]) => ({
-      name,
-      variants: variants.sort((a, b) => (a.netWeight || 0) - (b.netWeight || 0)),
-      totalStock: variants.reduce((sum, p) => sum + p.stockQuantity, 0),
-      // Use the first variant for common fields
-      category: variants[0].category,
-      hsCode: variants[0].hsCode,
-      supplier: variants[0].supplier,
-      unitPrice: variants[0].unitPrice,
-    }))
+    return Object.entries(groups)
+      .map(([name, variants]) => ({
+        name,
+        variants: variants.sort(
+          (a, b) => (a.netWeight || 0) - (b.netWeight || 0)
+        ),
+
+        totalStock: variants.reduce((sum, p) => sum + p.stockQuantity, 0),
+
+        category: variants[0].category,
+        hsCode: variants[0].hsCode,
+        supplier: variants[0].supplier,
+        unitPrice: variants[0].unitPrice,
+
+        // ⭐ add latest created date for sorting
+        latestCreatedAt: Math.max(
+          ...variants.map(v => new Date(v.createdAt || 0).getTime())
+        ),
+      }))
+      .sort((a, b) => b.latestCreatedAt - a.latestCreatedAt) // newest first
   }, [filteredProducts])
 
   // Auto-hide success alerts
@@ -1688,8 +1699,8 @@ export default function ProductsPage() {
                           </Label>
                           <p
                             className={`font-semibold text-lg ${netMovement >= 0
-                                ? "text-blue-600 dark:text-blue-400"
-                                : "text-red-600 dark:text-red-400"
+                              ? "text-blue-600 dark:text-blue-400"
+                              : "text-red-600 dark:text-red-400"
                               }`}
                           >
                             {netMovement} units
@@ -1705,8 +1716,8 @@ export default function ProductsPage() {
                           </Label>
                           <p
                             className={`font-semibold text-lg ${profit >= 0
-                                ? "text-green-600 dark:text-green-400"
-                                : "text-red-600 dark:text-red-400"
+                              ? "text-green-600 dark:text-green-400"
+                              : "text-red-600 dark:text-red-400"
                               }`}
                           >
                             Rs {profit.toLocaleString()}
