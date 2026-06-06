@@ -1304,33 +1304,32 @@ export default function ProductsPage() {
                 </h3>
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Product Name</Label>
-                    <p className="text-gray-900 dark:text-gray-100 font-medium text-base">{viewingProduct.name}</p>
+                    <Label className="text-sm font-medium text-gray-900 dark:text-gray-100 uppercase tracking-wide">Product Name</Label>
+                    <p className="text-gray-500 dark:text-gray-400 text-base">{viewingProduct.name}</p>
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">HS Code</Label>
-                    <p className="text-gray-900 dark:text-gray-100 font-mono text-base">{viewingProduct.hsCode || "Not specified"}</p>
+                    <Label className="text-sm font-medium text-gray-900 dark:text-gray-100 uppercase tracking-wide">HS Code</Label>
+                    <p className="text-gray-500 dark:text-gray-400 text-base">{viewingProduct.hsCode || "Not specified"}</p>
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Category</Label>
-                    <Badge variant="secondary" className="bg-blue-100 dark:bg-blue-900/20 text-blue-800 dark:text-blue-400 px-3 py-1 text-sm font-medium">
+                    <Label className="text-sm font-medium text-gray-900 dark:text-gray-100 uppercase tracking-wide">Category</Label>
+                    <p className="text-gray-500 dark:text-gray-400 text-base">
                       {viewingProduct.category}
-                    </Badge>
+                    </p>
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Stock Type</Label>
-                    <Badge
-                      variant={viewingProduct.stockType === "new" ? "default" : "secondary"}
-                      className={viewingProduct.stockType === "new" ? "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400 px-3 py-1 text-sm font-medium" : "bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-400 px-3 py-1 text-sm font-medium"}
+                    <Label className="text-sm font-medium text-gray-900 dark:text-gray-100 uppercase tracking-wide">Stock Type</Label>
+                    <p
+                      className={viewingProduct.stockType === "new" ? "text-green-800 dark:text-green-400 py-1 text-sm font-medium" : "text-orange-800 dark:text-orange-400 py-1 text-sm font-medium"}
                     >
                       {viewingProduct.stockType === "new" ? "New Stock" : "Old Stock"}
-                    </Badge>
+                    </p>
                   </div>
                 </div>
                 {viewingProduct.description && (
                   <div className="space-y-2 mt-6">
-                    <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Description</Label>
-                    <p className="text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-600 leading-relaxed text-base">
+                    <Label className="text-sm font-medium text-gray-900 dark:text-gray-100 uppercase tracking-wide">Description</Label>
+                    <p className="text-gray-500 dark:text-gray-400 text-base">
                       {viewingProduct.description}
                     </p>
                   </div>
@@ -1345,29 +1344,29 @@ export default function ProductsPage() {
                 </h3>
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Stock Quantity</Label>
+                    <Label className="text-sm font-medium text-gray-900 dark:text-gray-100 uppercase tracking-wide">Stock Quantity</Label>
                     <div className="flex items-center space-x-3">
                       {viewingProduct.stockQuantity <= 5 && <AlertTriangle className="h-5 w-5 text-amber-500" />}
-                      <span className={`font-semibold text-lg ${viewingProduct.stockQuantity <= 5 ? "text-amber-600 dark:text-amber-400" : "text-slate-600 dark:text-slate-400"}`}>
+                      <span className={`${viewingProduct.stockQuantity <= 5 ? "text-amber-600 dark:text-amber-400" : "text-gray-500 dark:text-gray-400 text-base"}`}>
                         {viewingProduct.stockQuantity} units
                       </span>
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Unit Price</Label>
-                    <p className="text-gray-900 dark:text-gray-100 font-semibold text-lg">
+                    <Label className="text-sm font-medium text-gray-900 dark:text-gray-100 uppercase tracking-wide">Unit Price</Label>
+                    <p className="text-gray-500 dark:text-gray-400 text-base">
                       Rs {viewingProduct.unitPrice.toLocaleString()}
                     </p>
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Total Value</Label>
-                    <p className="text-gray-900 dark:text-gray-100 font-semibold text-lg">
+                    <Label className="text-sm font-medium text-gray-900 dark:text-gray-100 uppercase tracking-wide">Total Value</Label>
+                    <p className="text-gray-500 dark:text-gray-400 text-base">
                       Rs {(viewingProduct.stockQuantity * viewingProduct.unitPrice).toLocaleString()}
                     </p>
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Low Stock Threshold</Label>
-                    <p className="text-gray-900 dark:text-gray-100 font-medium text-base">
+                    <Label className="text-sm font-medium text-gray-900 dark:text-gray-100 uppercase tracking-wide">Low Stock Threshold</Label>
+                    <p className="text-gray-500 dark:text-gray-400 text-base">
                       {(viewingProduct as any).lowStockThreshold || 5} units
                     </p>
                   </div>
@@ -1382,13 +1381,13 @@ export default function ProductsPage() {
                 </h3>
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Supplier</Label>
-                    <p className="text-gray-900 dark:text-gray-100 font-medium text-base">{viewingProduct.supplier}</p>
+                    <Label className="text-sm font-medium text-gray-900 dark:text-gray-100 uppercase tracking-wide">Supplier</Label>
+                    <p className="text-gray-500 dark:text-gray-400 text-base">{viewingProduct.supplier}</p>
                   </div>
                   {viewingProduct.batchNumber && (
                     <div className="space-y-2">
-                      <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Batch Number</Label>
-                      <p className="text-gray-700 dark:text-gray-300 font-mono text-base bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-600">
+                      <Label className="text-sm font-medium text-gray-900 dark:text-gray-100 uppercase tracking-wide">Batch Number</Label>
+                      <p className="text-gray-500 dark:text-gray-400 text-base">
                         {viewingProduct.batchNumber}
                       </p>
                     </div>
@@ -1404,21 +1403,21 @@ export default function ProductsPage() {
                 </h3>
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Created</Label>
-                    <p className="text-gray-700 dark:text-gray-300 font-medium text-base">
+                    <Label className="text-sm font-medium text-gray-900 dark:text-gray-100 uppercase tracking-wide">Created</Label>
+                    <p className="text-gray-500 dark:text-gray-400 text-base">
                       {formatNepaliDateForTable(viewingProduct.createdAt)}
                     </p>
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Last Updated</Label>
-                    <p className="text-gray-700 dark:text-gray-300 font-medium text-base">
+                    <Label className="text-sm font-medium text-gray-900 dark:text-gray-100 uppercase tracking-wide">Last Updated</Label>
+                    <p className="text-gray-500 dark:text-gray-400 text-base">
                       {formatNepaliDateForTable(viewingProduct.updatedAt || viewingProduct.createdAt)}
                     </p>
                   </div>
                   {viewingProduct.lastRestocked && (
                     <div className="space-y-2">
-                      <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Last Restocked</Label>
-                      <p className="text-gray-700 dark:text-gray-300 font-medium text-base">
+                      <Label className="text-sm font-medium text-gray-900 dark:text-gray-100 uppercase tracking-wide">Last Restocked</Label>
+                      <p className="text-gray-500 dark:text-gray-400 text-base">
                         {formatNepaliDateForTable(viewingProduct.lastRestocked)}
                       </p>
                     </div>
@@ -1435,7 +1434,7 @@ export default function ProductsPage() {
                 <div className="flex items-center space-x-6">
                   <div className="flex items-center space-x-3">
                     <div className={`w-4 h-4 rounded-full ${viewingProduct.isActive !== false ? "bg-green-500" : "bg-red-500"}`}></div>
-                    <span className="text-gray-700 dark:text-gray-300 font-medium text-base">
+                    <span className="text-gray-500 dark:text-gray-400 text-base">
                       {viewingProduct.isActive !== false ? "Active" : "Inactive"}
                     </span>
                   </div>
@@ -1558,19 +1557,19 @@ export default function ProductsPage() {
                 </h3>
                 <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Product Name</Label>
+                    <Label className="text-sm font-medium text-gray-900 dark:text-gray-100 uppercase tracking-wide">Product Name</Label>
                     <p className="text-gray-900 dark:text-gray-100 font-medium text-base">{selectedProductForHistory.name}</p>
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Current Stock</Label>
+                    <Label className="text-sm font-medium text-gray-900 dark:text-gray-100 uppercase tracking-wide">Current Stock</Label>
                     <p className="text-gray-900 dark:text-gray-100 font-semibold text-lg">{selectedProductForHistory.stockQuantity} units</p>
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Unit Price</Label>
+                    <Label className="text-sm font-medium text-gray-900 dark:text-gray-100 uppercase tracking-wide">Unit Price</Label>
                     <p className="text-gray-900 dark:text-gray-100 font-semibold text-lg">Rs {selectedProductForHistory.unitPrice.toLocaleString()}</p>
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Total Value</Label>
+                    <Label className="text-sm font-medium text-gray-900 dark:text-gray-100 uppercase tracking-wide">Total Value</Label>
                     <p className="font-semibold text-lg text-green-600 dark:text-green-400">
                       Rs {(selectedProductForHistory.stockQuantity * selectedProductForHistory.unitPrice).toLocaleString()}
                     </p>
@@ -1670,7 +1669,7 @@ export default function ProductsPage() {
                     return (
                       <>
                         <div className="space-y-2">
-                          <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">
+                          <Label className="text-sm font-medium text-gray-900 dark:text-gray-100 uppercase tracking-wide">
                             Total Sales
                           </Label>
                           <p className="font-semibold text-lg text-green-600 dark:text-green-400">
@@ -1682,7 +1681,7 @@ export default function ProductsPage() {
                         </div>
 
                         <div className="space-y-2">
-                          <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">
+                          <Label className="text-sm font-medium text-gray-900 dark:text-gray-100 uppercase tracking-wide">
                             Total Purchases
                           </Label>
                           <p className="font-semibold text-lg text-blue-600 dark:text-blue-400">
@@ -1694,7 +1693,7 @@ export default function ProductsPage() {
                         </div>
 
                         <div className="space-y-2">
-                          <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">
+                          <Label className="text-sm font-medium text-gray-900 dark:text-gray-100 uppercase tracking-wide">
                             Net Movement
                           </Label>
                           <p
@@ -1711,7 +1710,7 @@ export default function ProductsPage() {
                         </div>
 
                         <div className="space-y-2">
-                          <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">
+                          <Label className="text-sm font-medium text-gray-900 dark:text-gray-100 uppercase tracking-wide">
                             Profit Margin
                           </Label>
                           <p
@@ -2013,23 +2012,23 @@ export default function ProductsPage() {
                 </h3>
                 <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Category Name</Label>
+                    <Label className="text-sm font-medium text-gray-900 dark:text-gray-100 uppercase tracking-wide">Category Name</Label>
                     <p className="text-gray-900 dark:text-gray-100 font-medium text-base">{selectedCategoryForHistory}</p>
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Total Products</Label>
+                    <Label className="text-sm font-medium text-gray-900 dark:text-gray-100 uppercase tracking-wide">Total Products</Label>
                     <p className="text-gray-900 dark:text-gray-100 font-semibold text-lg">
                       {products.filter(p => p.category === selectedCategoryForHistory).length} products
                     </p>
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Total Stock</Label>
+                    <Label className="text-sm font-medium text-gray-900 dark:text-gray-100 uppercase tracking-wide">Total Stock</Label>
                     <p className="text-gray-900 dark:text-gray-100 font-semibold text-lg">
                       {products.filter(p => p.category === selectedCategoryForHistory).reduce((sum, p) => sum + p.stockQuantity, 0)} units
                     </p>
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Total Value</Label>
+                    <Label className="text-sm font-medium text-gray-900 dark:text-gray-100 uppercase tracking-wide">Total Value</Label>
                     <p className="font-semibold text-lg text-purple-600 dark:text-purple-400">
                       Rs {products.filter(p => p.category === selectedCategoryForHistory).reduce((sum, p) => sum + (p.stockQuantity * p.unitPrice), 0).toLocaleString()}
                     </p>
@@ -2127,7 +2126,7 @@ export default function ProductsPage() {
                     return (
                       <>
                         <div className="space-y-2">
-                          <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">
+                          <Label className="text-sm font-medium text-gray-900 dark:text-gray-100 uppercase tracking-wide">
                             Total Sales
                           </Label>
                           <p className="font-semibold text-lg text-green-600 dark:text-green-400">
@@ -2139,7 +2138,7 @@ export default function ProductsPage() {
                         </div>
 
                         <div className="space-y-2">
-                          <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">
+                          <Label className="text-sm font-medium text-gray-900 dark:text-gray-100 uppercase tracking-wide">
                             Total Purchases
                           </Label>
                           <p className="font-semibold text-lg text-blue-600 dark:text-blue-400">
@@ -2151,7 +2150,7 @@ export default function ProductsPage() {
                         </div>
 
                         <div className="space-y-2">
-                          <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">
+                          <Label className="text-sm font-medium text-gray-900 dark:text-gray-100 uppercase tracking-wide">
                             Net Movement
                           </Label>
                           <p
@@ -2168,7 +2167,7 @@ export default function ProductsPage() {
                         </div>
 
                         <div className="space-y-2">
-                          <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">
+                          <Label className="text-sm font-medium text-gray-900 dark:text-gray-100 uppercase tracking-wide">
                             Profit Margin
                           </Label>
                           <p
@@ -2536,17 +2535,17 @@ export default function ProductsPage() {
                 </h3>
                 <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Supplier Name</Label>
+                    <Label className="text-sm font-medium text-gray-900 dark:text-gray-100 uppercase tracking-wide">Supplier Name</Label>
                     <p className="text-gray-900 dark:text-gray-100 font-medium text-base">{selectedSupplierForHistory}</p>
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Total Purchases</Label>
+                    <Label className="text-sm font-medium text-gray-900 dark:text-gray-100 uppercase tracking-wide">Total Purchases</Label>
                     <p className="text-gray-900 dark:text-gray-100 font-semibold text-lg">
                       {purchases.filter(p => p.supplier === selectedSupplierForHistory && getNepaliYear(p.purchaseDate) === getCurrentNepaliYear()).length} transactions
                     </p>
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">
+                    <Label className="text-sm font-medium text-gray-900 dark:text-gray-100 uppercase tracking-wide">
                       Total Quantity
                     </Label>
                     <p className="text-gray-900 dark:text-gray-100 font-semibold text-lg">
@@ -2571,7 +2570,7 @@ export default function ProductsPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">
+                    <Label className="text-sm font-medium text-gray-900 dark:text-gray-100 uppercase tracking-wide">
                       Total Value
                     </Label>
                     <p className="font-semibold text-lg text-orange-600 dark:text-orange-400">
@@ -2728,17 +2727,17 @@ export default function ProductsPage() {
                 </h3>
                 <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Client Name</Label>
+                    <Label className="text-sm font-medium text-gray-900 dark:text-gray-100 uppercase tracking-wide">Client Name</Label>
                     <p className="text-gray-900 dark:text-gray-100 font-medium text-base">{selectedClientForHistory}</p>
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Total Sales</Label>
+                    <Label className="text-sm font-medium text-gray-900 dark:text-gray-100 uppercase tracking-wide">Total Sales</Label>
                     <p className="text-gray-900 dark:text-gray-100 font-semibold text-lg">
                       {sales.filter(s => s.client === selectedClientForHistory && getNepaliYear(s.saleDate) === getCurrentNepaliYear()).length} transactions
                     </p>
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">
+                    <Label className="text-sm font-medium text-gray-900 dark:text-gray-100 uppercase tracking-wide">
                       Total Quantity
                     </Label>
                     <p className="text-gray-900 dark:text-gray-100 font-semibold text-lg">
@@ -2762,7 +2761,7 @@ export default function ProductsPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">
+                    <Label className="text-sm font-medium text-gray-900 dark:text-gray-100 uppercase tracking-wide">
                       Total Value
                     </Label>
                     <p className="font-semibold text-lg text-teal-600 dark:text-teal-400">
