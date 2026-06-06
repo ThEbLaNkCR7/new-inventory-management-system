@@ -27,6 +27,8 @@ export default function ViewSaleDialog({
 }: ViewSaleDialogProps) {
   if (!sale) return null;
 
+  const VAT_RATE = 0.13; // 13% VAT
+
   const total =
     sale.items?.reduce(
       (sum: number, item: any) =>
@@ -34,7 +36,7 @@ export default function ViewSaleDialog({
       0
     ) || 0;
 
-  const vat = sale.vatAmount || 0;
+  const vat = sale.isVat ? total * VAT_RATE : 0;
   const grandTotal = total + vat;
 
   return (
@@ -146,23 +148,25 @@ export default function ViewSaleDialog({
                     <td colSpan={2}></td>
                   </tr>
 
-                  {/* VAT (manual value) */}
-                  <tr>
-                    <td colSpan={3} className="p-3 text-right">
-                      VAT
-                    </td>
-                    <td className="p-3">
-                      Rs {vat.toFixed(2)}
-                    </td>
-                    <td colSpan={2}></td>
-                  </tr>
+                  {/* VAT (only if isVat is true) */}
+                  {sale.isVat && (
+                    <tr>
+                      <td colSpan={3} className="p-3 text-right">
+                        VAT (13%)
+                      </td>
+                      <td className="p-3 text-amber-600">
+                        + Rs {vat.toFixed(2)}
+                      </td>
+                      <td colSpan={2}></td>
+                    </tr>
+                  )}
 
                   {/* GRAND TOTAL */}
                   <tr>
                     <td colSpan={3} className="p-3 text-right">
-                      Grand Total
+                      {sale.isVat ? "Grand Total" : "Total Amount"}
                     </td>
-                    <td className="p-3 text-green-600">
+                    <td className="p-3 text-green-600 font-bold">
                       Rs {grandTotal.toFixed(2)}
                     </td>
                     <td colSpan={2}></td>

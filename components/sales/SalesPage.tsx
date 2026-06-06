@@ -69,6 +69,7 @@ export default function SalesPage() {
     clientType: "Company",
     customClient: "",
     saleDate: new Date().toISOString().split("T")[0],
+    isVat: false,
   }
 
   const addItem = () => {
@@ -324,6 +325,7 @@ export default function SalesPage() {
         saleDate: formData.saleDate,
         billUrl: uploadedBillUrl,
         batchId: "",
+        isVat: formData.isVat,
         items: formData.items.map((item) => {
           const product = products.find((p) => p.id === item.productId)
 
@@ -404,6 +406,7 @@ export default function SalesPage() {
       clientType: sale.clientType,
       customClient: "",
       saleDate: formattedDate,
+      isVat: sale.isVat ?? false,
     })
     setBillUrl(sale.billUrl || "")
     setBillImage(null)
@@ -813,6 +816,40 @@ export default function SalesPage() {
                       })
                     }
                   />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Include VAT? *</Label>
+                  <div className="flex items-center space-x-6">
+                    <div className="flex items-center">
+                      <input
+                        type="radio"
+                        id="vatYes"
+                        name="isVat"
+                        value="yes"
+                        checked={formData.isVat === true}
+                        onChange={() => updateForm({ ...formData, isVat: true })}
+                        className="w-4 h-4 cursor-pointer"
+                      />
+                      <label htmlFor="vatYes" className="ml-2 cursor-pointer text-sm">
+                        Yes
+                      </label>
+                    </div>
+                    <div className="flex items-center">
+                      <input
+                        type="radio"
+                        id="vatNo"
+                        name="isVat"
+                        value="no"
+                        checked={formData.isVat === false}
+                        onChange={() => updateForm({ ...formData, isVat: false })}
+                        className="w-4 h-4 cursor-pointer"
+                      />
+                      <label htmlFor="vatNo" className="ml-2 cursor-pointer text-sm">
+                        No
+                      </label>
+                    </div>
+                  </div>
                 </div>
 
                 <div className="mb-4">

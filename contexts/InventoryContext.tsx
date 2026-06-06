@@ -29,6 +29,7 @@ export interface Purchase {
   purchaseDate: string
   billUrl?: string
   isActive?: boolean
+  isVat:boolean
   items: PurchaseItem[]
   createdAt?: Date
   updatedAt?: Date
@@ -56,6 +57,7 @@ export type Sale = {
   billUrl?: string
   isActive?: boolean
   batchId?: string
+  isVat:boolean
   items: SaleItem[]
 }
 

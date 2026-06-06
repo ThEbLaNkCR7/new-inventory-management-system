@@ -30,6 +30,8 @@ export default function ViewPurchaseDialog({
 }: ViewPurchaseDialogProps) {
   if (!purchase) return null;
 
+  const VAT_RATE = 0.13; // 13% VAT
+
   const total =
     purchase.items?.reduce(
       (sum: number, item: any) =>
@@ -38,6 +40,9 @@ export default function ViewPurchaseDialog({
         (item.purchasePrice || 0),
       0
     ) || 0;
+
+  const vat = purchase.isVat ? total * VAT_RATE : 0;
+  const grandTotal = total + vat;
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -141,12 +146,37 @@ export default function ViewPurchaseDialog({
 
               {/* FOOTER */}
               <tfoot className="bg-muted font-semibold">
+                {/* TOTAL */}
                 <tr>
                   <td colSpan={3} className="p-3 text-right">
-                    Grand Total
+                    Total
                   </td>
-                  <td className="p-3 text-green-600">
+                  <td className="p-3">
                     Rs {total.toFixed(2)}
+                  </td>
+                  <td colSpan={2}></td>
+                </tr>
+
+                {/* VAT (only if isVat is true) */}
+                {purchase.isVat && (
+                  <tr>
+                    <td colSpan={3} className="p-3 text-right">
+                      VAT (13%)
+                    </td>
+                    <td className="p-3 text-amber-600">
+                      + Rs {vat.toFixed(2)}
+                    </td>
+                    <td colSpan={2}></td>
+                  </tr>
+                )}
+
+                {/* GRAND TOTAL */}
+                <tr>
+                  <td colSpan={3} className="p-3 text-right">
+                    {purchase.isVat ? "Grand Total" : "Total Amount"}
+                  </td>
+                  <td className="p-3 text-green-600 font-bold">
+                    Rs {grandTotal.toFixed(2)}
                   </td>
                   <td colSpan={2}></td>
                 </tr>

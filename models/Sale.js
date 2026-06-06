@@ -49,6 +49,11 @@ const saleSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+
+    isVat: {
+      type: Boolean,
+      default: true,
+    },
   },
   { timestamps: true },
 );

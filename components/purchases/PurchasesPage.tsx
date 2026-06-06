@@ -75,6 +75,7 @@ export default function PurchasesPage() {
     customSupplier: "",
     purchaseDate: new Date().toISOString().split("T")[0],
     category: "",
+    isVat: false,
   }
 
 
@@ -300,6 +301,7 @@ export default function PurchasesPage() {
         supplierType: formData.supplierType,
         purchaseDate: formData.purchaseDate,
         billUrl: uploadedBillUrl,
+        isVat: formData.isVat,
         items: formData.items.map((item) => {
           const product = products.find((p) => p.id === item.productId)
 
@@ -381,6 +383,7 @@ export default function PurchasesPage() {
       supplier: purchase.supplier,
       supplierType: purchase.supplierType,
       purchaseDate: formattedDate,
+      isVat: formData.isVat,
     })
     setBillUrl(purchase.billUrl || "")
     setBillImage(null)
@@ -750,6 +753,40 @@ export default function PurchasesPage() {
                     value={formData.purchaseDate ? new Date(formData.purchaseDate) : undefined}
                     onChange={(date: Date | undefined) => updateForm({ ...formData, purchaseDate: date ? date.toISOString().split("T")[0] : "" })}
                   />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Include VAT? *</Label>
+                  <div className="flex items-center space-x-6">
+                    <div className="flex items-center">
+                      <input
+                        type="radio"
+                        id="vatYes"
+                        name="isVat"
+                        value="yes"
+                        checked={formData.isVat === true}
+                        onChange={() => updateForm({ ...formData, isVat: true })}
+                        className="w-4 h-4 cursor-pointer"
+                      />
+                      <label htmlFor="vatYes" className="ml-2 cursor-pointer text-sm">
+                        Yes
+                      </label>
+                    </div>
+                    <div className="flex items-center">
+                      <input
+                        type="radio"
+                        id="vatNo"
+                        name="isVat"
+                        value="no"
+                        checked={formData.isVat === false}
+                        onChange={() => updateForm({ ...formData, isVat: false })}
+                        className="w-4 h-4 cursor-pointer"
+                      />
+                      <label htmlFor="vatNo" className="ml-2 cursor-pointer text-sm">
+                        No
+                      </label>
+                    </div>
+                  </div>
                 </div>
 
                 <div className="mb-4">
