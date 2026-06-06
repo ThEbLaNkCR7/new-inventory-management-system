@@ -217,7 +217,7 @@ export default function DashboardHome() {
       color: "text-gray-700 dark:text-gray-200",
     },
     {
-      title: "Dead Stock (90+ days)",
+      title: "Dead Stock",
       value: deadStockProducts.length,
       icon: Clock,
       color: "text-red-600",
@@ -277,11 +277,27 @@ export default function DashboardHome() {
           {quickStats.filter(q => q.title === "Low Stock Items").map((stat, index) => {
             const Icon = stat.icon
             return (
-              <Card key={index} className="dark:bg-gray-800 dark:border-gray-700">
+              <Card key={index} className="shadow-lg hover:shadow-xl transition-all duration-300 border-0 bg-white/90 dark:bg-gray-800 dark:border-gray-700 backdrop-blur-sm hover:scale-105">
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-gray-600 dark:text-gray-400">{stat.title}</p>
+                      <p className="text-sm font-semibold text-gray-900 dark:text-gray-200">{stat.title}</p>
+                      <p className={`text-2xl font-bold ${stat.color}`}>{stat.value}</p>
+                    </div>
+                    <Icon className={`h-8 w-8 ${stat.color} opacity-80`} />
+                  </div>
+                </CardContent>
+              </Card>
+            )
+          })}
+          {quickStats.filter(q => q.title === "Dead Stock").map((stat, index) => {
+            const Icon = stat.icon
+            return (
+              <Card key={index} className="shadow-lg hover:shadow-xl transition-all duration-300 border-0 bg-white/90 dark:bg-gray-800 dark:border-gray-700 backdrop-blur-sm hover:scale-105">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-semibold text-gray-900 dark:text-gray-200">{stat.title}</p>
                       <p className={`text-2xl font-bold ${stat.color}`}>{stat.value}</p>
                     </div>
                     <Icon className={`h-8 w-8 ${stat.color} opacity-80`} />
@@ -291,32 +307,8 @@ export default function DashboardHome() {
             )
           })}
         </div>
-        {/* Dead Stock Warning */}
-        <div className="mt-10">
-          <h2 className="text-xl font-bold text-red-600 mb-4 flex items-center gap-2">
-            <AlertTriangle className="h-5 w-5" />
-            Dead Stock (90+ days)
-          </h2>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {deadStockProducts.length > 0 ? (
-              deadStockProducts.slice(0, 6).map((p) => (
-                <Card key={p.id} className="border-red-200 dark:border-red-900">
-                  <CardContent className="p-4">
-                    <p className="font-semibold text-gray-800 dark:text-gray-100">
-                      {p.name}
-                    </p>
-                    <p className="text-sm text-red-600">
-                      No sales in 90+ days
-                    </p>
-                  </CardContent>
-                </Card>
-              ))
-            ) : (
-              <p className="text-gray-500">No dead stock 🎉</p>
-            )}
-          </div>
-        </div>
+        {/* most frequently sales */}
         <div className="mt-10">
           <h2 className="text-xl font-bold text-green-600 mb-4">
             Top Selling Products
@@ -399,11 +391,11 @@ export default function DashboardHome() {
           {quickStats.filter(q => q.title === "This Monthly Sales").map((stat, index) => {
             const Icon = stat.icon
             return (
-              <Card key={index} className="dark:bg-gray-800 dark:border-gray-700">
+              <Card key={index} className="shadow-lg hover:shadow-xl transition-all duration-300 border-0 bg-white/90 dark:bg-gray-800 dark:border-gray-700 backdrop-blur-sm hover:scale-105">
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-gray-600 dark:text-gray-400">{stat.title}</p>
+                      <p className="text-sm font-semibold text-gray-900 dark:text-gray-200">{stat.title}</p>
                       <p className={`text-2xl font-bold ${stat.color}`}>{stat.value}</p>
                     </div>
                     <Icon className={`h-8 w-8 ${stat.color} opacity-80`} />
@@ -441,11 +433,11 @@ export default function DashboardHome() {
           {quickStats.filter(q => q.title === "Active Suppliers").map((stat, index) => {
             const Icon = stat.icon
             return (
-              <Card key={index} className="dark:bg-gray-800 dark:border-gray-700">
+              <Card key={index} className="shadow-lg hover:shadow-xl transition-all duration-300 border-0 bg-white/90 dark:bg-gray-800 dark:border-gray-700 backdrop-blur-sm hover:scale-105">
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-gray-600 dark:text-gray-400">{stat.title}</p>
+                      <p className="text-sm font-semibold text-gray-900 dark:text-gray-200">{stat.title}</p>
                       <p className={`text-2xl font-bold ${stat.color}`}>{stat.value}</p>
                     </div>
                     <Icon className={`h-8 w-8 ${stat.color} opacity-80`} />
@@ -458,11 +450,11 @@ export default function DashboardHome() {
           {quickStats.filter(q => q.title === "Avg. Product Price").map((stat, index) => {
             const Icon = stat.icon
             return (
-              <Card key={index} className="dark:bg-gray-800 dark:border-gray-700">
+              <Card key={index} className="shadow-lg hover:shadow-xl transition-all duration-300 border-0 bg-white/90 dark:bg-gray-800 dark:border-gray-700 backdrop-blur-sm hover:scale-105">
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-gray-600 dark:text-gray-400">{stat.title}</p>
+                      <p className="text-sm font-semibold text-gray-900 dark:text-gray-200">{stat.title}</p>
                       <p className={`text-2xl font-bold ${stat.color}`}>{stat.value}</p>
                     </div>
                     <Icon className={`h-8 w-8 ${stat.color} opacity-80`} />
@@ -471,6 +463,82 @@ export default function DashboardHome() {
               </Card>
             )
           })}
+
+          {/* CLIENT OVERDUE RECEIVABLES */}
+          <Card className="shadow-lg hover:shadow-xl transition-all duration-300 border-0 bg-white/90 dark:bg-gray-800 dark:border-gray-700 backdrop-blur-sm hover:scale-105">
+            <CardHeader>
+              <CardTitle className="flex items-center text-red-600">
+                <AlertTriangle className="mr-2 h-5 w-5" />
+                Client Receivables (Overdue)
+              </CardTitle>
+              <CardDescription>
+                Payments pending over {OVERDUE_DAYS} days
+              </CardDescription>
+            </CardHeader>
+
+            <CardContent>
+              <div className="space-y-3">
+                {clientReceivables
+                  .filter((c) => c.isOverdue)
+                  .slice(0, 5)
+                  .map((c, i) => (
+                    <div
+                      key={i}
+                      className="flex justify-between p-3 bg-red-50 dark:bg-red-900/10 rounded-lg border border-red-200"
+                    >
+                      <p className="font-medium">{c.name}</p>
+                      <p className="text-red-600 font-semibold">
+                        Rs {c.total.toLocaleString()}
+                      </p>
+                    </div>
+                  ))}
+
+                {clientReceivables.filter((c) => c.isOverdue).length === 0 && (
+                  <p className="text-gray-500 text-center py-4">
+                    No overdue receivables 🎉
+                  </p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* SUPPLIER OVERDUE PAYABLES */}
+          <Card className="shadow-lg hover:shadow-xl transition-all duration-300 border-0 bg-white/90 dark:bg-gray-800 dark:border-gray-700 backdrop-blur-sm hover:scale-105">
+            <CardHeader>
+              <CardTitle className="flex items-center text-orange-600">
+                <Truck className="mr-2 h-5 w-5" />
+                Supplier Payables (Overdue)
+              </CardTitle>
+              <CardDescription>
+                Payments pending over {OVERDUE_DAYS} days
+              </CardDescription>
+            </CardHeader>
+
+            <CardContent>
+              <div className="space-y-3">
+                {supplierPayables
+                  .filter((s) => s.isOverdue)
+                  .slice(0, 5)
+                  .map((s, i) => (
+                    <div
+                      key={i}
+                      className="flex justify-between p-3 bg-orange-50 dark:bg-orange-900/10 rounded-lg border border-orange-200"
+                    >
+                      <p className="font-medium">{s.name}</p>
+                      <p className="text-orange-600 font-semibold">
+                        Rs {s.total.toLocaleString()}
+                      </p>
+                    </div>
+                  ))}
+
+                {supplierPayables.filter((s) => s.isOverdue).length === 0 && (
+                  <p className="text-gray-500 text-center py-4">
+                    No overdue payables 🎉
+                  </p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
 
@@ -618,82 +686,6 @@ export default function DashboardHome() {
                   <XCircle className="h-12 w-12 text-gray-400 mx-auto mb-2" />
                   <p className="text-gray-500 dark:text-gray-400">No purchases recorded yet</p>
                 </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* CLIENT OVERDUE RECEIVABLES */}
-        <Card className="dark:bg-gray-800 dark:border-gray-700">
-          <CardHeader>
-            <CardTitle className="flex items-center text-red-600">
-              <AlertTriangle className="mr-2 h-5 w-5" />
-              Client Receivables (Overdue)
-            </CardTitle>
-            <CardDescription>
-              Payments pending over {OVERDUE_DAYS} days
-            </CardDescription>
-          </CardHeader>
-
-          <CardContent>
-            <div className="space-y-3">
-              {clientReceivables
-                .filter((c) => c.isOverdue)
-                .slice(0, 5)
-                .map((c, i) => (
-                  <div
-                    key={i}
-                    className="flex justify-between p-3 bg-red-50 dark:bg-red-900/10 rounded-lg border border-red-200"
-                  >
-                    <p className="font-medium">{c.name}</p>
-                    <p className="text-red-600 font-semibold">
-                      Rs {c.total.toLocaleString()}
-                    </p>
-                  </div>
-                ))}
-
-              {clientReceivables.filter((c) => c.isOverdue).length === 0 && (
-                <p className="text-gray-500 text-center py-4">
-                  No overdue receivables 🎉
-                </p>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* SUPPLIER OVERDUE PAYABLES */}
-        <Card className="dark:bg-gray-800 dark:border-gray-700">
-          <CardHeader>
-            <CardTitle className="flex items-center text-orange-600">
-              <Truck className="mr-2 h-5 w-5" />
-              Supplier Payables (Overdue)
-            </CardTitle>
-            <CardDescription>
-              Payments pending over {OVERDUE_DAYS} days
-            </CardDescription>
-          </CardHeader>
-
-          <CardContent>
-            <div className="space-y-3">
-              {supplierPayables
-                .filter((s) => s.isOverdue)
-                .slice(0, 5)
-                .map((s, i) => (
-                  <div
-                    key={i}
-                    className="flex justify-between p-3 bg-orange-50 dark:bg-orange-900/10 rounded-lg border border-orange-200"
-                  >
-                    <p className="font-medium">{s.name}</p>
-                    <p className="text-orange-600 font-semibold">
-                      Rs {s.total.toLocaleString()}
-                    </p>
-                  </div>
-                ))}
-
-              {supplierPayables.filter((s) => s.isOverdue).length === 0 && (
-                <p className="text-gray-500 text-center py-4">
-                  No overdue payables 🎉
-                </p>
               )}
             </div>
           </CardContent>
