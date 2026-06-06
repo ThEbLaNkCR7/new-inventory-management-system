@@ -59,34 +59,34 @@ export default function ViewSaleDialog({
           </h3>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="space-y-2">
-              <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">
+              <Label className="text-sm font-medium text-gray-900 dark:text-gray-100 uppercase tracking-wide">
                 Client
               </Label>
-              <p className="text-gray-900 dark:text-gray-100 font-medium text-base">
+              <p className="text-gray-600 dark:text-gray-500 text-base">
                 {sale.client}
               </p>
             </div>
             <div className="space-y-2">
-              <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">
+              <Label className="text-sm font-medium text-gray-900 dark:text-gray-100 uppercase tracking-wide">
                 Client Type
               </Label>
-              <p className="text-gray-900 dark:text-gray-100 font-medium text-base">
+              <p className="text-gray-600 dark:text-gray-500 text-base">
                 {sale.clientType || "Company"}
               </p>
             </div>
             <div className="space-y-2">
-              <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">
+              <Label className="text-sm font-medium text-gray-900 dark:text-gray-100 uppercase tracking-wide">
                 Sale Date
               </Label>
-              <p className="text-gray-700 dark:text-gray-300 font-medium text-base">
+              <p className="text-gray-600 dark:text-gray-500 text-base">
                 {formatNepaliDateForTable(sale.saleDate)}
               </p>
             </div>
             <div className="space-y-2">
-              <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">
+              <Label className="text-sm font-medium text-gray-900 dark:text-gray-100 uppercase tracking-wide">
                 Updated Date
               </Label>
-              <p className="text-gray-700 dark:text-gray-300 font-mono text-base">
+              <p className="text-gray-600 dark:text-gray-500 text-base">
                 {sale.updatedAt ? formatNepaliDateForTable(sale.updatedAt) : "N/A"}
               </p>
             </div>
