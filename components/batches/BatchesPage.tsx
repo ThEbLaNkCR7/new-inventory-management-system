@@ -20,7 +20,7 @@ import { toast } from "@/components/ui/use-toast"
 import type { Batch, BatchItem } from "@/contexts/BatchContext"
 import { useBatch } from "@/contexts/BatchContext"
 import { useInventory } from "@/contexts/InventoryContext"
-import { Calendar, Package, Plus, Search, Trash2, Truck } from "lucide-react"
+import { Calendar, Package, Plus, Search, Trash2, Truck, Loader2 } from "lucide-react"
 import { useState } from "react"
 import { formatNepaliDateForTable } from '../../lib/nepaliDateUtils'
 import { MaterialDatePicker } from "../ui/MaterialDatePicker"
@@ -136,6 +136,18 @@ export default function BatchesPage() {
     try {
       if (batchItems.length === 0) {
         toast({ title: "Error", description: "Please add at least one item to the batch.", variant: "destructive" })
+        setIsLoading(false)
+        return
+      }
+
+      // Check for duplicate batch number
+      const batchNumberExists = batches.some(
+        (batch) => batch.batchNumber.toLowerCase() === formData.batchNumber.toLowerCase() && batch.id !== editingBatch?.id
+      )
+
+      if (batchNumberExists) {
+        toast({ title: "Error", description: "Batch number already exists. Please use a unique batch number.", variant: "destructive" })
+        setIsLoading(false)
         return
       }
 
@@ -214,10 +226,8 @@ export default function BatchesPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
           <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-xl max-w-md w-full mx-4">
             <div className="flex items-center justify-center mb-4">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mr-3"></div>
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                Processing...
-              </h3>
+              <Loader2 className="h-8 w-8 animate-spin text-primary mr-3" />
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Processing Batch...</h3>
             </div>
 
             <div className="space-y-3">
@@ -283,8 +293,8 @@ export default function BatchesPage() {
                       </SelectTrigger>
                       <SelectContent>
                         {suppliers.map((supplier) => (
-                          <SelectItem key={supplier.id} value={supplier.company}>
-                            {supplier.company}
+                          <SelectItem key={supplier.id} value={supplier.id}>
+                            {supplier.name}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -499,7 +509,7 @@ export default function BatchesPage() {
                   <CardTitle className="text-lg">{batch.batchNumber}</CardTitle>
                   <CardDescription className="flex items-center mt-1">
                     <Truck className="h-4 w-4 mr-1" />
-                    {batch.supplier}
+                    {suppliers.find((s) => s.id === batch.supplier)?.name || batch.supplier}
                   </CardDescription>
                 </div>
                 <Badge className={getStatusColor(batch.status)}>{batch.status}</Badge>
@@ -568,7 +578,7 @@ export default function BatchesPage() {
             {selectedBatch ? (
               <div>
                 <div className="mb-2">
-                  <h3 className="font-semibold">{selectedBatch.batchNumber} — {selectedBatch.supplier}</h3>
+                  <h3 className="font-semibold">{selectedBatch.batchNumber} — {suppliers.find((s) => s.id === selectedBatch.supplier)?.name || selectedBatch.supplier}</h3>
                   <div className="text-sm text-muted-foreground">Arrival: {formatNepaliDateForTable(selectedBatch.arrivalDate)}</div>
                   {selectedBatch?.billUrl && (
                     <div className="mb-4">
