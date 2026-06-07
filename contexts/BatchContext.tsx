@@ -8,6 +8,7 @@ export interface BatchItem {
   productName: string
   quantity: number
   unitCost: number
+  manufactureDate?: string
   expiryDate?: string
 }
 

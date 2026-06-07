@@ -23,6 +23,7 @@ import { useInventory } from "@/contexts/InventoryContext"
 import { Calendar, Package, Plus, Search, Trash2, Truck } from "lucide-react"
 import { useState } from "react"
 import { formatNepaliDateForTable } from '../../lib/nepaliDateUtils'
+import { MaterialDatePicker } from "../ui/MaterialDatePicker"
 
 export default function BatchesPage() {
   const { batches, addBatch, updateBatchStatus } = useBatch()
@@ -78,6 +79,8 @@ export default function BatchesPage() {
         productName: "",
         quantity: 0,
         unitCost: 0,
+        manufactureDate: "",
+        expiryDate: "",
       },
     ])
   }
@@ -289,12 +292,18 @@ export default function BatchesPage() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="arrivalDate">Arrival Date</Label>
-                    <Input
-                      id="arrivalDate"
-                      type="date"
-                      value={formData.arrivalDate}
-                      onChange={(e) => setFormData({ ...formData, arrivalDate: e.target.value })}
-                      required
+                    <MaterialDatePicker
+                      value={
+                        formData.arrivalDate
+                          ? new Date(formData.arrivalDate)
+                          : undefined
+                      }
+                      onChange={(date) =>
+                        setFormData({
+                          ...formData,
+                          arrivalDate: date ? date.toISOString().split("T")[0] : ""
+                        })
+                      }
                     />
                   </div>
                 </div>
@@ -309,7 +318,7 @@ export default function BatchesPage() {
                   </div>
 
                   {batchItems.map((item, index) => (
-                    <div key={index} className="grid grid-cols-1 md:grid-cols-5 gap-4 p-4 border rounded-lg">
+                    <div key={index} className="grid grid-cols-1 md:grid-cols-6 gap-4 p-4 border rounded-lg">
                       <div className="space-y-2">
                         <Label>Product</Label>
                         <Select
@@ -356,11 +365,39 @@ export default function BatchesPage() {
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label>Expiry Date (Optional)</Label>
-                        <Input
-                          type="date"
-                          value={item.expiryDate || ""}
-                          onChange={(e) => updateBatchItem(index, "expiryDate", e.target.value)}
+                        <Label>Manufacture Date</Label>
+
+                        <MaterialDatePicker
+                          value={
+                            item.manufactureDate
+                              ? new Date(item.manufactureDate)
+                              : undefined
+                          }
+                          onChange={(date) =>
+                            updateBatchItem(
+                              index,
+                              "manufactureDate",
+                              date ? date.toISOString().split("T")[0] : ""
+                            )
+                          }
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Expiry Date</Label>
+
+                        <MaterialDatePicker
+                          value={
+                            item.expiryDate
+                              ? new Date(item.expiryDate)
+                              : undefined
+                          }
+                          onChange={(date) =>
+                            updateBatchItem(
+                              index,
+                              "expiryDate",
+                              date ? date.toISOString().split("T")[0] : ""
+                            )
+                          }
                         />
                       </div>
                       <div className="flex items-end">
@@ -553,7 +590,19 @@ export default function BatchesPage() {
                         <div className="flex-1">
                           <div className="font-medium">{item.productName}</div>
                           <div className="text-sm text-gray-500">Quantity: {item.quantity} • Unit Cost: Rs {item.unitCost}</div>
-                          {item.expiryDate && <div className="text-xs text-gray-400">Expiry: {item.expiryDate}</div>}
+                          <div className="space-y-1">
+                            {item.manufactureDate && (
+                              <div className="text-xs text-gray-400">
+                                Manufactured: {formatNepaliDateForTable(item.manufactureDate)}
+                              </div>
+                            )}
+
+                            {item.expiryDate && (
+                              <div className="text-xs text-gray-400">
+                                Expiry: {formatNepaliDateForTable(item.expiryDate)}
+                              </div>
+                            )}
+                          </div>
                         </div>
                         <div className="text-sm text-gray-600">Total: Rs {(item.quantity * item.unitCost).toLocaleString()}</div>
                       </div>

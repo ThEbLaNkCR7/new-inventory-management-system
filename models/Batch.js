@@ -24,6 +24,9 @@ const batchItemSchema = new mongoose.Schema({
   expiryDate: {
     type: Date,
   },
+  manufactureDate: {
+    type: Date,
+  },
 })
 
 const batchSchema = new mongoose.Schema(
