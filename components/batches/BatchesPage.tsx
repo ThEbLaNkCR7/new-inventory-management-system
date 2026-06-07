@@ -36,6 +36,7 @@ export default function BatchesPage() {
     batchNumber: "",
     supplier: "",
     arrivalDate: new Date().toISOString().split("T")[0],
+    billUrl: "",
     status: "pending" as const,
   })
   const [editingBatch, setEditingBatch] = useState<Batch | null>(null)
@@ -44,6 +45,8 @@ export default function BatchesPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [progress, setProgress] = useState(0)
   const [currentStep, setCurrentStep] = useState("")
+  const [billImage, setBillImage] = useState<File | null>(null)
+  const [billUrl, setBillUrl] = useState("")
 
   const updateProgress = (step: string, current: number, total: number) => {
     setCurrentStep(step)
@@ -61,6 +64,7 @@ export default function BatchesPage() {
       batchNumber: "",
       supplier: "",
       arrivalDate: new Date().toISOString().split("T")[0],
+      billUrl,
       status: "pending",
     })
     setBatchItems([])
@@ -97,6 +101,30 @@ export default function BatchesPage() {
     setBatchItems(batchItems.filter((_, i) => i !== index))
   }
 
+  const uploadBillToCloudinary = async (file: File): Promise<string> => {
+    const formDataObj = new FormData()
+    formDataObj.append("bill", file)
+
+    const res = await fetch("/api/sales/upload", {
+      method: "POST",
+      body: formDataObj,
+    })
+
+    let data
+
+    try {
+      data = await res.json()
+    } catch {
+      throw new Error("Server returned invalid response")
+    }
+
+    if (!res.ok) {
+      throw new Error(data.message || "Failed to upload bill")
+    }
+
+    return data.url
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
@@ -111,6 +139,12 @@ export default function BatchesPage() {
       updateProgress("Validating batch data...", 1, 4)
       await new Promise(resolve => setTimeout(resolve, 500))
 
+      let uploadedBillUrl = ""
+
+      if (billImage) {
+        uploadedBillUrl = await uploadBillToCloudinary(billImage)
+      }
+
       const totalItems = batchItems.reduce((sum, item) => sum + item.quantity, 0)
       const totalValue = batchItems.reduce((sum, item) => sum + (item.quantity * item.unitCost), 0)
 
@@ -119,6 +153,7 @@ export default function BatchesPage() {
         items: batchItems,
         totalItems,
         totalValue,
+        billUrl: uploadedBillUrl,
       }
 
       updateProgress("Processing batch data...", 2, 4)
@@ -142,6 +177,8 @@ export default function BatchesPage() {
 
       toast({ title: "Success", description: editingBatch ? "Batch updated successfully!" : "Batch added successfully!" })
       resetForm()
+      setBillImage(null)
+      setBillUrl("")
       setIsAddDialogOpen(false)
       setShowSuccessAlert(true)
       setAlertMessage(editingBatch ? "Batch updated successfully!" : "Batch added successfully!")
@@ -360,6 +397,27 @@ export default function BatchesPage() {
                   </div>
                 )}
 
+                <div className="space-y-2">
+                  <Label>Upload Bill Image</Label>
+
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => setBillImage(e.target.files?.[0] || null)}
+                  />
+
+                  {billUrl && (
+                    <a
+                      href={billUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 text-sm underline"
+                    >
+                      View Current Bill
+                    </a>
+                  )}
+                </div>
+
                 <div className="flex justify-end space-x-2">
                   <Button type="button" variant="neutralOutline" onClick={() => setIsAddDialogOpen(false)}>
                     Cancel
@@ -475,6 +533,15 @@ export default function BatchesPage() {
                 <div className="mb-2">
                   <h3 className="font-semibold">{selectedBatch.batchNumber} — {selectedBatch.supplier}</h3>
                   <div className="text-sm text-muted-foreground">Arrival: {formatNepaliDateForTable(selectedBatch.arrivalDate)}</div>
+                  {selectedBatch?.billUrl && (
+                    <div className="mb-4">
+                      <img
+                        src={selectedBatch.billUrl}
+                        alt="Batch Bill"
+                        className="max-h-72 rounded border"
+                      />
+                    </div>
+                  )}
                 </div>
                 <div className="grid grid-cols-1 gap-3">
                   {selectedBatch.items.map((item, idx) => {
@@ -482,7 +549,7 @@ export default function BatchesPage() {
                     const imgSrc = (product && ((product as any).image || (product as any).imageUrl)) || "/placeholder.jpg"
                     return (
                       <div key={idx} className="flex items-center space-x-4 p-3 rounded-lg border">
-                        <img src={imgSrc} alt={item.productName} className="h-16 w-16 object-cover rounded" />
+                        {/* <img src={imgSrc} alt={item.productName} className="h-16 w-16 object-cover rounded" /> */}
                         <div className="flex-1">
                           <div className="font-medium">{item.productName}</div>
                           <div className="text-sm text-gray-500">Quantity: {item.quantity} • Unit Cost: Rs {item.unitCost}</div>

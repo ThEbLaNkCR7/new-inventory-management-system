@@ -19,6 +19,7 @@ export interface Batch {
   items: BatchItem[]
   totalItems: number
   totalValue: number
+  billUrl?: string
   status: "pending" | "received" | "processed"
   createdAt: string
 }

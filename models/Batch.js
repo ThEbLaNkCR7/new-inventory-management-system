@@ -15,6 +15,7 @@ const batchItemSchema = new mongoose.Schema({
     required: true,
     min: 1,
   },
+  billUrl: String,
   unitCost: {
     type: Number,
     required: true,
@@ -43,6 +44,7 @@ const batchSchema = new mongoose.Schema(
       type: Date,
       required: true,
     },
+    billUrl: String,
     items: [batchItemSchema],
     totalItems: {
       type: Number,
