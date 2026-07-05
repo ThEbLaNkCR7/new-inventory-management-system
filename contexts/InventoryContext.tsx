@@ -107,7 +107,7 @@ interface InventoryContextType {
   isRefreshing: boolean
   lastRefresh: Date
   refreshData: () => Promise<void>
-  addProduct: (product: Omit<Product, "id" | "createdAt">) => void
+  addProduct: (product: Omit<Product, "id" | "createdAt">) => Promise<Product>
   updateProduct: (id: string, product: Partial<Product>) => void
   deleteProduct: (id: string) => void
   addPurchase: (purchase: Omit<Purchase, "id">) => void
@@ -230,11 +230,13 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
       }
 
       const newProduct = await res.json()
-      setProducts((prev) => [...prev, { ...newProduct, id: newProduct._id || newProduct.id }])
+      const normalizedProduct = { ...newProduct, id: newProduct._id || newProduct.id }
+      setProducts((prev) => [...prev, normalizedProduct])
       console.log("✅ Product added successfully:", product.name)
 
       // Auto-refresh to ensure data consistency
       setTimeout(() => refreshData(), 500)
+      return normalizedProduct
     } catch (error) {
       console.error("❌ Add product error:", error)
       throw error

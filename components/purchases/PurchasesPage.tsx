@@ -26,6 +26,7 @@ import { usePurchaseChange } from "@/hooks/usePurchaseChange"
 import { formatNepaliDateForTable } from "@/lib/utils"
 import { CheckCircle, Clock, Loader2, Plus, Search } from "lucide-react"
 import React, { useEffect, useState } from "react"
+import QuickAddProductDialog from "@/components/products/QuickAddProductDialog"
 import DeletePurchaseDialog from "./DeletePurchaseDialog"
 import EditPurchaseDialog from "./EditPurchaseDialog"
 import ProductHistoryDialog from "./ProductHistoryDialog"
@@ -92,6 +93,8 @@ export default function PurchasesPage() {
   const [isAddingNewCategory, setIsAddingNewCategory] = useState(false)
   const [newCategoryName, setNewCategoryName] = useState("")
   const [categoryFilter, setCategoryFilter] = useState("all")
+  const [isQuickAddProductOpen, setIsQuickAddProductOpen] = useState(false)
+  const [addingProductItemIndex, setAddingProductItemIndex] = useState<number | null>(null)
 
   const addItem = () => {
     updateForm({
@@ -110,6 +113,27 @@ export default function PurchasesPage() {
     updated[index] = { ...updated[index], [key]: value }
     updateForm({ items: updated })
   }
+
+  const openQuickAddProduct = (index: number) => {
+    setAddingProductItemIndex(index)
+    setIsQuickAddProductOpen(true)
+  }
+
+  const handleQuickAddProductCreated = (product: Product) => {
+    if (addingProductItemIndex === null) return
+
+    const updated = [...formData.items]
+    updated[addingProductItemIndex] = {
+      ...updated[addingProductItemIndex],
+      productId: product.id,
+      purchasePrice: updated[addingProductItemIndex].purchasePrice || product.unitPrice,
+    }
+    updateForm({ items: updated })
+    setAddingProductItemIndex(null)
+  }
+
+  const getPurchaseSupplierName = () =>
+    formData.supplier === "custom" ? formData.customSupplier : formData.supplier
 
   useEffect(() => {
     if (showSuccessAlert) {
@@ -248,6 +272,16 @@ export default function PurchasesPage() {
 
       // 2. VALIDATION FOR ALL ITEMS (optional since purchases add stock, but still validate)
       for (const item of formData.items) {
+        if (item.productId === "__new__") {
+          toast({
+            title: "Error",
+            description: "Please click 'Add New Product' to create the product, or select an existing one.",
+            variant: "destructive",
+          })
+          setIsLoading(false)
+          return
+        }
+
         const product = products.find((p) => p.id === item.productId)
 
         if (!product) {
@@ -644,24 +678,47 @@ export default function PurchasesPage() {
                         </div>
 
                         {/* PRODUCT SELECT */}
-                        <Select
-                          value={item.productId}
-                          onValueChange={(value) =>
-                            updateItem(index, "productId", value)
-                          }
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select product" />
-                          </SelectTrigger>
+                        <div className="space-y-2">
+                          <Select
+                            value={item.productId}
+                            onValueChange={(value) => {
+                              if (value === "__new__") {
+                                updateItem(index, "productId", value)
+                                return
+                              }
+                              updateItem(index, "productId", value)
+                              const product = products.find((p) => p.id === value)
+                              if (product && !item.purchasePrice) {
+                                updateItem(index, "purchasePrice", product.unitPrice)
+                              }
+                            }}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select product" />
+                            </SelectTrigger>
 
-                          <SelectContent>
-                            {products.map((product) => (
-                              <SelectItem key={product.id} value={product.id}>
-                                {product.name} (Stock: {product.stockQuantity})
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                            <SelectContent>
+                              <SelectItem value="__new__">+ Add New Product</SelectItem>
+                              {products.map((product) => (
+                                <SelectItem key={product.id} value={product.id}>
+                                  {product.name} (Stock: {product.stockQuantity})
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          {item.productId === "__new__" && (
+                            <Button
+                              type="button"
+                              variant="neutralOutline"
+                              size="sm"
+                              className="w-full"
+                              onClick={() => openQuickAddProduct(index)}
+                            >
+                              <Plus className="h-4 w-4 mr-2" />
+                              Add New Product
+                            </Button>
+                          )}
+                        </div>
 
                         {/* QUANTITY + PRICE */}
                         <div className="grid grid-cols-2 gap-3">
@@ -891,6 +948,18 @@ export default function PurchasesPage() {
         onOpenChange={setIsSupplierHistoryDialogOpen}
         supplierName={selectedSupplierForHistory}
         purchases={purchases}
+      />
+
+      <QuickAddProductDialog
+        open={isQuickAddProductOpen}
+        onOpenChange={setIsQuickAddProductOpen}
+        onProductCreated={handleQuickAddProductCreated}
+        defaultSupplier={getPurchaseSupplierName()}
+        defaultUnitPrice={
+          addingProductItemIndex !== null
+            ? formData.items[addingProductItemIndex]?.purchasePrice || 0
+            : 0
+        }
       />
     </div>
   );
