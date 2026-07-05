@@ -59,10 +59,6 @@ export default function ViewProductDialog({
                 <p className="text-gray-500 dark:text-gray-400 text-base">{product.name}</p>
               </div>
               <div className="space-y-2">
-                <Label className="text-sm font-medium text-gray-900 dark:text-gray-100 uppercase tracking-wide">HS Code</Label>
-                <p className="text-gray-500 dark:text-gray-400 text-base">{product.hsCode || "Not specified"}</p>
-              </div>
-              <div className="space-y-2">
                 <Label className="text-sm font-medium text-gray-900 dark:text-gray-100 uppercase tracking-wide">Category</Label>
                 <p className="text-gray-500 dark:text-gray-400 text-base">{product.category}</p>
               </div>

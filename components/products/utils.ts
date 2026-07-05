@@ -9,9 +9,7 @@ export function filterProducts(
   const search = searchTerm.toLowerCase()
 
   return products.filter((product) => {
-    const matchesSearch =
-      (product.name ?? "").toLowerCase().includes(search) ||
-      (product.hsCode ?? "").toLowerCase().includes(search)
+    const matchesSearch = (product.name ?? "").toLowerCase().includes(search)
     const matchesCategory = categoryFilter === "all" || product.category === categoryFilter
     return matchesSearch && matchesCategory
   })
@@ -33,7 +31,6 @@ export function groupProductsByName(filteredProducts: Product[]): ProductGroup[]
       variants: variants.sort((a, b) => (a.netWeight || 0) - (b.netWeight || 0)),
       totalStock: variants.reduce((sum, p) => sum + p.stockQuantity, 0),
       category: variants[0].category,
-      hsCode: variants[0].hsCode,
       supplier: variants[0].supplier,
       unitPrice: variants[0].unitPrice,
       latestCreatedAt: Math.max(

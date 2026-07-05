@@ -54,6 +54,8 @@ export default function ProductsPage() {
   const [viewingProduct, setViewingProduct] = useState<Product | null>(null)
   const [showApprovalDialog, setShowApprovalDialog] = useState(false)
   const [isAddingNewCategory, setIsAddingNewCategory] = useState(false)
+  const [isAddingNewProduct, setIsAddingNewProduct] = useState(false)
+  const [isAddingCustomNetWeight, setIsAddingCustomNetWeight] = useState(false)
   const [isTransactionHistoryOpen, setIsTransactionHistoryOpen] = useState(false)
   const [isCategoryHistoryOpen, setIsCategoryHistoryOpen] = useState(false)
   const [selectedProductForHistory, setSelectedProductForHistory] = useState<Product | null>(null)
@@ -105,40 +107,56 @@ export default function ProductsPage() {
     setEditingProduct(null)
     setApprovalReason("")
     setIsAddingNewCategory(false)
+    setIsAddingNewProduct(false)
+    setIsAddingCustomNetWeight(false)
     setNewCategoryName("")
     setAutoFilledFields({})
     setIsAddDialogOpen(false)
   }
 
   const handleNetWeightChange = (value: string) => {
-    if (value === "custom") {
-      updateForm({ netWeight: customNetWeight })
+    if (value === "__new__") {
+      setIsAddingCustomNetWeight(true)
+      setCustomNetWeight(0)
+      updateForm({ netWeight: 0 })
     } else {
+      setIsAddingCustomNetWeight(false)
       updateForm({ netWeight: Number(value) })
     }
   }
 
   const handleProductNameChange = (value: string) => {
-    if (value === "custom") {
-      updateForm({ name: customProductName })
+    if (value === "__new__") {
+      setIsAddingNewProduct(true)
+      setIsAddingNewCategory(false)
+      setIsAddingCustomNetWeight(false)
+      setNewCategoryName("")
+      setCustomProductName("")
+      updateForm({
+        name: "",
+        category: "",
+        supplier: "",
+        stockQuantity: 0,
+        unitPrice: 0,
+        netWeight: 0,
+        stockType: "new",
+        description: "",
+      })
       setAutoFilledFields({})
       return
     }
 
+    setIsAddingNewProduct(false)
     const existingProduct = products.find((p) => p.name === value)
     if (existingProduct) {
       const newAutoFilledFields: Record<string, boolean> = {}
       const updatedFormData: ProductFormData = {
         ...formData,
         name: value,
-        hsCode: existingProduct.hsCode && existingProduct.hsCode.trim() !== "" ? existingProduct.hsCode : formData.hsCode,
         category: existingProduct.category && existingProduct.category.trim() !== "" ? existingProduct.category : formData.category,
         supplier: existingProduct.supplier && existingProduct.supplier.trim() !== "" ? existingProduct.supplier : formData.supplier,
       }
 
-      if (existingProduct.hsCode && existingProduct.hsCode.trim() !== "" && existingProduct.hsCode !== formData.hsCode) {
-        newAutoFilledFields.hsCode = true
-      }
       if (existingProduct.category && existingProduct.category.trim() !== "" && existingProduct.category !== formData.category) {
         newAutoFilledFields.category = true
       }
@@ -159,8 +177,10 @@ export default function ProductsPage() {
     if (value === "__new__") {
       setIsAddingNewCategory(true)
       setNewCategoryName("")
+      updateForm({ category: "" })
     } else {
       setIsAddingNewCategory(false)
+      setNewCategoryName("")
       updateForm({ category: value })
     }
   }
@@ -320,9 +340,14 @@ export default function ProductsPage() {
 
   const handleEdit = (product: Product) => {
     setEditingProduct(product)
+    const nameInList = uniqueProductNames.includes(product.name)
+    const netWeight = product.netWeight || 0
+    setIsAddingNewProduct(!nameInList)
+    setIsAddingNewCategory(false)
+    setNewCategoryName("")
+    setIsAddingCustomNetWeight(netWeight > 0 && !uniqueNetWeights.includes(netWeight))
     updateForm({
       name: product.name,
-      hsCode: product.hsCode,
       description: product.description || "",
       category: product.category,
       stockQuantity: product.stockQuantity,
@@ -421,7 +446,9 @@ export default function ProductsPage() {
     suppliers,
     uniqueProductNames,
     uniqueNetWeights,
+    isAddingNewProduct,
     isAddingNewCategory,
+    isAddingCustomNetWeight,
     newCategoryName,
     onNewCategoryNameChange: setNewCategoryName,
     onCategoryChange: handleCategoryChange,
@@ -466,7 +493,14 @@ export default function ProductsPage() {
             {...sharedFormProps}
             isOpen={isAddDialogOpen}
             onOpenChange={setIsAddDialogOpen}
-            onResetForm={resetForm}
+            onResetForm={() => {
+              resetForm()
+              setIsAddingNewProduct(false)
+              setIsAddingNewCategory(false)
+              setIsAddingCustomNetWeight(false)
+              setNewCategoryName("")
+              setAutoFilledFields({})
+            }}
             onSubmit={handleSubmit}
             onCancel={clearForm}
           />

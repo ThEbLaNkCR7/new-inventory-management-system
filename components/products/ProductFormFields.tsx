@@ -4,18 +4,27 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import type { Product, Supplier } from "@/contexts/InventoryContext"
+import { Textarea } from "@/components/ui/textarea"
+import type { Supplier } from "@/contexts/InventoryContext"
 import type { ProductFormData } from "./types"
+
+const labelClass = "text-sm font-semibold text-gray-700 dark:text-gray-300"
+const inputClass =
+  "border-2 focus:border-slate-500 transition-colors dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
+const selectTriggerClass = inputClass
 
 interface ProductFormFieldsProps {
   idPrefix?: string
+  variant?: "default" | "quick"
   formData: ProductFormData
   updateForm: (updates: Partial<ProductFormData>) => void
   categories: string[]
   suppliers: Supplier[]
   uniqueProductNames: string[]
   uniqueNetWeights: number[]
+  isAddingNewProduct: boolean
   isAddingNewCategory: boolean
+  isAddingCustomNetWeight: boolean
   newCategoryName: string
   onNewCategoryNameChange: (value: string) => void
   onCategoryChange: (value: string) => void
@@ -28,13 +37,16 @@ interface ProductFormFieldsProps {
 
 export default function ProductFormFields({
   idPrefix = "",
+  variant = "default",
   formData,
   updateForm,
   categories,
   suppliers,
   uniqueProductNames,
   uniqueNetWeights,
+  isAddingNewProduct,
   isAddingNewCategory,
+  isAddingCustomNetWeight,
   newCategoryName,
   onNewCategoryNameChange,
   onCategoryChange,
@@ -44,81 +56,76 @@ export default function ProductFormFields({
   onCustomProductNameChange,
   onCustomNetWeightChange,
 }: ProductFormFieldsProps) {
+  const fieldId = (name: string) => `${idPrefix}${name}`
+
   return (
-    <>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="space-y-2">
-          <Label htmlFor={`${idPrefix}productName`}>Product Name</Label>
-          <Select
-            value={uniqueProductNames.includes(formData.name) ? formData.name : "custom"}
-            onValueChange={onProductNameChange}
-          >
-            <SelectTrigger id={`${idPrefix}productName`}>
-              <SelectValue placeholder="Select product name" />
-            </SelectTrigger>
-            <SelectContent>
-              {uniqueProductNames.map((name) => (
-                <SelectItem key={name} value={name}>{name}</SelectItem>
-              ))}
-              <SelectItem value="custom">Custom</SelectItem>
-            </SelectContent>
-          </Select>
-          {(!uniqueProductNames.includes(formData.name) || formData.name === "") && (
-            <Input
-              id={`${idPrefix}productName-custom`}
-              type="text"
-              value={formData.name}
-              onChange={(e) => onCustomProductNameChange(e.target.value)}
-              placeholder="Enter custom product name"
-            />
-          )}
-        </div>
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <Label htmlFor={`${idPrefix}hsCode`} className="text-sm font-semibold text-gray-700 dark:text-gray-300">
-              HS Code
-            </Label>
-            {autoFilledFields.hsCode && (
-              <Badge variant="secondary" className="text-xs bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-300">
-                Auto-filled
-              </Badge>
-            )}
-          </div>
+    <div className="space-y-6">
+      <div className="space-y-2">
+        <Label htmlFor={fieldId("productName")} className={labelClass}>
+          Product Name *
+        </Label>
+        {variant === "quick" ? (
           <Input
-            id={`${idPrefix}hsCode`}
-            value={formData.hsCode}
-            onChange={(e) => updateForm({ hsCode: e.target.value })}
-            className={`border-2 focus:border-slate-500 transition-colors dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 ${autoFilledFields.hsCode ? "border-green-300 dark:border-green-700 bg-green-50 dark:bg-green-900/10" : ""}`}
+            id={fieldId("productName")}
+            type="text"
+            value={formData.name}
+            onChange={(e) => onCustomProductNameChange(e.target.value)}
+            placeholder="Enter product name"
+            className={inputClass}
+            required
           />
-        </div>
+        ) : (
+          <>
+            <Select
+              value={isAddingNewProduct ? "__new__" : formData.name}
+              onValueChange={onProductNameChange}
+            >
+              <SelectTrigger id={fieldId("productName")} className={selectTriggerClass}>
+                <SelectValue placeholder="Select product name" />
+              </SelectTrigger>
+              <SelectContent className="dark:bg-gray-800 dark:border-gray-700">
+                {uniqueProductNames.map((name) => (
+                  <SelectItem key={name} value={name}>
+                    {name}
+                  </SelectItem>
+                ))}
+                <SelectItem value="__new__">Add new product...</SelectItem>
+              </SelectContent>
+            </Select>
+            {isAddingNewProduct && (
+              <Input
+                id={fieldId("productName-new")}
+                type="text"
+                value={formData.name}
+                onChange={(e) => onCustomProductNameChange(e.target.value)}
+                placeholder="Enter new product name"
+                className={inputClass}
+                required
+              />
+            )}
+          </>
+        )}
       </div>
 
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <Label htmlFor={`${idPrefix}category`} className="text-sm font-semibold text-gray-700 dark:text-gray-300">
-            Category
+          <Label htmlFor={fieldId("category")} className={labelClass}>
+            Category *
           </Label>
           {autoFilledFields.category && (
-            <Badge variant="secondary" className="text-xs bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-300">
+            <Badge
+              variant="secondary"
+              className="text-xs bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-300"
+            >
               Auto-filled
             </Badge>
           )}
         </div>
-        {isAddingNewCategory && (
-          <Input
-            id={`${idPrefix}category-new`}
-            value={newCategoryName}
-            onChange={(e) => onNewCategoryNameChange(e.target.value)}
-            placeholder="Enter new category name"
-            className="border-2 focus:border-slate-500 transition-colors dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
-            required
-          />
-        )}
         <Select
           value={isAddingNewCategory ? "__new__" : formData.category}
           onValueChange={onCategoryChange}
         >
-          <SelectTrigger className="border-2 focus:border-slate-500 transition-colors dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200">
+          <SelectTrigger id={fieldId("category")} className={selectTriggerClass}>
             <SelectValue placeholder="Select or add category" />
           </SelectTrigger>
           <SelectContent className="dark:bg-gray-800 dark:border-gray-700">
@@ -130,16 +137,29 @@ export default function ProductFormFields({
             <SelectItem value="__new__">Add new category...</SelectItem>
           </SelectContent>
         </Select>
+        {isAddingNewCategory && (
+          <Input
+            id={fieldId("category-new")}
+            value={newCategoryName}
+            onChange={(e) => onNewCategoryNameChange(e.target.value)}
+            placeholder="Enter new category name"
+            className={inputClass}
+            required
+          />
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <Label htmlFor={`${idPrefix}supplier`} className="text-sm font-semibold text-gray-700 dark:text-gray-300">
-              Supplier
+            <Label htmlFor={fieldId("supplier")} className={labelClass}>
+              Supplier *
             </Label>
             {autoFilledFields.supplier && (
-              <Badge variant="secondary" className="text-xs bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-300">
+              <Badge
+                variant="secondary"
+                className="text-xs bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-300"
+              >
                 Auto-filled
               </Badge>
             )}
@@ -148,7 +168,7 @@ export default function ProductFormFields({
             value={formData.supplier}
             onValueChange={(value) => updateForm({ supplier: value })}
           >
-            <SelectTrigger className="border-2 focus:border-slate-500 transition-colors dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200">
+            <SelectTrigger id={fieldId("supplier")} className={selectTriggerClass}>
               <SelectValue placeholder="Select a supplier" />
             </SelectTrigger>
             <SelectContent className="dark:bg-gray-800 dark:border-gray-700">
@@ -160,104 +180,125 @@ export default function ProductFormFields({
             </SelectContent>
           </Select>
         </div>
-      </div>
 
-      <div className="space-y-2">
-        <Label htmlFor={`${idPrefix}stockType`} className="text-sm font-semibold text-gray-700 dark:text-gray-300">
-          Stock Type
-        </Label>
-        <Select
-          value={formData.stockType}
-          onValueChange={(value: "new" | "old") => updateForm({ stockType: value })}
-        >
-          <SelectTrigger className="border-2 focus:border-slate-500 transition-colors dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200">
-            <SelectValue placeholder="Select stock type" />
-          </SelectTrigger>
-          <SelectContent className="dark:bg-gray-800 dark:border-gray-700">
-            <SelectItem value="new">New Stock</SelectItem>
-            <SelectItem value="old">Old Stock</SelectItem>
-          </SelectContent>
-        </Select>
+        <div className="space-y-2">
+          <Label htmlFor={fieldId("stockType")} className={labelClass}>
+            Stock Type
+          </Label>
+          <Select
+            value={formData.stockType}
+            onValueChange={(value: "new" | "old") => updateForm({ stockType: value })}
+          >
+            <SelectTrigger id={fieldId("stockType")} className={selectTriggerClass}>
+              <SelectValue placeholder="Select stock type" />
+            </SelectTrigger>
+            <SelectContent className="dark:bg-gray-800 dark:border-gray-700">
+              <SelectItem value="new">New Stock</SelectItem>
+              <SelectItem value="old">Old Stock</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="space-y-2">
-          <Label htmlFor={`${idPrefix}stock`} className="text-sm font-semibold text-gray-700 dark:text-gray-300">
-            Stock Quantity
+          <Label htmlFor={fieldId("stock")} className={labelClass}>
+            Stock Quantity *
           </Label>
           <Input
-            id={`${idPrefix}stock`}
+            id={fieldId("stock")}
             type="number"
             min="0"
             step="any"
             value={formData.stockQuantity === 0 ? "" : formData.stockQuantity}
             onChange={(e) => {
               const value = e.target.value
-              updateForm({
-                stockQuantity: value === "" ? 0 : Number(value),
-              })
+              updateForm({ stockQuantity: value === "" ? 0 : Number(value) })
             }}
             required
             placeholder="0"
+            className={inputClass}
           />
         </div>
+
         <div className="space-y-2">
-          <Label htmlFor={`${idPrefix}price`} className="text-sm font-semibold text-gray-700 dark:text-gray-300">
-            Unit Price (Rs)
+          <Label htmlFor={fieldId("price")} className={labelClass}>
+            Unit Price (Rs) *
           </Label>
           <Input
-            id={`${idPrefix}price`}
+            id={fieldId("price")}
             type="number"
             step="0.01"
             min="0"
             value={formData.unitPrice === 0 ? "" : formData.unitPrice}
             onChange={(e) => {
               const value = e.target.value
-              updateForm({
-                unitPrice: value === "" ? 0 : Number.parseFloat(value),
-              })
+              updateForm({ unitPrice: value === "" ? 0 : Number.parseFloat(value) })
             }}
             placeholder="0.00"
-            className="border-2 focus:border-slate-500 transition-colors dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
+            className={inputClass}
             required
           />
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="space-y-2">
-          <Label htmlFor={`${idPrefix}netWeight`}>Net Weight (kg)</Label>
-          <Select
-            value={uniqueNetWeights.includes(formData.netWeight) ? String(formData.netWeight) : "custom"}
-            onValueChange={onNetWeightChange}
-          >
-            <SelectTrigger id={`${idPrefix}netWeight`}>
-              <SelectValue placeholder="Select net weight" />
-            </SelectTrigger>
-            <SelectContent>
-              {uniqueNetWeights.map((weight) => (
-                <SelectItem key={weight} value={String(weight)}>{weight} kg</SelectItem>
-              ))}
-              <SelectItem value="custom">Custom</SelectItem>
-            </SelectContent>
-          </Select>
-          {(!uniqueNetWeights.includes(formData.netWeight) || formData.netWeight === 0) && (
-            <Input
-              id={`${idPrefix}netWeight-custom`}
-              type="number"
-              min={0}
-              step="any"
-              value={formData.netWeight === 0 ? "" : formData.netWeight}
-              onChange={(e) => {
-                const value = e.target.value
-                const num = value === "" ? 0 : Number(value)
-                onCustomNetWeightChange(num)
-              }}
-              placeholder="Enter custom net weight"
-            />
-          )}
-        </div>
+      <div className="space-y-2">
+        <Label htmlFor={fieldId("netWeight")} className={labelClass}>
+          Net Weight (kg)
+        </Label>
+        <Select
+          value={
+            isAddingCustomNetWeight
+              ? "__new__"
+              : uniqueNetWeights.includes(formData.netWeight)
+                ? String(formData.netWeight)
+                : ""
+          }
+          onValueChange={onNetWeightChange}
+        >
+          <SelectTrigger id={fieldId("netWeight")} className={selectTriggerClass}>
+            <SelectValue placeholder="Select net weight" />
+          </SelectTrigger>
+          <SelectContent className="dark:bg-gray-800 dark:border-gray-700">
+            {uniqueNetWeights.map((weight) => (
+              <SelectItem key={weight} value={String(weight)}>
+                {weight} kg
+              </SelectItem>
+            ))}
+            <SelectItem value="__new__">Add new weight...</SelectItem>
+          </SelectContent>
+        </Select>
+        {isAddingCustomNetWeight && (
+          <Input
+            id={fieldId("netWeight-new")}
+            type="number"
+            min={0}
+            step="any"
+            value={formData.netWeight === 0 ? "" : formData.netWeight}
+            onChange={(e) => {
+              const value = e.target.value
+              const num = value === "" ? 0 : Number(value)
+              onCustomNetWeightChange(num)
+            }}
+            placeholder="Enter new net weight"
+            className={inputClass}
+          />
+        )}
       </div>
-    </>
+
+      <div className="space-y-2">
+        <Label htmlFor={fieldId("description")} className={labelClass}>
+          Description
+        </Label>
+        <Textarea
+          id={fieldId("description")}
+          value={formData.description}
+          onChange={(e) => updateForm({ description: e.target.value })}
+          placeholder="Optional product description"
+          rows={2}
+          className={inputClass}
+        />
+      </div>
+    </div>
   )
 }

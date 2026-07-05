@@ -2,7 +2,6 @@ import type { Product } from "@/contexts/InventoryContext"
 
 export type ProductFormData = {
   name: string
-  hsCode: string
   description: string
   category: string
   stockQuantity: number
@@ -18,7 +17,6 @@ export type ProductGroup = {
   variants: Product[]
   totalStock: number
   category: string
-  hsCode: string
   supplier: string
   unitPrice: number
   latestCreatedAt: number
@@ -32,7 +30,6 @@ export type PendingProductAction = {
 
 export const initialProductFormData: ProductFormData = {
   name: "",
-  hsCode: "",
   description: "",
   category: "",
   stockQuantity: 0,

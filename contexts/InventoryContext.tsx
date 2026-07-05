@@ -7,7 +7,7 @@ import { createContext, useCallback, useContext, useEffect, useState } from "rea
 export interface Product {
   id: string
   name: string
-  hsCode: string
+  hsCode?: string
   description?: string
   category: string
   stockQuantity: number

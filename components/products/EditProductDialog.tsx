@@ -23,7 +23,9 @@ interface EditProductDialogProps {
   suppliers: Supplier[]
   uniqueProductNames: string[]
   uniqueNetWeights: number[]
+  isAddingNewProduct: boolean
   isAddingNewCategory: boolean
+  isAddingCustomNetWeight: boolean
   newCategoryName: string
   onNewCategoryNameChange: (value: string) => void
   onCategoryChange: (value: string) => void
@@ -46,7 +48,9 @@ export default function EditProductDialog({
   suppliers,
   uniqueProductNames,
   uniqueNetWeights,
+  isAddingNewProduct,
   isAddingNewCategory,
+  isAddingCustomNetWeight,
   newCategoryName,
   onNewCategoryNameChange,
   onCategoryChange,
@@ -87,7 +91,9 @@ export default function EditProductDialog({
             suppliers={suppliers}
             uniqueProductNames={uniqueProductNames}
             uniqueNetWeights={uniqueNetWeights}
+            isAddingNewProduct={isAddingNewProduct}
             isAddingNewCategory={isAddingNewCategory}
+            isAddingCustomNetWeight={isAddingCustomNetWeight}
             newCategoryName={newCategoryName}
             onNewCategoryNameChange={onNewCategoryNameChange}
             onCategoryChange={onCategoryChange}
