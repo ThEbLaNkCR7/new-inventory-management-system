@@ -1,5 +1,6 @@
 "use client"
 
+import QuickAddProductDialog from "@/components/products/QuickAddProductDialog"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -24,12 +25,10 @@ import type { Product, Purchase } from "@/contexts/InventoryContext"
 import { useInventory } from "@/contexts/InventoryContext"
 import { usePurchaseChange } from "@/hooks/usePurchaseChange"
 import { formatNepaliDateForTable } from "@/lib/utils"
-import { CheckCircle, Clock, Loader2, Plus, Search } from "lucide-react"
-import React, { useEffect, useState } from "react"
-import QuickAddProductDialog from "@/components/products/QuickAddProductDialog"
+import { AlertTriangle, CheckCircle, Clock, Loader2, Plus, Search } from "lucide-react"
+import { useEffect, useState, type FormEvent } from "react"
 import DeletePurchaseDialog from "./DeletePurchaseDialog"
 import EditPurchaseDialog from "./EditPurchaseDialog"
-import ProductHistoryDialog from "./ProductHistoryDialog"
 import PurchasesTable from "./PurchasesTable"
 import SupplierHistoryDialog from "./SupplierHistoryDialog"
 import ViewPurchaseDialog from "./ViewPurchaseDialog"
@@ -42,8 +41,23 @@ type PurchaseItem = {
 
 type ItemKey = keyof PurchaseItem
 
+const getEmptyPurchaseForm = () => ({
+  items: [
+    {
+      productId: "",
+      quantityPurchased: 0,
+      purchasePrice: 0,
+    },
+  ],
+  supplier: "",
+  supplierType: "Company",
+  customSupplier: "",
+  purchaseDate: new Date().toISOString().split("T")[0],
+  isVat: false,
+})
+
 export default function PurchasesPage() {
-  const { products, purchases, suppliers, sales, addPurchase, updatePurchase, deletePurchase } = useInventory()
+  const { products, purchases, suppliers, addPurchase, updatePurchase, deletePurchase } = useInventory()
   const { user } = useAuth()
   const { requestPurchaseChange } = usePurchaseChange()
   const { toast } = useToast()
@@ -54,33 +68,15 @@ export default function PurchasesPage() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false)
-  const [isProductHistoryDialogOpen, setIsProductHistoryDialogOpen] = useState(false)
   const [isSupplierHistoryDialogOpen, setIsSupplierHistoryDialogOpen] = useState(false)
   const [selectedSupplierForHistory, setSelectedSupplierForHistory] = useState<string>("")
   const [editingPurchase, setEditingPurchase] = useState<Purchase | null>(null)
   const [deletingPurchase, setDeletingPurchase] = useState<Purchase | null>(null)
   const [viewingPurchase, setViewingPurchase] = useState<Purchase | null>(null)
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
-  const [productFilter, setProductFilter] = useState("all")
   const [billUrl, setBillUrl] = useState<string>("");
-  const initialFormData = {
-    items: [
-      {
-        productId: "",
-        quantityPurchased: 0,
-        purchasePrice: 0,
-      },
-    ],
-    supplier: "",
-    supplierType: "Company",
-    customSupplier: "",
-    purchaseDate: new Date().toISOString().split("T")[0],
-    category: "",
-    isVat: false,
-  }
+  const [billInputKey, setBillInputKey] = useState(0)
 
-
-  const { formData, updateForm, resetForm } = usePersistentForm('purchases-form', initialFormData)
+  const { formData, updateForm, resetForm } = usePersistentForm('purchases-form', getEmptyPurchaseForm())
   const [editReason, setEditReason] = useState("")
   const [deleteReason, setDeleteReason] = useState("")
   const [showSuccessAlert, setShowSuccessAlert] = useState(false)
@@ -89,10 +85,6 @@ export default function PurchasesPage() {
   const [progress, setProgress] = useState(0)
   const [currentStep, setCurrentStep] = useState("")
   const [totalSteps, setTotalSteps] = useState(0)
-  const isCustomProductSelected = productFilter === "custom"
-  const [isAddingNewCategory, setIsAddingNewCategory] = useState(false)
-  const [newCategoryName, setNewCategoryName] = useState("")
-  const [categoryFilter, setCategoryFilter] = useState("all")
   const [isQuickAddProductOpen, setIsQuickAddProductOpen] = useState(false)
   const [addingProductItemIndex, setAddingProductItemIndex] = useState<number | null>(null)
 
@@ -135,6 +127,14 @@ export default function PurchasesPage() {
   const getPurchaseSupplierName = () =>
     formData.supplier === "custom" ? formData.customSupplier : formData.supplier
 
+  const notifyStockExceeded = (product: Product, quantity: number) => {
+    toast({
+      title: "Stock Warning",
+      description: `${product.name}: quantity (${quantity}) exceeds current stock (${product.stockQuantity}).`,
+      variant: "destructive",
+    })
+  }
+
   useEffect(() => {
     if (showSuccessAlert) {
       const timer = setTimeout(() => {
@@ -159,9 +159,6 @@ export default function PurchasesPage() {
       method: "POST",
       body: formData,
     });
-
-    console.log("Upload Response Status:", res.status);
-    console.log("Upload Response OK:", res.ok);
 
     let data;
 
@@ -189,13 +186,19 @@ export default function PurchasesPage() {
 
   const purchasesCounts = getPurchasesCounts()
 
-  const uniqueProductNames = React.useMemo(() => {
-    return Array.from(new Set(products.map(p => p.name)))
-  }, [products])
+  const resetPurchaseForm = () => {
+    resetForm()
+    updateForm(getEmptyPurchaseForm())
+    setBillImage(null)
+    setBillUrl("")
+    setEditReason("")
+    setAddingProductItemIndex(null)
+    setIsQuickAddProductOpen(false)
+    setBillInputKey((key) => key + 1)
+  }
 
   const clearForm = () => {
-    resetForm()
-    setEditReason("")
+    resetPurchaseForm()
     setIsAddDialogOpen(false)
   }
 
@@ -245,8 +248,47 @@ export default function PurchasesPage() {
     URL.revokeObjectURL(url)
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
+
+    for (const item of formData.items) {
+      if (item.productId === "__new__") {
+        toast({
+          title: "Error",
+          description: "Please click 'Add New Product' to create the product, or select an existing one.",
+          variant: "destructive",
+        })
+        return
+      }
+
+      const product = products.find((p) => p.id === item.productId)
+
+      if (!product) {
+        toast({
+          title: "Error",
+          description: "One or more products not found.",
+          variant: "destructive",
+        })
+        return
+      }
+
+      if (item.quantityPurchased <= 0) {
+        toast({
+          title: "Error",
+          description: "All quantities must be greater than 0.",
+          variant: "destructive",
+        })
+        return
+      }
+
+      if (item.quantityPurchased > product.stockQuantity) {
+        toast({
+          title: "Stock Warning",
+          description: `${product.name}: purchase quantity (${item.quantityPurchased}) exceeds current stock (${product.stockQuantity}).`,
+          variant: "destructive",
+        })
+      }
+    }
 
     setIsAddDialogOpen(false)
     setIsLoading(true)
@@ -270,56 +312,9 @@ export default function PurchasesPage() {
 
       updateProgress("Checking stock availability...", 2, 6)
 
-      // 2. VALIDATION FOR ALL ITEMS (optional since purchases add stock, but still validate)
-      for (const item of formData.items) {
-        if (item.productId === "__new__") {
-          toast({
-            title: "Error",
-            description: "Please click 'Add New Product' to create the product, or select an existing one.",
-            variant: "destructive",
-          })
-          setIsLoading(false)
-          return
-        }
-
-        const product = products.find((p) => p.id === item.productId)
-
-        if (!product) {
-          toast({
-            title: "Error",
-            description: "One or more products not found.",
-            variant: "destructive",
-          })
-          setIsLoading(false)
-          return
-        }
-
-        if (item.quantityPurchased <= 0) {
-          toast({
-            title: "Error",
-            description: "All quantities must be greater than 0.",
-            variant: "destructive",
-          })
-          setIsLoading(false)
-          return
-        }
-      }
-
       await new Promise((r) => setTimeout(r, 400))
 
       updateProgress("Preparing purchase items...", 3, 6)
-
-      // 3. FORMAT ITEMS FOR BACKEND
-      const enrichedItems = formData.items.map((item: any) => {
-        const product = products.find((p) => p.id === item.productId)
-
-        return {
-          productId: item.productId,
-          productName: product?.name || "",
-          quantityPurchased: item.quantityPurchased,
-          purchasePrice: item.purchasePrice,
-        }
-      })
 
       await new Promise((r) => setTimeout(r, 400))
 
@@ -378,9 +373,7 @@ export default function PurchasesPage() {
 
       await new Promise((r) => setTimeout(r, 300))
 
-      resetForm()
-      setBillImage(null)
-      setBillUrl("")
+      resetPurchaseForm()
 
       setShowSuccessAlert(true)
       setAlertMessage("Purchase added successfully!")
@@ -424,7 +417,7 @@ export default function PurchasesPage() {
     setIsEditDialogOpen(true)
   }
 
-  const handleEditSubmit = async (e: React.FormEvent) => {
+  const handleEditSubmit = async (e: FormEvent) => {
     e.preventDefault()
     // Close form instantly
     setIsEditDialogOpen(false)
@@ -516,11 +509,6 @@ export default function PurchasesPage() {
     setIsViewDialogOpen(true)
   }
 
-  const handleProductClick = (product: Product) => {
-    setSelectedProduct(product)
-    setIsProductHistoryDialogOpen(true)
-  }
-
   const handleSupplierClick = (supplier: string) => {
     setSelectedSupplierForHistory(supplier)
     setIsSupplierHistoryDialogOpen(true)
@@ -561,14 +549,6 @@ export default function PurchasesPage() {
       setCurrentStep("")
     }
   }
-
-  React.useEffect(() => {
-    console.log("All Purchases:", purchases);
-
-    purchases.forEach((purchase) => {
-      console.log("Purchase Items:", purchase.items);
-    });
-  }, [purchases]);
 
   return (
     <div className="space-y-6 p-6 min-h-screen transition-colors duration-300">
@@ -729,6 +709,16 @@ export default function PurchasesPage() {
                             onChange={(e) =>
                               updateItem(index, "quantityPurchased", Number(e.target.value))
                             }
+                            onBlur={(e) => {
+                              const quantity = Number(e.target.value)
+                              if (
+                                selectedProduct &&
+                                quantity > 0 &&
+                                quantity > selectedProduct.stockQuantity
+                              ) {
+                                notifyStockExceeded(selectedProduct, quantity)
+                              }
+                            }}
                           />
 
                           <Input
@@ -741,7 +731,21 @@ export default function PurchasesPage() {
                           />
                         </div>
 
-                        {selectedProduct && (
+                        {selectedProduct &&
+                          item.quantityPurchased > 0 &&
+                          item.quantityPurchased > selectedProduct.stockQuantity && (
+                            <Alert className="border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-900/20 py-2">
+                              <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                              <AlertDescription className="text-amber-800 dark:text-amber-200 text-xs">
+                                Quantity ({item.quantityPurchased}) exceeds current stock (
+                                {selectedProduct.stockQuantity}).
+                              </AlertDescription>
+                            </Alert>
+                          )}
+
+                        {selectedProduct &&
+                          item.quantityPurchased > 0 &&
+                          item.quantityPurchased <= selectedProduct.stockQuantity && (
                           <p className="text-xs text-gray-500">
                             Stock: {selectedProduct.stockQuantity}
                           </p>
@@ -849,6 +853,7 @@ export default function PurchasesPage() {
                 <div className="mb-4">
                   <label htmlFor="bill">Upload Bill Image</label>
                   <input
+                    key={billInputKey}
                     type="file"
                     id="bill"
                     accept="image/*"
@@ -889,11 +894,9 @@ export default function PurchasesPage() {
         activeTab={activeTab}
         onActiveTabChange={setActiveTab}
         purchasesCounts={purchasesCounts}
-        products={products}
         onView={handleView}
         onEdit={handleEdit}
         onDelete={handleDelete}
-        onProductClick={handleProductClick}
         onSupplierClick={handleSupplierClick}
       />
 
@@ -933,14 +936,6 @@ export default function PurchasesPage() {
           e.preventDefault()
           await handleDeleteConfirm()
         }}
-      />
-
-      <ProductHistoryDialog
-        isOpen={isProductHistoryDialogOpen}
-        onOpenChange={setIsProductHistoryDialogOpen}
-        product={selectedProduct}
-        sales={sales}
-        purchases={purchases}
       />
 
       <SupplierHistoryDialog

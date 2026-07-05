@@ -1,6 +1,5 @@
 "use client";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -13,7 +12,6 @@ import { Label } from "@/components/ui/label";
 import type { Purchase } from "@/contexts/InventoryContext";
 import { formatNepaliDateForTable } from "@/lib/utils";
 import { Eye } from "lucide-react";
-import React from "react";
 
 interface ViewPurchaseDialogProps {
   isOpen: boolean;

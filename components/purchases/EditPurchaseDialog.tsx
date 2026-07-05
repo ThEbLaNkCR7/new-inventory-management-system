@@ -25,15 +25,17 @@ import React from "react";
 
 export type PurchaseFormData = {
   productId: string;
-  customProductName: string;
   supplier: string;
   supplierType: string;
   customSupplier: string;
   quantityPurchased: number;
   purchasePrice: number;
-  category: string;
   purchaseDate: string;
-  netWeight: number;
+  items: Array<{
+    productId: string;
+    quantityPurchased: number;
+    purchasePrice: number;
+  }>;
 };
 
 interface EditPurchaseDialogProps {

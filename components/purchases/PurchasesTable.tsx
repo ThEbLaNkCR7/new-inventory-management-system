@@ -18,7 +18,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import type { Product, Purchase } from "@/contexts/InventoryContext";
+import type { Purchase } from "@/contexts/InventoryContext";
 import { formatNepaliDateForTable } from "@/lib/utils";
 import { Building2, Edit, Eye, Trash2, TrendingUp, Users } from "lucide-react";
 import React from "react";
@@ -32,11 +32,9 @@ interface PurchasesTableProps {
     individualCount: number;
     companyCount: number;
   };
-  products: Product[];
   onView: (purchase: Purchase) => void;
   onEdit: (purchase: Purchase) => void;
   onDelete: (purchase: Purchase) => void;
-  onProductClick: (product: Product) => void;
   onSupplierClick: (supplier: string) => void;
 }
 
@@ -45,25 +43,11 @@ export default function PurchasesTable({
   activeTab,
   onActiveTabChange,
   purchasesCounts,
-  products,
   onView,
   onEdit,
   onDelete,
-  onProductClick,
   onSupplierClick,
 }: PurchasesTableProps) {
-  const [activeItemIndex, setActiveItemIndex] = React.useState<{
-    [key: string]: number;
-  }>({});
-
-  const getActiveIndex = (purchaseId: string) => {
-    return activeItemIndex[purchaseId] ?? 0;
-  };
-
-  const getActiveItem = (purchase: any) => {
-    return purchase.items?.[getActiveIndex(purchase.id)];
-  };
-
   const tabPurchases = React.useMemo(() => {
     if (activeTab === "individual") {
       return filteredPurchases.filter(
@@ -145,7 +129,7 @@ export default function PurchasesTable({
               <TableCell className="text-gray-700">
                 Rs{" "}
                 {(
-                  (getActiveItem(purchase)?.purchasePrice || 0)
+                  (purchase.items?.[0]?.purchasePrice || 0)
                 ).toFixed(2)}
               </TableCell>
               <TableCell className="text-gray-700">

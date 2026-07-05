@@ -17,14 +17,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import type { Purchase } from "@/contexts/InventoryContext";
 import {
   formatNepaliDateForTable,
   getCurrentNepaliYear,
   getNepaliYear,
 } from "@/lib/utils";
-import type { Purchase } from "@/contexts/InventoryContext";
 import { Building2 } from "lucide-react";
-import React from "react";
 
 interface SupplierHistoryDialogProps {
   isOpen: boolean;
