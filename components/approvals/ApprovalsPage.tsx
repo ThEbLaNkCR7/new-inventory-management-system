@@ -15,9 +15,9 @@ import { useApproval } from "@/contexts/ApprovalContext"
 import {
   AlertTriangle,
   ArrowRight,
-  Check,
   CheckCircle,
   Clock,
+  Eye,
   FileText,
   Info,
   Minus,
@@ -25,16 +25,16 @@ import {
   Plus,
   ShoppingCart,
   Users,
-  X,
   XCircle
 } from "lucide-react"
 import { useState } from "react"
 
 export default function ApprovalsPage() {
-  const { pendingChanges, approveChange, rejectChange, getPendingChanges, getChangeHistory } = useApproval()
+  const { approveChange, rejectChange, getPendingChanges, getChangeHistory, isLoading } = useApproval()
   const [selectedChange, setSelectedChange] = useState<any>(null)
   const [reviewNotes, setReviewNotes] = useState("")
   const [isReviewDialogOpen, setIsReviewDialogOpen] = useState(false)
+  const [isHistoryView, setIsHistoryView] = useState(false)
 
   const pendingList = getPendingChanges()
   const historyList = getChangeHistory()
@@ -155,7 +155,14 @@ export default function ApprovalsPage() {
     return fieldNames[key] || key.replace(/([A-Z])/g, " $1").replace(/^./, (str) => str.toUpperCase())
   }
 
-  const renderDataComparison = (originalData: any, proposedData: any, action: string) => {
+  const GRID_HIDDEN_FIELDS = new Set(["imageUrl", "image_url", "image", "version", "__v"])
+
+  const shouldShowInGrid = (key: string, compact: boolean) => {
+    if (!compact) return true
+    return !GRID_HIDDEN_FIELDS.has(key)
+  }
+
+  const renderDataComparison = (originalData: any, proposedData: any, action: string, compact = false) => {
     if (action === "create") {
       return (
         <div className="space-y-4">
@@ -165,7 +172,9 @@ export default function ApprovalsPage() {
               <Label className="text-lg font-semibold text-slate-800 dark:text-slate-200">New Record Details</Label>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {Object.entries(proposedData).map(([key, value]) => (
+              {Object.entries(proposedData)
+                .filter(([key]) => shouldShowInGrid(key, compact))
+                .map(([key, value]) => (
                 <div key={key} className="bg-white dark:bg-slate-800 rounded-md p-3 border border-slate-200 dark:border-slate-700">
                   <div className="text-sm font-medium text-slate-700 dark:text-slate-300">{getFieldDisplayName(key)}</div>
                   <div className="text-slate-900 dark:text-slate-100 font-semibold">{formatValue(key, value)}</div>
@@ -186,7 +195,9 @@ export default function ApprovalsPage() {
               <Label className="text-lg font-semibold text-zinc-800 dark:text-zinc-200">Record to be Deleted</Label>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {Object.entries(originalData).map(([key, value]) => (
+              {Object.entries(originalData)
+                .filter(([key]) => shouldShowInGrid(key, compact))
+                .map(([key, value]) => (
                 <div key={key} className="bg-white dark:bg-zinc-800 rounded-md p-3 border border-zinc-200 dark:border-zinc-700">
                   <div className="text-sm font-medium text-zinc-700 dark:text-zinc-300">{getFieldDisplayName(key)}</div>
                   <div className="text-zinc-900 dark:text-zinc-100 font-semibold">{formatValue(key, value)}</div>
@@ -199,7 +210,9 @@ export default function ApprovalsPage() {
     }
 
     // Update action - show comparison
-    const changedFields = Object.keys(proposedData).filter((key) => originalData[key] !== proposedData[key])
+    const changedFields = Object.keys(proposedData).filter(
+      (key) => shouldShowInGrid(key, compact) && originalData[key] !== proposedData[key],
+    )
 
     return (
       <div className="space-y-4">
@@ -211,7 +224,9 @@ export default function ApprovalsPage() {
               <Label className="text-lg font-semibold text-zinc-800 dark:text-zinc-200">Current Data</Label>
             </div>
             <div className="space-y-3">
-              {Object.entries(originalData).map(([key, value]) => (
+              {Object.entries(originalData)
+                .filter(([key]) => shouldShowInGrid(key, compact))
+                .map(([key, value]) => (
                 <div
                   key={key}
                   className={`bg-white dark:bg-zinc-800 rounded-md p-3 border ${
@@ -232,7 +247,9 @@ export default function ApprovalsPage() {
               <Label className="text-lg font-semibold text-slate-800 dark:text-slate-200">Proposed Changes</Label>
             </div>
             <div className="space-y-3">
-              {Object.entries(proposedData).map(([key, value]) => (
+              {Object.entries(proposedData)
+                .filter(([key]) => shouldShowInGrid(key, compact))
+                .map(([key, value]) => (
                 <div
                   key={key}
                   className={`bg-white dark:bg-slate-800 rounded-md p-3 border ${
@@ -269,6 +286,93 @@ export default function ApprovalsPage() {
       </div>
     )
   }
+
+  const openReviewDialog = (change: any) => {
+    setSelectedChange(change)
+    setIsHistoryView(false)
+    setReviewNotes("")
+    setIsReviewDialogOpen(true)
+  }
+
+  const openHistoryView = (change: any) => {
+    setSelectedChange(change)
+    setIsHistoryView(true)
+    setIsReviewDialogOpen(true)
+  }
+
+  const renderHistoryTable = () => (
+    <Card className="dark:bg-gray-800 dark:border-gray-700">
+      <CardHeader>
+        <CardTitle>Approval History</CardTitle>
+        <CardDescription>Previously reviewed changes</CardDescription>
+      </CardHeader>
+      <CardContent>
+        {historyList.length === 0 ? (
+          <p className="text-gray-500 dark:text-gray-400 text-center py-8">No approval history available</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Type</TableHead>
+                  <TableHead>Action</TableHead>
+                  <TableHead>Summary</TableHead>
+                  <TableHead>Requested By</TableHead>
+                  <TableHead>Reason</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Reviewed By</TableHead>
+                  <TableHead>Review Date</TableHead>
+                  <TableHead className="text-right">Details</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {historyList.map((change) => (
+                  <TableRow key={change.id}>
+                    <TableCell>
+                      <div className="flex items-center space-x-2">
+                        {getTypeIcon(change.type)}
+                        <Badge variant="outline" className="capitalize">
+                          {change.type}
+                        </Badge>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center space-x-2">
+                        {getActionIcon(change.action)}
+                        <Badge className={getActionColor(change.action)}>{change.action}</Badge>
+                      </div>
+                    </TableCell>
+                    <TableCell className="max-w-[220px]">
+                      <span className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2">
+                        {change.changeSummary || change.entityLabel || "—"}
+                      </span>
+                    </TableCell>
+                    <TableCell>{change.requestedBy}</TableCell>
+                    <TableCell className="max-w-[200px]">
+                      <span className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2">
+                        {change.reason || "—"}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <Badge className={getStatusColor(change.status)}>{change.status}</Badge>
+                    </TableCell>
+                    <TableCell>{change.reviewedBy || "N/A"}</TableCell>
+                    <TableCell>{change.reviewedAt ? formatDate(change.reviewedAt) : "N/A"}</TableCell>
+                    <TableCell className="text-right">
+                      <Button variant="neutralOutline" size="sm" onClick={() => openHistoryView(change)}>
+                        <Eye className="h-4 w-4 mr-1" />
+                        View
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  )
 
   const renderApprovalSection = (title: string, changes: any[], icon: React.ReactNode, color: string) => (
     <Card className="mb-6 dark:bg-gray-800 dark:border-gray-700">
@@ -308,23 +412,23 @@ export default function ApprovalsPage() {
                   <Badge className={getStatusColor(change.status)}>{change.status}</Badge>
                 </div>
 
-                {renderDataComparison(change.originalData, change.proposedData, change.action)}
+                {change.reason && (
+                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4 dark:bg-amber-900/20 dark:border-amber-700">
+                    <div className="flex items-center space-x-2 mb-2">
+                      <FileText className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                      <Label className="text-sm font-semibold text-amber-800 dark:text-amber-200">Reason for Request</Label>
+                    </div>
+                    <p className="text-amber-900 dark:text-amber-100 text-sm">{change.reason}</p>
+                  </div>
+                )}
+
+                {renderDataComparison(change.originalData, change.proposedData, change.action, true)}
 
                 {change.status === "pending" && (
-                  <div className="flex justify-end space-x-2 mt-4 pt-4 border-t">
-                    <Button onClick={() => {
-                      setSelectedChange(change)
-                      handleReject()
-                    }} variant="neutralOutline" size="sm">
-                      <X className="h-4 w-4 mr-1" />
-                      Reject
-                    </Button>
-                    <Button onClick={() => {
-                      setSelectedChange(change)
-                      handleApprove()
-                    }} variant="neutral" size="sm">
-                      <Check className="h-4 w-4 mr-1" />
-                      Approve
+                  <div className="flex justify-end mt-4 pt-4 border-t">
+                    <Button onClick={() => openReviewDialog(change)} variant="neutral" size="sm">
+                      <Eye className="h-4 w-4 mr-1" />
+                      Review & Decide
                     </Button>
                   </div>
                 )}
@@ -336,58 +440,36 @@ export default function ApprovalsPage() {
     </Card>
   )
 
-  if (pendingChanges.length === 0) {
-    return (
-      <div className="space-y-8 p-6 bg-white dark:bg-gray-900 min-h-screen transition-colors duration-300">
-        <div className="relative">
-          <div className="space-y-2">
-            <h1 className="section-title">
-              Approvals
-            </h1>
-            <p className="text-gray-600 dark:text-gray-300 text-lg">Review and approve system changes</p>
-          </div>
-        </div>
-
-        <Card className="dark:bg-gray-800 dark:border-gray-700">
-          <CardContent className="text-center py-12">
-            <CheckCircle className="mx-auto h-12 w-12 text-green-500 mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">All Caught Up!</h3>
-            <p className="text-gray-600 dark:text-gray-400">No pending approvals at the moment.</p>
-          </CardContent>
-        </Card>
-
-        <Card className="dark:bg-gray-800 dark:border-gray-700">
-          <CardHeader>
-            <CardTitle>Approval History</CardTitle>
-            <CardDescription>Previously reviewed changes</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-gray-500 dark:text-gray-400 text-center py-8">No approval history available</p>
-          </CardContent>
-        </Card>
-      </div>
-    )
-  }
-
   return (
     <div className="space-y-8 p-6 bg-white dark:bg-gray-900 min-h-screen transition-colors duration-300">
+      {isLoading ? (
+        <Card className="dark:bg-gray-800 dark:border-gray-700">
+          <CardContent className="text-center py-12">
+            <Clock className="mx-auto h-12 w-12 text-gray-400 mb-4 animate-pulse" />
+            <p className="text-gray-600 dark:text-gray-400">Loading approvals...</p>
+          </CardContent>
+        </Card>
+      ) : (
+        <>
       <div className="space-y-2">
         <h1 className="section-title">
-          Approval Management
+          Approvals
         </h1>
-        <p className="text-gray-600 dark:text-gray-300 text-lg">Review and manage pending approval requests</p>
+        <p className="text-gray-600 dark:text-gray-300 text-lg">Review and approve system changes</p>
       </div>
 
-      <div className="flex justify-between items-center">
-        <div className="flex items-center space-x-4">
-          <div className="flex items-center space-x-2 bg-amber-50 px-3 py-2 rounded-lg border border-amber-200 dark:bg-amber-900/20 dark:border-amber-700">
-            <Clock className="h-5 w-5 text-amber-600 dark:text-amber-400" />
-            <span className="text-sm font-medium text-amber-800 dark:text-amber-200">{pendingList.length} Total Pending</span>
+      {pendingList.length > 0 && (
+        <div className="flex justify-between items-center">
+          <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2 bg-amber-50 px-3 py-2 rounded-lg border border-amber-200 dark:bg-amber-900/20 dark:border-amber-700">
+              <Clock className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+              <span className="text-sm font-medium text-amber-800 dark:text-amber-200">{pendingList.length} Total Pending</span>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
-      <Tabs defaultValue="pending" className="space-y-4">
+      <Tabs defaultValue={pendingList.length > 0 ? "pending" : "history"} className="space-y-4">
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="pending" className="flex items-center space-x-2">
             <Clock className="h-4 w-4" />
@@ -400,93 +482,50 @@ export default function ApprovalsPage() {
         </TabsList>
 
         <TabsContent value="pending" className="space-y-4">
-          {/* Products Section */}
-          {renderApprovalSection("Product Changes", pendingProducts, <Package className="h-5 w-5" />, "bg-slate-600")}
-
-          {/* Sales Section */}
-          {renderApprovalSection("Sales Changes", pendingSales, <ShoppingCart className="h-5 w-5" />, "bg-gray-600")}
-
-          {/* Purchases Section */}
-          {renderApprovalSection("Purchase Changes", pendingPurchases, <Users className="h-5 w-5" />, "bg-zinc-600")}
-
-          {pendingList.length === 0 && (
-            <Card>
+          {pendingList.length === 0 ? (
+            <Card className="dark:bg-gray-800 dark:border-gray-700">
               <CardContent className="text-center py-12">
-                <CheckCircle className="mx-auto h-16 w-16 text-green-400 mb-4" />
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">All Caught Up!</h3>
-                <p className="text-gray-500">No pending approvals at this time</p>
+                <CheckCircle className="mx-auto h-12 w-12 text-green-500 mb-4" />
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">All Caught Up!</h3>
+                <p className="text-gray-600 dark:text-gray-400">No pending approvals at the moment.</p>
               </CardContent>
             </Card>
+          ) : (
+            <>
+              {renderApprovalSection("Product Changes", pendingProducts, <Package className="h-5 w-5" />, "bg-slate-600")}
+              {renderApprovalSection("Sales Changes", pendingSales, <ShoppingCart className="h-5 w-5" />, "bg-gray-600")}
+              {renderApprovalSection("Purchase Changes", pendingPurchases, <Users className="h-5 w-5" />, "bg-zinc-600")}
+            </>
           )}
         </TabsContent>
 
         <TabsContent value="history" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Approval History</CardTitle>
-              <CardDescription>Previously reviewed changes</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Action</TableHead>
-                      <TableHead>Requested By</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Reviewed By</TableHead>
-                      <TableHead>Review Date</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {historyList.map((change) => (
-                      <TableRow key={change.id}>
-                        <TableCell>
-                          <div className="flex items-center space-x-2">
-                            {getTypeIcon(change.type)}
-                            <Badge variant="outline" className="capitalize">
-                              {change.type}
-                            </Badge>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center space-x-2">
-                            {getActionIcon(change.action)}
-                            <Badge className={getActionColor(change.action)}>{change.action}</Badge>
-                          </div>
-                        </TableCell>
-                        <TableCell>{change.requestedBy}</TableCell>
-                        <TableCell>
-                          <Badge className={getStatusColor(change.status)}>{change.status}</Badge>
-                        </TableCell>
-                        <TableCell>{change.reviewedBy || "N/A"}</TableCell>
-                        <TableCell>{change.reviewedAt ? formatDate(change.reviewedAt) : "N/A"}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-                {historyList.length === 0 && (
-                  <div className="text-center py-8">
-                    <p className="text-gray-500">No approval history</p>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+          {renderHistoryTable()}
         </TabsContent>
       </Tabs>
 
       {/* Enhanced Review Dialog */}
-      <Dialog open={isReviewDialogOpen} onOpenChange={setIsReviewDialogOpen}>
+      <Dialog
+        open={isReviewDialogOpen}
+        onOpenChange={(open) => {
+          setIsReviewDialogOpen(open)
+          if (!open) {
+            setIsHistoryView(false)
+            setSelectedChange(null)
+            setReviewNotes("")
+          }
+        }}
+      >
         <DialogContent className="max-w-4xl max-h-[90vh]">
           <DialogHeader className="pb-4">
             <DialogTitle className="flex items-center space-x-2 text-xl">
               {selectedChange && getTypeIcon(selectedChange.type)}
-              <span>Review Change Request</span>
+              <span>{isHistoryView ? "Approval History Details" : "Review Change Request"}</span>
             </DialogTitle>
             <DialogDescription>
-              Carefully review the proposed changes and provide your decision with optional notes
+              {isHistoryView
+                ? "View the details of this previously reviewed change request"
+                : "Carefully review the proposed changes and provide your decision with optional notes"}
             </DialogDescription>
           </DialogHeader>
 
@@ -529,15 +568,45 @@ export default function ApprovalsPage() {
                   </div>
                 </div>
 
-                {/* Reason */}
-                {selectedChange.reason && (
-                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-                    <div className="flex items-center space-x-2 mb-2">
-                      <FileText className="h-4 w-4 text-amber-600" />
-                      <Label className="text-sm font-semibold text-amber-800">Reason for Request</Label>
+                {/* Review outcome for history */}
+                {isHistoryView && (
+                  <div className={`border rounded-lg p-4 ${selectedChange.status === "approved" ? "bg-slate-50 border-slate-200 dark:bg-slate-900/20 dark:border-slate-700" : "bg-zinc-50 border-zinc-200 dark:bg-zinc-900/20 dark:border-zinc-700"}`}>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <Label className="text-xs font-semibold uppercase tracking-wide">Status</Label>
+                        <div className="mt-1">
+                          <Badge className={getStatusColor(selectedChange.status)}>{selectedChange.status}</Badge>
+                        </div>
+                      </div>
+                      <div>
+                        <Label className="text-xs font-semibold uppercase tracking-wide">Reviewed By</Label>
+                        <p className="font-medium mt-1">{selectedChange.reviewedBy || "N/A"}</p>
+                      </div>
+                      <div>
+                        <Label className="text-xs font-semibold uppercase tracking-wide">Review Date</Label>
+                        <p className="font-medium mt-1 text-sm">
+                          {selectedChange.reviewedAt ? formatDate(selectedChange.reviewedAt) : "N/A"}
+                        </p>
+                      </div>
                     </div>
-                    <p className="text-amber-900 bg-white rounded-md p-3 border border-amber-200">
-                      {selectedChange.reason}
+                    {selectedChange.reviewNotes && (
+                      <div className="mt-4">
+                        <Label className="text-xs font-semibold uppercase tracking-wide">Review Notes</Label>
+                        <p className="mt-1 text-sm bg-white dark:bg-slate-800 rounded-md p-3 border">{selectedChange.reviewNotes}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Reason */}
+                {(selectedChange.reason || !isHistoryView) && (
+                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 dark:bg-amber-900/20 dark:border-amber-700">
+                    <div className="flex items-center space-x-2 mb-2">
+                      <FileText className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                      <Label className="text-sm font-semibold text-amber-800 dark:text-amber-200">Reason for Request</Label>
+                    </div>
+                    <p className="text-amber-900 dark:text-amber-100 bg-white dark:bg-slate-800 rounded-md p-3 border border-amber-200 dark:border-amber-700">
+                      {selectedChange.reason || "No reason provided"}
                     </p>
                   </div>
                 )}
@@ -545,49 +614,72 @@ export default function ApprovalsPage() {
                 {/* Data Comparison */}
                 <div>
                   <Label className="text-lg font-semibold text-gray-900 mb-4 block">Data Review</Label>
-                  {renderDataComparison(
-                    selectedChange.originalData,
-                    selectedChange.proposedData,
-                    selectedChange.action,
+                  {selectedChange.proposedData || selectedChange.originalData ? (
+                    renderDataComparison(
+                      selectedChange.originalData,
+                      selectedChange.proposedData,
+                      selectedChange.action,
+                    )
+                  ) : (
+                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 dark:bg-gray-900/20 dark:border-gray-700">
+                      <p className="text-sm text-gray-700 dark:text-gray-300">
+                        {selectedChange.changeSummary || selectedChange.entityLabel || "No detailed data stored for this record."}
+                      </p>
+                      {selectedChange.changedFields && selectedChange.changedFields.length > 0 && (
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                          Changed fields: {selectedChange.changedFields.map((field: string) => getFieldDisplayName(field)).join(", ")}
+                        </p>
+                      )}
+                    </div>
                   )}
                 </div>
               </div>
             </ScrollArea>
           )}
 
-          <Separator className="my-4" />
+          {!isHistoryView && <Separator className="my-4" />}
 
-          {/* Review Notes */}
-          <div className="space-y-3">
-            <Label htmlFor="reviewNotes" className="text-sm font-semibold">
-              Review Notes (Optional)
-            </Label>
-            <Textarea
-              id="reviewNotes"
-              value={reviewNotes}
-              onChange={(e) => setReviewNotes(e.target.value)}
-              placeholder="Add notes about your decision, feedback, or instructions..."
-              rows={3}
-              className="resize-none"
-            />
-          </div>
+          {!isHistoryView && (
+            <div className="space-y-3">
+              <Label htmlFor="reviewNotes" className="text-sm font-semibold">
+                Review Notes (Optional)
+              </Label>
+              <Textarea
+                id="reviewNotes"
+                value={reviewNotes}
+                onChange={(e) => setReviewNotes(e.target.value)}
+                placeholder="Add notes about your decision, feedback, or instructions..."
+                rows={3}
+                className="resize-none"
+              />
+            </div>
+          )}
 
-          {/* Action Buttons */}
           <div className="flex justify-end space-x-3 pt-4 border-t">
-            <Button variant="neutralOutline" onClick={() => setIsReviewDialogOpen(false)} className="px-6">
-              Cancel
+            <Button
+              variant="neutralOutline"
+              onClick={() => setIsReviewDialogOpen(false)}
+              className="px-6"
+            >
+              {isHistoryView ? "Close" : "Cancel"}
             </Button>
-            <Button variant="destructive" onClick={handleReject} className="px-6 bg-red-600 hover:bg-red-700">
-              <XCircle className="h-4 w-4 mr-2" />
-              Reject
-            </Button>
-            <Button onClick={handleApprove} className="px-6 bg-green-600 hover:bg-green-700">
-              <CheckCircle className="h-4 w-4 mr-2" />
-              Approve
-            </Button>
+            {!isHistoryView && (
+              <>
+                <Button variant="destructive" onClick={handleReject} className="px-6 bg-red-600 hover:bg-red-700">
+                  <XCircle className="h-4 w-4 mr-2" />
+                  Reject
+                </Button>
+                <Button onClick={handleApprove} className="px-6 bg-green-600 hover:bg-green-700">
+                  <CheckCircle className="h-4 w-4 mr-2" />
+                  Approve
+                </Button>
+              </>
+            )}
           </div>
         </DialogContent>
       </Dialog>
+        </>
+      )}
     </div>
   )
 }

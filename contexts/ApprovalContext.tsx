@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { createContext, useContext, useState } from "react"
+import { createContext, useCallback, useContext, useEffect, useState } from "react"
 import { useAuth } from "./AuthContext"
 import { useInventory } from "./InventoryContext"
 
@@ -10,8 +10,9 @@ export interface ApprovalChange {
   type: "product" | "sale" | "purchase" | "client" | "supplier"
   action: "create" | "update" | "delete"
   entityId?: string
+  entityLabel?: string
   originalData?: any
-  proposedData: any
+  proposedData?: any
   requestedBy: string
   requestedAt: string
   status: "pending" | "approved" | "rejected"
@@ -19,10 +20,13 @@ export interface ApprovalChange {
   reviewedAt?: string
   reviewNotes?: string
   reason?: string
+  changeSummary?: string
+  changedFields?: string[]
 }
 
 interface ApprovalContextType {
   pendingChanges: ApprovalChange[]
+  isLoading: boolean
   submitChange: (change: Omit<ApprovalChange, "id" | "requestedAt" | "status">) => void
   approveChange: (changeId: string, notes?: string) => void
   rejectChange: (changeId: string, notes?: string) => void
@@ -32,8 +36,46 @@ interface ApprovalContextType {
 
 const ApprovalContext = createContext<ApprovalContextType | undefined>(undefined)
 
+function normalizeApproval(doc: any): ApprovalChange {
+  return {
+    ...doc,
+    id: doc.id || doc._id?.toString(),
+    requestedAt: doc.requestedAt,
+    reviewedAt: doc.reviewedAt,
+  }
+}
+
+async function createApprovalRecord(payload: Record<string, unknown>) {
+  const response = await fetch("/api/approvals", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  })
+
+  if (!response.ok) {
+    throw new Error("Failed to save approval")
+  }
+
+  return normalizeApproval(await response.json())
+}
+
+async function finalizeApprovalRecord(id: string, payload: Record<string, unknown>) {
+  const response = await fetch(`/api/approvals/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  })
+
+  if (!response.ok) {
+    throw new Error("Failed to update approval")
+  }
+
+  return normalizeApproval(await response.json())
+}
+
 export function ApprovalProvider({ children }: { children: React.ReactNode }) {
   const [changes, setChanges] = useState<ApprovalChange[]>([])
+  const [isLoading, setIsLoading] = useState(true)
   const { user } = useAuth()
   const {
     addProduct,
@@ -51,52 +93,24 @@ export function ApprovalProvider({ children }: { children: React.ReactNode }) {
     addSupplier,
     updateSupplier,
     deleteSupplier,
-    sales,
-    purchases,
   } = useInventory()
 
-  const submitChange = (change: Omit<ApprovalChange, "id" | "requestedAt" | "status">) => {
-    const isAdmin = user?.role === "admin"
-    const now = new Date().toISOString()
-
-    const newChange: ApprovalChange = {
-      ...change,
-      id: Date.now().toString(),
-      requestedAt: now,
-      status: isAdmin ? "approved" : "pending",
-      ...(isAdmin && {
-        reviewedBy: user?.email,
-        reviewedAt: now,
-      }),
+  const fetchApprovals = useCallback(async () => {
+    try {
+      const response = await fetch("/api/approvals")
+      if (!response.ok) throw new Error("Failed to fetch approvals")
+      const data = await response.json()
+      setChanges((data.approvals || []).map(normalizeApproval))
+    } catch (error) {
+      console.error("Error loading approvals:", error)
+    } finally {
+      setIsLoading(false)
     }
+  }, [])
 
-    setChanges((prev) => [...prev, newChange])
-
-    // Auto-apply if user is admin
-    if (isAdmin) {
-      try {
-        switch (change.type) {
-          case "product":
-            applyProductChange(newChange)
-            break
-          case "sale":
-            applySaleChange(newChange)
-            break
-          case "purchase":
-            applyPurchaseChange(newChange)
-            break
-          case "client":
-            applyClientChange(newChange)
-            break
-          case "supplier":
-            applySupplierChange(newChange)
-            break
-        }
-      } catch (error) {
-        console.error("Error auto-applying admin change:", error)
-      }
-    }
-  }
+  useEffect(() => {
+    fetchApprovals()
+  }, [fetchApprovals])
 
   const applySaleChange = (change: ApprovalChange) => {
     switch (change.action) {
@@ -116,7 +130,6 @@ export function ApprovalProvider({ children }: { children: React.ReactNode }) {
           ],
         })
         break
-
       case "update":
         if (change.entityId) {
           updateSale(change.entityId, {
@@ -134,7 +147,6 @@ export function ApprovalProvider({ children }: { children: React.ReactNode }) {
           })
         }
         break
-
       case "delete":
         if (change.entityId) {
           deleteSale(change.entityId)
@@ -160,7 +172,6 @@ export function ApprovalProvider({ children }: { children: React.ReactNode }) {
           ],
         })
         break
-
       case "update":
         if (change.entityId) {
           updatePurchase(change.entityId, {
@@ -178,7 +189,6 @@ export function ApprovalProvider({ children }: { children: React.ReactNode }) {
           })
         }
         break
-
       case "delete":
         if (change.entityId) {
           deletePurchase(change.entityId)
@@ -186,6 +196,7 @@ export function ApprovalProvider({ children }: { children: React.ReactNode }) {
         break
     }
   }
+
   const applyProductChange = (change: ApprovalChange) => {
     switch (change.action) {
       case "create":
@@ -240,79 +251,164 @@ export function ApprovalProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  const approveChange = (changeId: string, notes?: string) => {
-    setChanges((prev) =>
-      prev.map((change) => {
-        if (change.id === changeId) {
-          const updatedChange = {
-            ...change,
-            status: "approved" as const,
+  const applyChange = (change: ApprovalChange) => {
+    switch (change.type) {
+      case "product":
+        applyProductChange(change)
+        break
+      case "sale":
+        applySaleChange(change)
+        break
+      case "purchase":
+        applyPurchaseChange(change)
+        break
+      case "client":
+        applyClientChange(change)
+        break
+      case "supplier":
+        applySupplierChange(change)
+        break
+    }
+  }
+
+  const submitChange = (change: Omit<ApprovalChange, "id" | "requestedAt" | "status">) => {
+    const isAdmin = user?.role === "admin"
+    const now = new Date().toISOString()
+
+    const persist = async () => {
+      try {
+        const saved = await createApprovalRecord({
+          ...change,
+          requestedAt: now,
+          status: isAdmin ? "approved" : "pending",
+          ...(isAdmin && {
             reviewedBy: user?.email,
-            reviewedAt: new Date().toISOString(),
-            reviewNotes: notes,
-          }
+            reviewedAt: now,
+          }),
+        })
 
-          // Apply the approved change to the actual data
-          try {
-            switch (change.type) {
-              case "product":
-                applyProductChange(updatedChange)
-                break
-              case "sale":
-                applySaleChange(updatedChange)
-                break
-              case "purchase":
-                applyPurchaseChange(updatedChange)
-                break
-              case "client":
-                applyClientChange(updatedChange)
-                break
-              case "supplier":
-                applySupplierChange(updatedChange)
-                break
-            }
-          } catch (error) {
-            console.error("Error applying approved change:", error)
-            // In a real app, you might want to handle this error differently
-          }
+        setChanges((prev) => {
+          const withoutTemp = prev.filter((item) => !item.id.startsWith("temp-"))
+          return [saved, ...withoutTemp.filter((item) => item.id !== saved.id)]
+        })
+      } catch (error) {
+        console.error("Error saving approval:", error)
+        fetchApprovals()
+      }
+    }
 
-          return updatedChange
-        }
-        return change
-      }),
-    )
+    if (isAdmin) {
+      const adminChange: ApprovalChange = {
+        ...change,
+        id: `temp-${Date.now()}`,
+        requestedAt: now,
+        status: "approved",
+        reviewedBy: user?.email,
+        reviewedAt: now,
+      }
+
+      try {
+        applyChange(adminChange)
+      } catch (error) {
+        console.error("Error auto-applying admin change:", error)
+      }
+
+      setChanges((prev) => [adminChange, ...prev])
+      persist()
+      return
+    }
+
+    const pendingChange: ApprovalChange = {
+      ...change,
+      id: `temp-${Date.now()}`,
+      requestedAt: now,
+      status: "pending",
+    }
+
+    setChanges((prev) => [pendingChange, ...prev])
+    persist()
+  }
+
+  const approveChange = (changeId: string, notes?: string) => {
+    const change = changes.find((item) => item.id === changeId)
+    if (!change) return
+
+    const reviewedAt = new Date().toISOString()
+    const updatedChange: ApprovalChange = {
+      ...change,
+      status: "approved",
+      reviewedBy: user?.email,
+      reviewedAt,
+      reviewNotes: notes,
+    }
+
+    setChanges((prev) => prev.map((item) => (item.id === changeId ? updatedChange : item)))
+
+    try {
+      applyChange(updatedChange)
+    } catch (error) {
+      console.error("Error applying approved change:", error)
+    }
+
+    finalizeApprovalRecord(changeId, {
+      status: "approved",
+      reviewedBy: user?.email,
+      reviewedAt,
+      reviewNotes: notes,
+    })
+      .then((saved) => {
+        setChanges((prev) => prev.map((item) => (item.id === changeId ? saved : item)))
+      })
+      .catch((error) => {
+        console.error("Error saving approval history:", error)
+        fetchApprovals()
+      })
   }
 
   const rejectChange = (changeId: string, notes?: string) => {
+    const reviewedAt = new Date().toISOString()
+
     setChanges((prev) =>
-      prev.map((change) =>
-        change.id === changeId
+      prev.map((item) =>
+        item.id === changeId
           ? {
-            ...change,
-            status: "rejected" as const,
-            reviewedBy: user?.email,
-            reviewedAt: new Date().toISOString(),
-            reviewNotes: notes,
-          }
-          : change,
+              ...item,
+              status: "rejected" as const,
+              reviewedBy: user?.email,
+              reviewedAt,
+              reviewNotes: notes,
+            }
+          : item,
       ),
     )
+
+    finalizeApprovalRecord(changeId, {
+      status: "rejected",
+      reviewedBy: user?.email,
+      reviewedAt,
+      reviewNotes: notes,
+    })
+      .then((saved) => {
+        setChanges((prev) => prev.map((item) => (item.id === changeId ? saved : item)))
+      })
+      .catch((error) => {
+        console.error("Error saving rejection:", error)
+        fetchApprovals()
+      })
   }
 
-  const getPendingChanges = () => {
-    return changes.filter((change) => change.status === "pending")
-  }
+  const getPendingChanges = () => changes.filter((change) => change.status === "pending")
 
-  const getChangeHistory = () => {
-    return changes
+  const getChangeHistory = () =>
+    changes
       .filter((change) => change.status !== "pending")
       .sort((a, b) => new Date(b.reviewedAt || "").getTime() - new Date(a.reviewedAt || "").getTime())
-  }
 
   return (
     <ApprovalContext.Provider
       value={{
         pendingChanges: changes,
+        isLoading,
         submitChange,
         approveChange,
         rejectChange,
