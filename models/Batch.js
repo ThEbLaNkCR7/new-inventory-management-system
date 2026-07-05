@@ -81,7 +81,7 @@ const batchSchema = new mongoose.Schema(
 
 // Calculate totals before saving
 batchSchema.pre("save", function (next) {
-  this.totalItems = this.items.reduce((sum, item) => sum + item.quantity, 0)
+  this.totalItems = this.items.length
   this.totalValue = this.items.reduce((sum, item) => sum + item.quantity * item.unitCost, 0)
   next()
 })

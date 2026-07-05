@@ -200,7 +200,7 @@ export default function BatchesPage() {
       updateProgress("Preparing batch items...", 3, 6)
       await new Promise((r) => setTimeout(r, 400))
 
-      const totalItems = batchItems.reduce((sum, item) => sum + item.quantity, 0)
+      const totalItems = batchItems.length
       const totalValue = batchItems.reduce((sum, item) => sum + (item.quantity * item.unitCost), 0)
 
       const batchData = {
@@ -517,7 +517,7 @@ export default function BatchesPage() {
                     <div className="grid grid-cols-2 gap-4 text-sm">
                       <div>
                         <span className="text-gray-600">Total Items:</span>{" "}
-                        <span className="font-medium">{batchItems.reduce((sum, item) => sum + item.quantity, 0)}</span>
+                        <span className="font-medium">{batchItems.length}</span>
                       </div>
                       <div>
                         <span className="text-gray-600">Total Value:</span>{" "}
@@ -624,7 +624,7 @@ export default function BatchesPage() {
                 </div>
                 <div className="flex items-center">
                   <Package className="h-4 w-4 mr-2 text-gray-400" />
-                  <span>{batch.totalItems} items</span>
+                  <span>{batch.items.length} items</span>
                 </div>
               </div>
 
