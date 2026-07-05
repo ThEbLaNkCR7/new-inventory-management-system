@@ -28,6 +28,7 @@ export interface Batch {
 interface BatchContextType {
   batches: Batch[]
   addBatch: (batch: Omit<Batch, "id" | "createdAt">) => Promise<void>
+  deleteBatch: (id: string) => Promise<void>
   updateBatchStatus: (id: string, status: Batch["status"]) => void
   getBatchById: (id: string) => Batch | undefined
   getRecentBatches: () => Batch[]
@@ -87,6 +88,17 @@ export function BatchProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  const deleteBatch = async (id: string) => {
+    try {
+      const res = await fetch(`/api/batches/${id}`, { method: "DELETE" })
+      if (!res.ok) throw new Error("Failed to delete batch")
+      setBatches((prev) => prev.filter((batch) => batch.id !== id))
+    } catch (e) {
+      console.error("deleteBatch error", e)
+      throw e
+    }
+  }
+
   const updateBatchStatus = async (id: string, status: Batch["status"]) => {
     try {
       const res = await fetch(`/api/batches/${id}`, {
@@ -122,6 +134,7 @@ export function BatchProvider({ children }: { children: React.ReactNode }) {
       value={{
         batches,
         addBatch,
+        deleteBatch,
         updateBatchStatus,
         getBatchById,
         getRecentBatches,

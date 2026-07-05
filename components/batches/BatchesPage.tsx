@@ -21,16 +21,19 @@ import { toast } from "@/components/ui/use-toast"
 import type { Batch, BatchItem } from "@/contexts/BatchContext"
 import { useBatch } from "@/contexts/BatchContext"
 import { useInventory } from "@/contexts/InventoryContext"
+import DeleteBatchDialog from "./DeleteBatchDialog"
 import { Calendar, CheckCircle, Package, Plus, Search, Trash2, Truck, Loader2 } from "lucide-react"
 import { useEffect, useState } from "react"
 import { formatNepaliDateForTable } from '../../lib/nepaliDateUtils'
 import { MaterialDatePicker } from "../ui/MaterialDatePicker"
 
 export default function BatchesPage() {
-  const { batches, addBatch, updateBatchStatus } = useBatch()
+  const { batches, addBatch, deleteBatch, updateBatchStatus } = useBatch()
   const { products, suppliers, refreshData } = useInventory()
   const [searchTerm, setSearchTerm] = useState("")
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [deletingBatch, setDeletingBatch] = useState<Batch | null>(null)
   const [isDetailOpen, setIsDetailOpen] = useState(false)
   const [selectedBatch, setSelectedBatch] = useState<Batch | null>(null)
   const [batchItems, setBatchItems] = useState<BatchItem[]>([])
@@ -252,6 +255,46 @@ export default function BatchesPage() {
         return "bg-blue-100 text-blue-800"
       default:
         return "bg-gray-100 text-gray-800"
+    }
+  }
+
+  const handleDelete = (batch: Batch) => {
+    setDeletingBatch(batch)
+    setIsDeleteDialogOpen(true)
+  }
+
+  const handleDeleteConfirm = async () => {
+    if (!deletingBatch) return
+
+    setIsDeleteDialogOpen(false)
+    setIsDetailOpen(false)
+    setSelectedBatch(null)
+    setIsLoading(true)
+    setProgress(0)
+
+    try {
+      toast({ title: "Processing...", description: "Validating deletion...", duration: 2000 })
+      updateProgress("Validating deletion...", 1, 3)
+      await new Promise((r) => setTimeout(r, 400))
+
+      updateProgress("Removing batch record...", 2, 3)
+      await deleteBatch(deletingBatch.id)
+
+      updateProgress("Updating inventory...", 3, 3)
+      await refreshData()
+
+      await new Promise((r) => setTimeout(r, 300))
+
+      toast({ title: "Success", description: "Batch deleted successfully!" })
+      setDeletingBatch(null)
+      setShowSuccessAlert(true)
+      setAlertMessage("Batch deleted successfully!")
+    } catch (err) {
+      toast({ title: "Error", description: "Failed to delete batch.", variant: "destructive" })
+    } finally {
+      setIsLoading(false)
+      setProgress(0)
+      setCurrentStep("")
     }
   }
 
@@ -554,7 +597,21 @@ export default function BatchesPage() {
                     {suppliers.find((s) => s.id === batch.supplier)?.name || batch.supplier}
                   </CardDescription>
                 </div>
-                <Badge className={getStatusColor(batch.status)}>{batch.status}</Badge>
+                <div className="flex items-center gap-2">
+                  <Badge className={getStatusColor(batch.status)}>{batch.status}</Badge>
+                  <Button
+                    type="button"
+                    variant="neutralOutline"
+                    size="sm"
+                    className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleDelete(batch)
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -665,9 +722,33 @@ export default function BatchesPage() {
             ) : (
               <div>No batch selected</div>
             )}
+            {selectedBatch && (
+              <div className="flex justify-end pt-2 border-t">
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => handleDelete(selectedBatch)}
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete Batch
+                </Button>
+              </div>
+            )}
           </div>
         </DialogContent>
       </Dialog>
+
+      <DeleteBatchDialog
+        isOpen={isDeleteDialogOpen}
+        onOpenChange={setIsDeleteDialogOpen}
+        batch={deletingBatch}
+        onConfirm={handleDeleteConfirm}
+        onCancel={() => {
+          setIsDeleteDialogOpen(false)
+          setDeletingBatch(null)
+        }}
+      />
 
       {filteredBatches.length === 0 && (
         <div className="text-center py-12">

@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
-import Batch from "../../../../models/Batch";
+import Batch from "../../../../models/Batch.js";
+import Product from "../../../../models/Product.js";
 import { NextResponse } from "next/server";
 
 const MONGODB_URI = process.env.MONGODB_URI;
@@ -69,6 +70,44 @@ export async function PATCH(request, { params }) {
     return NextResponse.json(updated);
   } catch (error) {
     console.error("Error updating batch:", error);
+    return NextResponse.json({ message: "Server error" }, { status: 500 });
+  }
+}
+
+export async function DELETE(request, { params }) {
+  try {
+    await dbConnect();
+    const { id } = params;
+    const batch = await Batch.findById(id);
+
+    if (!batch) {
+      return NextResponse.json({ message: "Batch not found" }, { status: 404 });
+    }
+
+    if (batch.items && batch.items.length > 0) {
+      for (const item of batch.items) {
+        const product = await Product.findById(item.productId);
+        if (!product) continue;
+
+        const newStockQuantity = Math.max(0, product.stockQuantity - item.quantity);
+        const update = {
+          stockQuantity: newStockQuantity,
+          lastRestocked: new Date(),
+        };
+
+        if (product.batchId?.toString() === batch._id.toString()) {
+          update.batchId = null;
+          update.batchNumber = null;
+        }
+
+        await Product.findByIdAndUpdate(item.productId, update);
+      }
+    }
+
+    await Batch.findByIdAndDelete(id);
+    return NextResponse.json({ message: "Batch deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting batch:", error);
     return NextResponse.json({ message: "Server error" }, { status: 500 });
   }
 }
