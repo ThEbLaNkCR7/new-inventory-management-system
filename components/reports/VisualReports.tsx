@@ -1,26 +1,21 @@
 "use client"
 
-import { useInventory } from "@/contexts/InventoryContext"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Download, TrendingUp, TrendingDown, DollarSign, Package, ShoppingCart, Info, BarChart3, AlertTriangle, Users, Truck, Calendar } from "lucide-react"
+import { useInventory } from "@/contexts/InventoryContext"
+import { DollarSign, Info, Package, ShoppingCart, TrendingDown, TrendingUp } from "lucide-react"
 import {
-  BarChart as RechartsBarChart,
   Bar,
-  XAxis,
-  YAxis,
   CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  PieChart,
-  Pie,
   Cell,
-  LineChart,
-  Line,
   Legend,
+  Line,
+  LineChart,
+  BarChart as RechartsBarChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis
 } from "recharts"
-import { getCurrentNepaliYear, getNepaliYear, getNepaliMonth } from "@/lib/utils"
 
 // Simple, neutral colors for better readability
 const CHART_COLORS = {

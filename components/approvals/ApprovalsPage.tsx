@@ -1,38 +1,34 @@
 "use client"
 
 import type React from "react"
-
-import { useState } from "react"
-import { useApproval } from "@/contexts/ApprovalContext"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { Separator } from "@/components/ui/separator"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Textarea } from "@/components/ui/textarea"
-import { Label } from "@/components/ui/label"
-import { Separator } from "@/components/ui/separator"
-import { ScrollArea } from "@/components/ui/scroll-area"
+import { useApproval } from "@/contexts/ApprovalContext"
 import {
+  AlertTriangle,
+  ArrowRight,
+  Check,
   CheckCircle,
-  XCircle,
   Clock,
-  Eye,
-  User,
-  Calendar,
+  FileText,
+  Info,
   Minus,
-  Plus,
   Package,
+  Plus,
   ShoppingCart,
   Users,
-  AlertTriangle,
-  FileText,
-  ArrowRight,
-  Info,
   X,
-  Check,
+  XCircle
 } from "lucide-react"
+import { useState } from "react"
 
 export default function ApprovalsPage() {
   const { pendingChanges, approveChange, rejectChange, getPendingChanges, getChangeHistory } = useApproval()
@@ -64,11 +60,6 @@ export default function ApprovalsPage() {
       setReviewNotes("")
       setSelectedChange(null)
     }
-  }
-
-  const openReviewDialog = (change: any) => {
-    setSelectedChange(change)
-    setIsReviewDialogOpen(true)
   }
 
   const getActionColor = (action: string) => {

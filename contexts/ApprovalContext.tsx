@@ -2,8 +2,8 @@
 
 import type React from "react"
 import { createContext, useContext, useState } from "react"
-import { useInventory } from "./InventoryContext"
 import { useAuth } from "./AuthContext"
+import { useInventory } from "./InventoryContext"
 
 export interface ApprovalChange {
   id: string

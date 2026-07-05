@@ -2,15 +2,10 @@
 
 import type React from "react"
 
-import { useState, useEffect } from "react"
-import { useInventory } from "@/contexts/InventoryContext"
-import { useApproval } from "@/contexts/ApprovalContext"
-import { useAuth } from "@/contexts/AuthContext"
-import { usePersistentForm } from "@/contexts/FormPersistenceContext"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import {
   Dialog,
   DialogContent,
@@ -19,10 +14,9 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Badge } from "@/components/ui/badge"
-import { Plus, Search, Mail, Phone, Building, Edit, Trash2, Clock, CheckCircle, AlertTriangle, Eye } from "lucide-react"
-import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Progress } from "@/components/ui/progress"
 import {
   Select,
   SelectContent,
@@ -30,11 +24,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/components/ui/use-toast"
-import { Loader2 } from "lucide-react"
-import { Progress } from "@/components/ui/progress"
-import { formatNepaliDateForTable, getNepaliYear, getCurrentNepaliYear } from "@/lib/utils"
+import { useApproval } from "@/contexts/ApprovalContext"
+import { useAuth } from "@/contexts/AuthContext"
+import { usePersistentForm } from "@/contexts/FormPersistenceContext"
+import { useInventory } from "@/contexts/InventoryContext"
+import { formatNepaliDateForTable, getCurrentNepaliYear, getNepaliYear } from "@/lib/utils"
+import { Building, CheckCircle, Clock, Edit, Eye, Loader2, Mail, Phone, Plus, Search, Trash2 } from "lucide-react"
+import { useEffect, useState } from "react"
 
 export default function SuppliersPage() {
   const {

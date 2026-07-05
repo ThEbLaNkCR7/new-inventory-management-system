@@ -1,9 +1,8 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import { Home, Package, ShoppingCart, TrendingUp, Users, Truck, BarChart3, X, CheckCircle, ChevronLeft, Menu } from "lucide-react"
-import { useEffect, useState } from "react"
 import { useAuth } from "@/contexts/AuthContext"
+import { BarChart3, CheckCircle, ChevronLeft, Home, Package, ShoppingCart, TrendingUp, Truck, Users, X } from "lucide-react"
 
 interface SidebarProps {
   activeTab: string

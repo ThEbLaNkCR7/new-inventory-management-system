@@ -1,10 +1,8 @@
 "use client"
 
-import { useAuth } from "@/contexts/AuthContext"
-import { useNotifications } from "@/contexts/NotificationContext"
-import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,11 +11,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Menu, LogOut, User, Settings, Building2, Users, Bell, CheckCircle, AlertCircle, Info, X } from "lucide-react"
-import { useRouter, usePathname } from "next/navigation"
-import { formatDistanceToNow } from 'date-fns'
-import { useEffect, useRef, useState } from 'react'
 import { ThemeToggle } from "@/components/ui/theme-toggle"
+import { useAuth } from "@/contexts/AuthContext"
+import { useNotifications } from "@/contexts/NotificationContext"
+import { formatDistanceToNow } from 'date-fns'
+import { AlertCircle, Bell, CheckCircle, Info, LogOut, Menu, Settings, User, X } from "lucide-react"
+import { usePathname, useRouter } from "next/navigation"
+import { useEffect, useRef, useState } from 'react'
 
 interface HeaderProps {
   onMenuClick: () => void

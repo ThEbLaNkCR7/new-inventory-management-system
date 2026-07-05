@@ -1,30 +1,25 @@
 "use client"
 
-import { useState } from "react"
-import { useInventory } from "@/contexts/InventoryContext"
+import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { useInventory } from "@/contexts/InventoryContext"
+import { formatDateForReports, getCurrentNepaliYear } from "@/lib/utils"
+import { exportMultipleSheetsAllFormats, exportToCSV, exportToExcel } from "@/utils/exportUtils"
 import {
-  Calendar,
-  TrendingUp,
-  TrendingDown,
-  Download,
-  FileSpreadsheet,
-  FileText,
-  BarChart3,
-  PieChart,
   Activity,
+  BarChart3,
+  Calendar,
   DollarSign,
   Info,
+  PieChart,
+  TrendingDown,
+  TrendingUp
 } from "lucide-react"
-import { exportToCSV, exportToExcel, exportMultipleSheetsAllFormats } from "@/utils/exportUtils"
-import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from "recharts"
-import { getCurrentNepaliYear, getNepaliYear, getNepaliMonth, getNepaliMonthName, formatDateForReports } from "@/lib/utils"
+import { useState } from "react"
+import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts"
 
 const formatDate = (dateString: string) => {
   return formatDateForReports(dateString)

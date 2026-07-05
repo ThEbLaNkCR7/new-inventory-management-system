@@ -1,18 +1,16 @@
 "use client"
 
-import { useInventory } from "@/contexts/InventoryContext"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { BarChart3, TrendingUp, TrendingDown, Package, AlertTriangle, Calendar, BarChart } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { DollarSign } from "lucide-react"
-import { BarChart as RechartsBarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from "recharts"
-import { useState } from "react"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Input } from "@/components/ui/input"
-import { getCurrentNepaliYear, getNepaliYear, getNepaliMonth, formatDateForReports } from "@/lib/utils"
 import { useToast } from "@/components/ui/use-toast"
+import { useInventory } from "@/contexts/InventoryContext"
+import { formatDateForReports, getCurrentNepaliYear, getNepaliMonth, getNepaliYear } from "@/lib/utils"
+import { AlertTriangle, BarChart, BarChart3, Calendar, DollarSign, Package, TrendingDown, TrendingUp } from "lucide-react"
+import { useState } from "react"
+import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts"
 
 const formatDate = (dateString: string) => {
   return formatDateForReports(dateString)
