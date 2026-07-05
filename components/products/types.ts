@@ -1,0 +1,44 @@
+import type { Product } from "@/contexts/InventoryContext"
+
+export type ProductFormData = {
+  name: string
+  hsCode: string
+  description: string
+  category: string
+  stockQuantity: number
+  unitPrice: number
+  netWeight: number
+  supplier: string
+  stockType: "new" | "old"
+  lowStockThreshold: number
+}
+
+export type ProductGroup = {
+  name: string
+  variants: Product[]
+  totalStock: number
+  category: string
+  hsCode: string
+  supplier: string
+  unitPrice: number
+  latestCreatedAt: number
+}
+
+export type PendingProductAction = {
+  type: "create" | "update" | "delete"
+  data: Record<string, unknown>
+  productId?: string
+}
+
+export const initialProductFormData: ProductFormData = {
+  name: "",
+  hsCode: "",
+  description: "",
+  category: "",
+  stockQuantity: 0,
+  unitPrice: 0,
+  netWeight: 0,
+  supplier: "",
+  stockType: "new",
+  lowStockThreshold: 5,
+}
