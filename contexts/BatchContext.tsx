@@ -27,7 +27,7 @@ export interface Batch {
 
 interface BatchContextType {
   batches: Batch[]
-  addBatch: (batch: Omit<Batch, "id" | "createdAt">) => void
+  addBatch: (batch: Omit<Batch, "id" | "createdAt">) => Promise<void>
   updateBatchStatus: (id: string, status: Batch["status"]) => void
   getBatchById: (id: string) => Batch | undefined
   getRecentBatches: () => Batch[]
@@ -83,6 +83,7 @@ export function BatchProvider({ children }: { children: React.ReactNode }) {
       setBatches((prev) => [...prev, newBatch])
     } catch (e) {
       console.error('addBatch error', e)
+      throw e
     }
   }
 

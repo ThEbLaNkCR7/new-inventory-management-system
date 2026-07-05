@@ -1,6 +1,7 @@
 "use client"
 
 import type React from "react"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -20,14 +21,14 @@ import { toast } from "@/components/ui/use-toast"
 import type { Batch, BatchItem } from "@/contexts/BatchContext"
 import { useBatch } from "@/contexts/BatchContext"
 import { useInventory } from "@/contexts/InventoryContext"
-import { Calendar, Package, Plus, Search, Trash2, Truck, Loader2 } from "lucide-react"
-import { useState } from "react"
+import { Calendar, CheckCircle, Package, Plus, Search, Trash2, Truck, Loader2 } from "lucide-react"
+import { useEffect, useState } from "react"
 import { formatNepaliDateForTable } from '../../lib/nepaliDateUtils'
 import { MaterialDatePicker } from "../ui/MaterialDatePicker"
 
 export default function BatchesPage() {
   const { batches, addBatch, updateBatchStatus } = useBatch()
-  const { products, suppliers } = useInventory()
+  const { products, suppliers, refreshData } = useInventory()
   const [searchTerm, setSearchTerm] = useState("")
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [isDetailOpen, setIsDetailOpen] = useState(false)
@@ -46,13 +47,24 @@ export default function BatchesPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [progress, setProgress] = useState(0)
   const [currentStep, setCurrentStep] = useState("")
+  const [totalSteps, setTotalSteps] = useState(0)
   const [billImage, setBillImage] = useState<File | null>(null)
   const [billUrl, setBillUrl] = useState("")
 
   const updateProgress = (step: string, current: number, total: number) => {
     setCurrentStep(step)
     setProgress((current / total) * 100)
+    setTotalSteps(total)
   }
+
+  useEffect(() => {
+    if (showSuccessAlert) {
+      const timer = setTimeout(() => {
+        setShowSuccessAlert(false)
+      }, 4000)
+      return () => clearTimeout(timer)
+    }
+  }, [showSuccessAlert])
 
   const filteredBatches = batches.filter(
     (batch) =>
@@ -130,35 +142,60 @@ export default function BatchesPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    if (batchItems.length === 0) {
+      toast({ title: "Error", description: "Please add at least one item to the batch.", variant: "destructive" })
+      return
+    }
+
+    for (const item of batchItems) {
+      if (!item.productId) {
+        toast({ title: "Error", description: "Please select a product for each batch item.", variant: "destructive" })
+        return
+      }
+
+      if (item.quantity <= 0) {
+        toast({ title: "Error", description: "All quantities must be greater than 0.", variant: "destructive" })
+        return
+      }
+    }
+
+    const batchNumberExists = batches.some(
+      (batch) => batch.batchNumber.toLowerCase() === formData.batchNumber.toLowerCase() && batch.id !== editingBatch?.id
+    )
+
+    if (batchNumberExists) {
+      toast({ title: "Error", description: "Batch number already exists. Please use a unique batch number.", variant: "destructive" })
+      return
+    }
+
+    setIsAddDialogOpen(false)
     setIsLoading(true)
     setProgress(0)
 
+    const isEditing = !!editingBatch
+
     try {
-      if (batchItems.length === 0) {
-        toast({ title: "Error", description: "Please add at least one item to the batch.", variant: "destructive" })
-        setIsLoading(false)
-        return
-      }
+      toast({
+        title: "Processing...",
+        description: "Validating batch data...",
+        duration: 2000,
+      })
 
-      // Check for duplicate batch number
-      const batchNumberExists = batches.some(
-        (batch) => batch.batchNumber.toLowerCase() === formData.batchNumber.toLowerCase() && batch.id !== editingBatch?.id
-      )
-
-      if (batchNumberExists) {
-        toast({ title: "Error", description: "Batch number already exists. Please use a unique batch number.", variant: "destructive" })
-        setIsLoading(false)
-        return
-      }
-
-      updateProgress("Validating batch data...", 1, 4)
-      await new Promise(resolve => setTimeout(resolve, 500))
+      updateProgress("Validating batch data...", 1, 6)
+      await new Promise((r) => setTimeout(r, 400))
 
       let uploadedBillUrl = ""
 
       if (billImage) {
         uploadedBillUrl = await uploadBillToCloudinary(billImage)
       }
+
+      updateProgress("Checking products...", 2, 6)
+      await new Promise((r) => setTimeout(r, 400))
+
+      updateProgress("Preparing batch items...", 3, 6)
+      await new Promise((r) => setTimeout(r, 400))
 
       const totalItems = batchItems.reduce((sum, item) => sum + item.quantity, 0)
       const totalValue = batchItems.reduce((sum, item) => sum + (item.quantity * item.unitCost), 0)
@@ -171,32 +208,30 @@ export default function BatchesPage() {
         billUrl: uploadedBillUrl,
       }
 
-      updateProgress("Processing batch data...", 2, 4)
-      await new Promise(resolve => setTimeout(resolve, 500))
+      updateProgress("Processing supplier data...", 4, 6)
+      await new Promise((r) => setTimeout(r, 400))
+
+      updateProgress("Saving batch...", 5, 6)
+      await addBatch(batchData)
+
+      updateProgress("Updating inventory...", 6, 6)
+      await refreshData()
 
       if (editingBatch) {
-        updateProgress("Updating batch in database...", 3, 4)
-        await new Promise(resolve => setTimeout(resolve, 500))
-
-        addBatch(batchData)
         setEditingBatch(null)
-      } else {
-        updateProgress("Adding batch to database...", 3, 4)
-        await new Promise(resolve => setTimeout(resolve, 500))
-
-        addBatch(batchData)
       }
 
-      updateProgress("Operation completed!", 4, 4)
-      await new Promise(resolve => setTimeout(resolve, 300))
+      await new Promise((r) => setTimeout(r, 300))
 
-      toast({ title: "Success", description: editingBatch ? "Batch updated successfully!" : "Batch added successfully!" })
+      toast({
+        title: "Success",
+        description: isEditing ? "Batch updated successfully!" : "Batch added successfully!",
+      })
       resetForm()
       setBillImage(null)
       setBillUrl("")
-      setIsAddDialogOpen(false)
       setShowSuccessAlert(true)
-      setAlertMessage(editingBatch ? "Batch updated successfully!" : "Batch added successfully!")
+      setAlertMessage(isEditing ? "Batch updated successfully!" : "Batch added successfully!")
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Failed to save batch."
       toast({ title: "Error", description: errorMessage, variant: "destructive" })
@@ -239,11 +274,18 @@ export default function BatchesPage() {
               <Progress value={progress} className="h-2" />
 
               <div className="text-xs text-gray-500 dark:text-gray-400 text-center">
-                Step {Math.ceil((progress / 100) * 4)} of 4
+                Step {Math.ceil((progress / 100) * totalSteps)} of {totalSteps}
               </div>
             </div>
           </div>
         </div>
+      )}
+
+      {showSuccessAlert && (
+        <Alert className="border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20 p-4 mb-4">
+          <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+          <AlertDescription className="text-green-800 dark:text-green-200">{alertMessage}</AlertDescription>
+        </Alert>
       )}
 
       <div className="relative">
@@ -341,7 +383,7 @@ export default function BatchesPage() {
                           <SelectContent>
                             {products.map((product) => (
                               <SelectItem key={product.id} value={product.id}>
-                                {product.name}
+                                {product.name} (Stock: {product.stockQuantity})
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -631,15 +673,6 @@ export default function BatchesPage() {
         <div className="text-center py-12">
           <Package className="mx-auto h-12 w-12 text-gray-400 mb-4" />
           <p className="text-gray-500">No batches found</p>
-        </div>
-      )}
-
-      {showSuccessAlert && (
-        <div className="fixed bottom-0 left-0 right-0 p-4">
-          <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative" role="alert">
-            <strong className="font-bold">Success!</strong>
-            <span className="block sm:inline">{alertMessage}</span>
-          </div>
         </div>
       )}
     </div>

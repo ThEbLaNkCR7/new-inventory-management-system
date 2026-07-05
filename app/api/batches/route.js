@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import Batch from "../../../models/Batch.js";
 import Product from "../../../models/Product.js";
+import Supplier from "../../../models/Supplier.js";
 import { NextResponse } from "next/server";
 
 const MONGODB_URI = process.env.MONGODB_URI;
@@ -56,20 +57,53 @@ export async function POST(request) {
     await dbConnect();
     const body = await request.json();
 
-    // Save batch
     const batch = new Batch(body);
     await batch.save();
 
-    // Update product stock based on batch items
     if (body.items && body.items.length > 0) {
+      let supplierName = body.supplier;
+      if (mongoose.Types.ObjectId.isValid(body.supplier)) {
+        const supplierDoc = await Supplier.findById(body.supplier).lean();
+        if (supplierDoc) supplierName = supplierDoc.name;
+      }
+
+      let itemsUpdated = false;
+
       for (const item of body.items) {
-        await Product.findByIdAndUpdate(
-          item.productId,
-          {
-            $inc: { stockQuantity: item.quantity },
-          },
-          { new: true },
-        );
+        let productId = item.productId;
+
+        if (!productId || productId === "custom" || productId === "__new__") {
+          if (!item.productName) continue;
+
+          const newProduct = await Product.create({
+            name: item.productName,
+            description: "",
+            category: "Custom",
+            stockQuantity: 0,
+            unitPrice: item.unitCost || 0,
+            supplier: supplierName || "Unknown Supplier",
+            batchId: batch._id,
+            batchNumber: batch.batchNumber,
+            lastRestocked: new Date(),
+          });
+
+          productId = newProduct._id;
+          item.productId = productId;
+          itemsUpdated = true;
+        }
+
+        await Product.findByIdAndUpdate(productId, {
+          $inc: { stockQuantity: item.quantity },
+          batchId: batch._id,
+          batchNumber: batch.batchNumber,
+          lastRestocked: new Date(),
+          unitPrice: item.unitCost,
+        });
+      }
+
+      if (itemsUpdated) {
+        batch.items = body.items;
+        await batch.save();
       }
     }
 
