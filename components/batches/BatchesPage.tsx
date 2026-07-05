@@ -586,24 +586,26 @@ export default function BatchesPage() {
               setSelectedBatch(batch)
               setIsDetailOpen(true)
             }}
-            className="hover:shadow-lg transition-shadow cursor-pointer dark:bg-gray-800 dark:border-gray-700"
+            className="hover:shadow-lg transition-shadow cursor-pointer dark:bg-gray-800 dark:border-gray-700 overflow-hidden"
           >
-            <CardHeader>
-              <div className="flex justify-between items-start">
-                <div>
-                  <CardTitle className="text-lg">{batch.batchNumber}</CardTitle>
-                  <CardDescription className="flex items-center mt-1">
-                    <Truck className="h-4 w-4 mr-1" />
-                    {suppliers.find((s) => s.id === batch.supplier)?.name || batch.supplier}
+            <CardHeader className="pb-3">
+              <div className="flex items-start justify-between gap-2 min-w-0">
+                <div className="min-w-0 flex-1">
+                  <CardTitle className="text-lg truncate">{batch.batchNumber}</CardTitle>
+                  <CardDescription className="flex items-center mt-1 min-w-0">
+                    <Truck className="h-4 w-4 mr-1 shrink-0" />
+                    <span className="truncate">
+                      {suppliers.find((s) => s.id === batch.supplier)?.name || batch.supplier}
+                    </span>
                   </CardDescription>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Badge className={getStatusColor(batch.status)}>{batch.status}</Badge>
+                <div className="flex shrink-0 items-center gap-1.5">
+                  <Badge className={`${getStatusColor(batch.status)} whitespace-nowrap`}>{batch.status}</Badge>
                   <Button
                     type="button"
                     variant="neutralOutline"
                     size="sm"
-                    className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                    className="h-8 w-8 shrink-0 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
                     onClick={(e) => {
                       e.stopPropagation()
                       handleDelete(batch)
@@ -626,18 +628,18 @@ export default function BatchesPage() {
                 </div>
               </div>
 
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <span className="font-medium text-green-600">Rs {batch.totalValue.toLocaleString()}</span>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center min-w-0">
+                  <span className="font-medium text-green-600 truncate">Rs {batch.totalValue.toLocaleString()}</span>
                 </div>
                 {batch.status === "pending" && (
                   <Button
                     size="sm"
+                    className="shrink-0 bg-green-600 hover:bg-green-700"
                     onClick={(e) => {
                       e.stopPropagation()
                       updateBatchStatus(batch.id, "received")
                     }}
-                    className="bg-green-600 hover:bg-green-700"
                   >
                     Mark Received
                   </Button>
