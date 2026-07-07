@@ -21,9 +21,25 @@ import { toast } from "@/components/ui/use-toast"
 import type { Batch, BatchItem } from "@/contexts/BatchContext"
 import { useBatch } from "@/contexts/BatchContext"
 import { useInventory } from "@/contexts/InventoryContext"
+import { Separator } from "@/components/ui/separator"
 import AddSupplierDialog from "@/components/suppliers/AddSupplierDialog"
 import DeleteBatchDialog from "./DeleteBatchDialog"
-import { Calendar, CheckCircle, Package, Plus, Search, Trash2, Truck, Loader2 } from "lucide-react"
+import {
+  Calendar,
+  CalendarClock,
+  CheckCircle,
+  ChevronDown,
+  ChevronUp,
+  Hash,
+  IndianRupee,
+  Layers,
+  Package,
+  Plus,
+  Search,
+  Trash2,
+  Truck,
+  Loader2,
+} from "lucide-react"
 import { useEffect, useState } from "react"
 import { formatNepaliDateForTable } from '../../lib/nepaliDateUtils'
 import { MaterialDatePicker } from "../ui/MaterialDatePicker"
@@ -50,6 +66,7 @@ export default function BatchesPage() {
   const [isDetailOpen, setIsDetailOpen] = useState(false)
   const [selectedBatch, setSelectedBatch] = useState<Batch | null>(null)
   const [batchItems, setBatchItems] = useState<BatchItem[]>([])
+  const [collapsedItems, setCollapsedItems] = useState<Set<number>>(new Set())
   const [formData, setFormData] = useState({
     batchNumber: "",
     supplier: "",
@@ -121,9 +138,11 @@ export default function BatchesPage() {
       status: "pending",
     })
     setBatchItems([])
+    setCollapsedItems(new Set())
   }
 
   const addBatchItem = () => {
+    const newIndex = batchItems.length
     setBatchItems([
       ...batchItems,
       {
@@ -135,6 +154,18 @@ export default function BatchesPage() {
         expiryDate: "",
       },
     ])
+    if (newIndex > 0) {
+      setCollapsedItems(new Set(batchItems.map((_, i) => i)))
+    }
+  }
+
+  const toggleItemCollapse = (index: number) => {
+    setCollapsedItems((prev) => {
+      const next = new Set(prev)
+      if (next.has(index)) next.delete(index)
+      else next.add(index)
+      return next
+    })
   }
 
   const updateBatchItem = (index: number, field: keyof BatchItem, value: any) => {
@@ -154,6 +185,14 @@ export default function BatchesPage() {
 
   const removeBatchItem = (index: number) => {
     setBatchItems(batchItems.filter((_, i) => i !== index))
+    setCollapsedItems((prev) => {
+      const next = new Set<number>()
+      prev.forEach((i) => {
+        if (i < index) next.add(i)
+        else if (i > index) next.add(i - 1)
+      })
+      return next
+    })
   }
 
   const uploadBillToCloudinary = async (file: File): Promise<string> => {
@@ -453,131 +492,268 @@ export default function BatchesPage() {
                   </div>
                 </div>
 
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <h3 className="text-lg font-medium">Batch Items</h3>
-                    <Button type="button" onClick={addBatchItem} variant="neutralOutline" size="sm">
-                      <Plus className="h-4 w-4" />
-                      Add Item
-                    </Button>
-                  </div>
-
-                  {batchItems.map((item, index) => (
-                    <div key={index} className="grid grid-cols-1 md:grid-cols-6 gap-4 p-4 border rounded-lg">
-                      <div className="space-y-2">
-                        <Label>Product</Label>
-                        <Select
-                          value={item.productId}
-                          onValueChange={(value) => updateBatchItem(index, "productId", value)}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select product" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {products.map((product) => (
-                              <SelectItem key={product.id} value={product.id}>
-                                {product.name} (Stock: {product.stockQuantity})
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/30 overflow-hidden">
+                  <div className="flex items-center justify-between gap-4 px-5 py-4 border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-800">
+                        <Layers className="h-4 w-4 text-slate-600 dark:text-slate-300" />
                       </div>
-                      <div className="space-y-2">
-                        <Label>Quantity</Label>
-                        <Input
-                          type="number"
-                          min={1}
-                          value={item.quantity === 0 ? "" : item.quantity}
-                          onChange={(e) => {
-                            const value = e.target.value
-                            updateBatchItem(index, "quantity", value === "" ? 0 : Number.parseInt(value))
-                          }}
-                          placeholder="Enter the quantity"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Unit Cost (Rs)</Label>
-                        <Input
-                          type="number"
-                          step="0.01"
-                          min={0}
-                          value={item.unitCost === 0 ? "" : item.unitCost}
-                          onChange={(e) => {
-                            const value = e.target.value
-                            updateBatchItem(index, "unitCost", value === "" ? 0 : Number.parseFloat(value))
-                          }}
-                          placeholder="Enter the unit cost in Rs"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Manufacture Date</Label>
-
-                        <MaterialDatePicker
-                          value={
-                            item.manufactureDate
-                              ? new Date(item.manufactureDate)
-                              : undefined
-                          }
-                          onChange={(date) =>
-                            updateBatchItem(
-                              index,
-                              "manufactureDate",
-                              date ? date.toISOString().split("T")[0] : ""
-                            )
-                          }
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Expiry Date</Label>
-
-                        <MaterialDatePicker
-                          value={
-                            item.expiryDate
-                              ? new Date(item.expiryDate)
-                              : undefined
-                          }
-                          onChange={(date) =>
-                            updateBatchItem(
-                              index,
-                              "expiryDate",
-                              date ? date.toISOString().split("T")[0] : ""
-                            )
-                          }
-                        />
-                      </div>
-                      <div className="flex items-end">
-                        <Button type="button" onClick={() => removeBatchItem(index)} variant="neutralOutline" size="sm">
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                      <div className="min-w-0">
+                        <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">Batch Items</h3>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                          Add products, quantities, costs, and expiry details for this batch
+                        </p>
                       </div>
                     </div>
-                  ))}
+                    <div className="flex items-center gap-2 shrink-0">
+                      {batchItems.length > 0 && (
+                        <Badge variant="secondary" className="font-normal">
+                          {batchItems.length} {batchItems.length === 1 ? "line" : "lines"}
+                        </Badge>
+                      )}
+                      <Button type="button" onClick={addBatchItem} variant="neutral" size="sm">
+                        <Plus className="h-4 w-4" />
+                        Add Item
+                      </Button>
+                    </div>
+                  </div>
 
-                  {batchItems.length === 0 && (
-                    <div className="text-center py-8 border-2 border-dashed border-gray-300 rounded-lg">
-                      <Package className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                      <p className="text-gray-500">No items added yet. Click "Add Item" to start.</p>
+                  <div className="p-5 space-y-4">
+                    {batchItems.map((item, index) => {
+                      const selectedProduct = products.find((p) => p.id === item.productId)
+                      const lineTotal = item.quantity * item.unitCost
+                      const isCollapsed = collapsedItems.has(index)
+
+                      return (
+                        <Card
+                          key={index}
+                          className="overflow-hidden border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-shadow"
+                        >
+                          <div
+                            className={`flex items-center justify-between gap-3 px-4 py-3 bg-slate-50 dark:bg-slate-800/60 ${
+                              isCollapsed ? "" : "border-b border-slate-200 dark:border-slate-700"
+                            }`}
+                          >
+                            <button
+                              type="button"
+                              onClick={() => toggleItemCollapse(index)}
+                              className="flex items-center gap-2 min-w-0 flex-1 text-left rounded-md hover:opacity-80 transition-opacity"
+                            >
+                              {isCollapsed ? (
+                                <ChevronDown className="h-4 w-4 shrink-0 text-slate-400" />
+                              ) : (
+                                <ChevronUp className="h-4 w-4 shrink-0 text-slate-400" />
+                              )}
+                              <Badge variant="outline" className="font-mono text-xs px-2 py-0.5 bg-white dark:bg-slate-900 shrink-0">
+                                #{String(index + 1).padStart(2, "0")}
+                              </Badge>
+                              <div className="min-w-0">
+                                <span className="text-sm font-medium text-slate-700 dark:text-slate-200 truncate block">
+                                  {selectedProduct?.name || item.productName || "Select product..."}
+                                </span>
+                                {isCollapsed && (
+                                  <span className="text-xs text-slate-500 dark:text-slate-400 truncate block">
+                                    {item.quantity > 0 ? `${item.quantity} units` : "No quantity"}
+                                    {item.unitCost > 0 && ` · Rs ${item.unitCost.toFixed(2)}/unit`}
+                                    {item.manufactureDate && ` · Mfg: ${formatNepaliDateForTable(item.manufactureDate)}`}
+                                    {item.expiryDate && ` · Exp: ${formatNepaliDateForTable(item.expiryDate)}`}
+                                  </span>
+                                )}
+                              </div>
+                            </button>
+                            <div className="flex items-center gap-2 shrink-0">
+                              {lineTotal > 0 && (
+                                <span className="text-sm font-semibold text-emerald-700 dark:text-emerald-400">
+                                  Rs {lineTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </span>
+                              )}
+                              <Button
+                                type="button"
+                                onClick={() => toggleItemCollapse(index)}
+                                variant="neutralOutline"
+                                size="sm"
+                                className="h-8 px-2"
+                              >
+                                {isCollapsed ? (
+                                  <>
+                                    <ChevronDown className="h-4 w-4" />
+                                    <span className="sr-only">Expand item</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <ChevronUp className="h-4 w-4" />
+                                    <span className="sr-only">Minimize item</span>
+                                  </>
+                                )}
+                              </Button>
+                              <Button
+                                type="button"
+                                onClick={() => removeBatchItem(index)}
+                                variant="neutralOutline"
+                                size="sm"
+                                className="h-8 px-2 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/30"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                                <span className="sr-only">Remove item</span>
+                              </Button>
+                            </div>
+                          </div>
+
+                          {!isCollapsed && (
+                          <CardContent className="p-4 space-y-4">
+                            <div className="space-y-2">
+                              <Label className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                                Product
+                              </Label>
+                              <Select
+                                value={item.productId}
+                                onValueChange={(value) => updateBatchItem(index, "productId", value)}
+                              >
+                                <SelectTrigger className="h-10 bg-white dark:bg-slate-900">
+                                  <SelectValue placeholder="Select a product from inventory" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {products.map((product) => (
+                                    <SelectItem key={product.id} value={product.id}>
+                                      {product.name} (Stock: {product.stockQuantity})
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              {selectedProduct && (
+                                <p className="text-xs text-slate-500 dark:text-slate-400">
+                                  Current stock: <span className="font-medium text-slate-700 dark:text-slate-300">{selectedProduct.stockQuantity}</span> units
+                                </p>
+                              )}
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                              <div className="space-y-2">
+                                <Label className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                                  <Hash className="h-3 w-3" />
+                                  Quantity
+                                </Label>
+                                <Input
+                                  type="number"
+                                  min={1}
+                                  className="h-10 bg-white dark:bg-slate-900"
+                                  value={item.quantity === 0 ? "" : item.quantity}
+                                  onChange={(e) => {
+                                    const value = e.target.value
+                                    updateBatchItem(index, "quantity", value === "" ? 0 : Number.parseInt(value))
+                                  }}
+                                  placeholder="0"
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <Label className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                                  <IndianRupee className="h-3 w-3" />
+                                  Unit Cost
+                                </Label>
+                                <Input
+                                  type="number"
+                                  step="0.01"
+                                  min={0}
+                                  className="h-10 bg-white dark:bg-slate-900"
+                                  value={item.unitCost === 0 ? "" : item.unitCost}
+                                  onChange={(e) => {
+                                    const value = e.target.value
+                                    updateBatchItem(index, "unitCost", value === "" ? 0 : Number.parseFloat(value))
+                                  }}
+                                  placeholder="0.00"
+                                />
+                              </div>
+                            </div>
+
+                            <Separator className="bg-slate-200 dark:bg-slate-700" />
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                              <div className="space-y-2">
+                                <Label className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                                  <Calendar className="h-3 w-3" />
+                                  Manufacture Date
+                                </Label>
+                                <MaterialDatePicker
+                                  value={
+                                    item.manufactureDate
+                                      ? new Date(item.manufactureDate)
+                                      : undefined
+                                  }
+                                  onChange={(date) =>
+                                    updateBatchItem(
+                                      index,
+                                      "manufactureDate",
+                                      date ? date.toISOString().split("T")[0] : ""
+                                    )
+                                  }
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <Label className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                                  <CalendarClock className="h-3 w-3" />
+                                  Expiry Date
+                                </Label>
+                                <MaterialDatePicker
+                                  value={
+                                    item.expiryDate
+                                      ? new Date(item.expiryDate)
+                                      : undefined
+                                  }
+                                  onChange={(date) =>
+                                    updateBatchItem(
+                                      index,
+                                      "expiryDate",
+                                      date ? date.toISOString().split("T")[0] : ""
+                                    )
+                                  }
+                                />
+                              </div>
+                            </div>
+                          </CardContent>
+                          )}
+                        </Card>
+                      )
+                    })}
+
+                    {batchItems.length === 0 && (
+                      <div className="text-center py-12 px-6 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900/50">
+                        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800">
+                          <Package className="h-7 w-7 text-slate-400" />
+                        </div>
+                        <p className="text-sm font-medium text-slate-700 dark:text-slate-200">No batch items yet</p>
+                        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
+                          Add line items to define products, quantities, unit costs, and shelf-life dates for this batch.
+                        </p>
+                        <Button type="button" onClick={addBatchItem} variant="neutralOutline" size="sm" className="mt-4">
+                          <Plus className="h-4 w-4 mr-2" />
+                          Add First Item
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+
+                  {batchItems.length > 0 && (
+                    <div className="px-5 py-4 border-t border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                        <div>
+                          <p className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                            Batch Summary
+                          </p>
+                          <p className="text-sm text-slate-600 dark:text-slate-300 mt-0.5">
+                            {batchItems.length} line {batchItems.length === 1 ? "item" : "items"} ·{" "}
+                            {batchItems.reduce((sum, item) => sum + item.quantity, 0).toLocaleString()} total units
+                          </p>
+                        </div>
+                        <div className="flex items-baseline gap-2 sm:text-right">
+                          <span className="text-sm text-slate-500 dark:text-slate-400">Total Value</span>
+                          <span className="text-xl font-bold text-slate-900 dark:text-slate-100">
+                            Rs {batchItems.reduce((sum, item) => sum + item.quantity * item.unitCost, 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </span>
+                        </div>
+                      </div>
                     </div>
                   )}
                 </div>
-
-                {batchItems.length > 0 && (
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <h4 className="font-medium mb-2">Batch Summary</h4>
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div>
-                        <span className="text-gray-600">Total Items:</span>{" "}
-                        <span className="font-medium">{batchItems.length}</span>
-                      </div>
-                      <div>
-                        <span className="text-gray-600">Total Value:</span>{" "}
-                        <span className="font-medium">
-                          Rs {batchItems.reduce((sum, item) => sum + item.quantity * item.unitCost, 0).toFixed(2)}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                )}
 
                 <div className="space-y-2">
                   <Label>Upload Bill Image</Label>
