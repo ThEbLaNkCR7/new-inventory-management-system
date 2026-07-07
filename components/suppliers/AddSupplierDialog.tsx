@@ -36,6 +36,14 @@ const initialFormData = {
   status: "Active",
 }
 
+const isPortaledSelectClick = (target: EventTarget | null) => {
+  if (!(target instanceof HTMLElement)) return false
+  return Boolean(
+    target.closest("[data-radix-select-content]") ||
+    target.closest("[data-radix-popper-content-wrapper]")
+  )
+}
+
 interface AddSupplierDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -120,12 +128,22 @@ export default function AddSupplierDialog({
     resetForm()
   }
 
-  const companyOptions = [...new Set(suppliers.map((supplier) => supplier.company))]
+  const companyOptions = [...new Set(suppliers.map((supplier) => supplier.company).filter(Boolean))]
+
+  const keepDialogOpenOnSelect = (event: Event) => {
+    if (isPortaledSelectClick(event.target)) {
+      event.preventDefault()
+    }
+  }
 
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-md z-[60]">
+        <DialogContent
+          className="max-w-md z-[60]"
+          onPointerDownOutside={keepDialogOpenOnSelect}
+          onInteractOutside={keepDialogOpenOnSelect}
+        >
           <DialogHeader>
             <DialogTitle>Add New Supplier</DialogTitle>
             <DialogDescription>
@@ -180,7 +198,7 @@ export default function AddSupplierDialog({
                   <SelectTrigger id="add-supplier-company">
                     <SelectValue placeholder="Select company type or enter custom type" />
                   </SelectTrigger>
-                  <SelectContent className="max-h-60">
+                  <SelectContent className="z-[70] max-h-60">
                     <SelectItem value="custom">+ Add Custom Company Type</SelectItem>
                     {companyOptions.map((company) => (
                       <SelectItem key={company} value={company}>
@@ -215,7 +233,7 @@ export default function AddSupplierDialog({
                 <SelectTrigger id="add-supplier-status">
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="z-[70]">
                   <SelectItem value="Active">Active</SelectItem>
                   <SelectItem value="Inactive">Inactive</SelectItem>
                   <SelectItem value="Pending">Pending</SelectItem>

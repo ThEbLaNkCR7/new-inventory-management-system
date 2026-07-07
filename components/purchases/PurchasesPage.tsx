@@ -42,6 +42,21 @@ type PurchaseItem = {
 
 type ItemKey = keyof PurchaseItem
 
+const isPortaledSelectClick = (target: EventTarget | null) => {
+  if (!(target instanceof HTMLElement)) return false
+  return Boolean(
+    target.closest("[data-radix-select-content]") ||
+    target.closest("[data-radix-popper-content-wrapper]")
+  )
+}
+
+const shouldPreventPurchaseDialogClose = (
+  target: EventTarget | null,
+  isAddSupplierDialogOpen: boolean,
+  isQuickAddProductOpen: boolean,
+) =>
+  isPortaledSelectClick(target) || isAddSupplierDialogOpen || isQuickAddProductOpen
+
 const getEmptyPurchaseForm = () => ({
   items: [
     {
@@ -661,12 +676,12 @@ export default function PurchasesPage() {
             <DialogContent
               className="max-w-md"
               onPointerDownOutside={(event) => {
-                if (isAddSupplierDialogOpen || isQuickAddProductOpen) {
+                if (shouldPreventPurchaseDialogClose(event.target, isAddSupplierDialogOpen, isQuickAddProductOpen)) {
                   event.preventDefault()
                 }
               }}
               onInteractOutside={(event) => {
-                if (isAddSupplierDialogOpen || isQuickAddProductOpen) {
+                if (shouldPreventPurchaseDialogClose(event.target, isAddSupplierDialogOpen, isQuickAddProductOpen)) {
                   event.preventDefault()
                 }
               }}
@@ -797,10 +812,10 @@ export default function PurchasesPage() {
                         {selectedProduct &&
                           item.quantityPurchased > 0 &&
                           item.quantityPurchased <= selectedProduct.stockQuantity && (
-                          <p className="text-xs text-gray-500">
-                            Stock: {selectedProduct.stockQuantity}
-                          </p>
-                        )}
+                            <p className="text-xs text-gray-500">
+                              Stock: {selectedProduct.stockQuantity}
+                            </p>
+                          )}
                       </Card>
                     )
                   })}
