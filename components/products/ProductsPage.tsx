@@ -14,6 +14,7 @@ import { CheckCircle } from "lucide-react"
 import type React from "react"
 import { useEffect, useMemo, useState } from "react"
 import AddProductDialog from "./AddProductDialog"
+import AddSupplierDialog from "@/components/suppliers/AddSupplierDialog"
 import CategoryHistoryDialog from "./CategoryHistoryDialog"
 import ClientHistoryDialog from "./ClientHistoryDialog"
 import DeleteProductDialog from "./DeleteProductDialog"
@@ -36,6 +37,7 @@ export default function ProductsPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [categoryFilter, setCategoryFilter] = useState("all")
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
+  const [isAddSupplierDialogOpen, setIsAddSupplierDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false)
@@ -183,6 +185,20 @@ export default function ProductsPage() {
       setNewCategoryName("")
       updateForm({ category: value })
     }
+  }
+
+  const handleSupplierChange = (value: string) => {
+    if (value === "__new__") {
+      setIsAddSupplierDialogOpen(true)
+      return
+    }
+    updateForm({ supplier: value })
+  }
+
+  const handleSupplierAdded = (supplierName: string) => {
+    updateForm({ supplier: supplierName })
+    setAutoFilledFields((prev) => ({ ...prev, supplier: true }))
+    setTimeout(() => setAutoFilledFields({}), 3000)
   }
 
   const getSubmitData = (): ProductFormData => ({
@@ -452,6 +468,7 @@ export default function ProductsPage() {
     newCategoryName,
     onNewCategoryNameChange: setNewCategoryName,
     onCategoryChange: handleCategoryChange,
+    onSupplierChange: handleSupplierChange,
     autoFilledFields,
     onProductNameChange: handleProductNameChange,
     onNetWeightChange: handleNetWeightChange,
@@ -503,6 +520,11 @@ export default function ProductsPage() {
             }}
             onSubmit={handleSubmit}
             onCancel={clearForm}
+          />
+          <AddSupplierDialog
+            open={isAddSupplierDialogOpen}
+            onOpenChange={setIsAddSupplierDialogOpen}
+            onSupplierAdded={handleSupplierAdded}
           />
           <ProductApprovalDialog
             isOpen={showApprovalDialog}

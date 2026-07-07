@@ -28,6 +28,7 @@ interface ProductFormFieldsProps {
   newCategoryName: string
   onNewCategoryNameChange: (value: string) => void
   onCategoryChange: (value: string) => void
+  onSupplierChange?: (value: string) => void
   autoFilledFields: Record<string, boolean>
   onProductNameChange: (value: string) => void
   onNetWeightChange: (value: string) => void
@@ -50,6 +51,7 @@ export default function ProductFormFields({
   newCategoryName,
   onNewCategoryNameChange,
   onCategoryChange,
+  onSupplierChange,
   autoFilledFields,
   onProductNameChange,
   onNetWeightChange,
@@ -166,7 +168,13 @@ export default function ProductFormFields({
           </div>
           <Select
             value={formData.supplier}
-            onValueChange={(value) => updateForm({ supplier: value })}
+            onValueChange={(value) => {
+              if (onSupplierChange) {
+                onSupplierChange(value)
+              } else {
+                updateForm({ supplier: value })
+              }
+            }}
           >
             <SelectTrigger id={fieldId("supplier")} className={selectTriggerClass}>
               <SelectValue placeholder="Select a supplier" />
@@ -177,6 +185,7 @@ export default function ProductFormFields({
                   {supplier.name}
                 </SelectItem>
               ))}
+              <SelectItem value="__new__">Add new supplier...</SelectItem>
             </SelectContent>
           </Select>
         </div>

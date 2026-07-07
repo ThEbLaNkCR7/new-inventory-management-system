@@ -31,6 +31,7 @@ interface AddProductDialogProps {
   newCategoryName: string
   onNewCategoryNameChange: (value: string) => void
   onCategoryChange: (value: string) => void
+  onSupplierChange?: (value: string) => void
   autoFilledFields: Record<string, boolean>
   onProductNameChange: (value: string) => void
   onNetWeightChange: (value: string) => void
@@ -57,6 +58,7 @@ export default function AddProductDialog({
   newCategoryName,
   onNewCategoryNameChange,
   onCategoryChange,
+  onSupplierChange,
   autoFilledFields,
   onProductNameChange,
   onNetWeightChange,
@@ -109,6 +111,7 @@ export default function AddProductDialog({
             newCategoryName={newCategoryName}
             onNewCategoryNameChange={onNewCategoryNameChange}
             onCategoryChange={onCategoryChange}
+            onSupplierChange={onSupplierChange}
             autoFilledFields={autoFilledFields}
             onProductNameChange={onProductNameChange}
             onNetWeightChange={onNetWeightChange}

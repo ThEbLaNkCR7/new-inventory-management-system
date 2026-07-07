@@ -91,7 +91,7 @@ export function usePersistentForm<T extends FormData>(
   initialData: T
 ) {
   const { getFormData, setFormData, clearFormData } = useFormPersistence()
-  
+
   const [formState, setFormState] = useState<T>(() => {
     const savedData = getFormData(formId)
     return savedData ? { ...initialData, ...savedData } : initialData
