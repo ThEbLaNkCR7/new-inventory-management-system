@@ -21,17 +21,30 @@ import { toast } from "@/components/ui/use-toast"
 import type { Batch, BatchItem } from "@/contexts/BatchContext"
 import { useBatch } from "@/contexts/BatchContext"
 import { useInventory } from "@/contexts/InventoryContext"
+import AddSupplierDialog from "@/components/suppliers/AddSupplierDialog"
 import DeleteBatchDialog from "./DeleteBatchDialog"
 import { Calendar, CheckCircle, Package, Plus, Search, Trash2, Truck, Loader2 } from "lucide-react"
 import { useEffect, useState } from "react"
 import { formatNepaliDateForTable } from '../../lib/nepaliDateUtils'
 import { MaterialDatePicker } from "../ui/MaterialDatePicker"
 
+const isPortaledSelectClick = (target: EventTarget | null) => {
+  if (!(target instanceof HTMLElement)) return false
+  return Boolean(
+    target.closest("[data-radix-select-content]") ||
+    target.closest("[data-radix-popper-content-wrapper]")
+  )
+}
+
+const shouldPreventBatchDialogClose = (target: EventTarget | null, isAddSupplierDialogOpen: boolean) =>
+  isPortaledSelectClick(target) || isAddSupplierDialogOpen
+
 export default function BatchesPage() {
   const { batches, addBatch, deleteBatch, updateBatchStatus } = useBatch()
   const { products, suppliers, refreshData } = useInventory()
   const [searchTerm, setSearchTerm] = useState("")
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
+  const [isAddSupplierDialogOpen, setIsAddSupplierDialogOpen] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [deletingBatch, setDeletingBatch] = useState<Batch | null>(null)
   const [isDetailOpen, setIsDetailOpen] = useState(false)
@@ -74,6 +87,30 @@ export default function BatchesPage() {
       batch.batchNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
       batch.supplier.toLowerCase().includes(searchTerm.toLowerCase()),
   )
+
+  const handleSupplierChange = (value: string) => {
+    if (value === "__new__") {
+      setIsAddSupplierDialogOpen(true)
+      return
+    }
+    setFormData({ ...formData, supplier: value })
+  }
+
+  const handleSupplierAdded = (supplierName: string, supplierId?: string) => {
+    if (supplierId) {
+      setFormData((prev) => ({ ...prev, supplier: supplierId }))
+      return
+    }
+    const supplier = suppliers.find((s) => s.name === supplierName)
+    if (supplier) {
+      setFormData((prev) => ({ ...prev, supplier: supplier.id }))
+    }
+  }
+
+  const handleAddDialogOpenChange = (open: boolean) => {
+    if (!open && isAddSupplierDialogOpen) return
+    setIsAddDialogOpen(open)
+  }
 
   const resetForm = () => {
     setFormData({
@@ -339,7 +376,7 @@ export default function BatchesPage() {
           <p className="text-gray-600 dark:text-gray-300 text-lg">Track and manage product batches and lot numbers</p>
         </div>
         <div className="absolute top-6 right-0 flex space-x-3">
-          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+          <Dialog open={isAddDialogOpen} onOpenChange={handleAddDialogOpenChange}>
             <DialogTrigger asChild>
               <Button
                 onClick={resetForm}
@@ -350,7 +387,19 @@ export default function BatchesPage() {
                 Add Batch
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogContent
+              className="max-w-4xl max-h-[90vh] overflow-y-auto"
+              onPointerDownOutside={(event) => {
+                if (shouldPreventBatchDialogClose(event.target, isAddSupplierDialogOpen)) {
+                  event.preventDefault()
+                }
+              }}
+              onInteractOutside={(event) => {
+                if (shouldPreventBatchDialogClose(event.target, isAddSupplierDialogOpen)) {
+                  event.preventDefault()
+                }
+              }}
+            >
               <DialogHeader>
                 <DialogTitle>Create New Batch</DialogTitle>
                 <DialogDescription>Add multiple items to a new inventory batch</DialogDescription>
@@ -370,8 +419,8 @@ export default function BatchesPage() {
                   <div className="space-y-2">
                     <Label htmlFor="supplier">Supplier</Label>
                     <Select
-                      value={formData.supplier}
-                      onValueChange={(value) => setFormData({ ...formData, supplier: value })}
+                      value={formData.supplier || undefined}
+                      onValueChange={handleSupplierChange}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Select supplier" />
@@ -382,6 +431,7 @@ export default function BatchesPage() {
                             {supplier.name}
                           </SelectItem>
                         ))}
+                        <SelectItem value="__new__">Add new supplier...</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -559,6 +609,11 @@ export default function BatchesPage() {
               </form>
             </DialogContent>
           </Dialog>
+          <AddSupplierDialog
+            open={isAddSupplierDialogOpen}
+            onOpenChange={setIsAddSupplierDialogOpen}
+            onSupplierAdded={handleSupplierAdded}
+          />
         </div>
       </div>
 

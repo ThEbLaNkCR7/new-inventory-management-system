@@ -47,7 +47,7 @@ const isPortaledSelectClick = (target: EventTarget | null) => {
 interface AddSupplierDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  onSupplierAdded: (supplierName: string) => void
+  onSupplierAdded: (supplierName: string, supplierId?: string) => void
 }
 
 export default function AddSupplierDialog({
@@ -102,7 +102,7 @@ export default function AddSupplierDialog({
     try {
       const addedSupplier = await addSupplier(newSupplierData)
       toast({ title: "Success", description: "Supplier added successfully!" })
-      onSupplierAdded(addedSupplier.name || newSupplierData.name)
+      onSupplierAdded(addedSupplier.name || newSupplierData.name, addedSupplier.id)
       onOpenChange(false)
       resetForm()
     } catch {
