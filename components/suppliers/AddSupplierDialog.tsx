@@ -140,7 +140,8 @@ export default function AddSupplierDialog({
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent
-          className="max-w-md z-[60]"
+          className="max-w-md z-[101]"
+          overlayClassName="z-[100]"
           onPointerDownOutside={keepDialogOpenOnSelect}
           onInteractOutside={keepDialogOpenOnSelect}
         >
@@ -198,7 +199,7 @@ export default function AddSupplierDialog({
                   <SelectTrigger id="add-supplier-company">
                     <SelectValue placeholder="Select company type or enter custom type" />
                   </SelectTrigger>
-                  <SelectContent className="z-[70] max-h-60">
+                  <SelectContent className="z-[110] max-h-60">
                     <SelectItem value="custom">+ Add Custom Company Type</SelectItem>
                     {companyOptions.map((company) => (
                       <SelectItem key={company} value={company}>
@@ -233,7 +234,7 @@ export default function AddSupplierDialog({
                 <SelectTrigger id="add-supplier-status">
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
-                <SelectContent className="z-[70]">
+                <SelectContent className="z-[110]">
                   <SelectItem value="Active">Active</SelectItem>
                   <SelectItem value="Inactive">Inactive</SelectItem>
                   <SelectItem value="Pending">Pending</SelectItem>
@@ -271,7 +272,7 @@ export default function AddSupplierDialog({
       </Dialog>
 
       <Dialog open={showApprovalDialog} onOpenChange={setShowApprovalDialog}>
-        <DialogContent className="max-w-md z-[60]">
+        <DialogContent className="max-w-md z-[101]" overlayClassName="z-[100]">
           <DialogHeader>
             <DialogTitle>Submit for Approval</DialogTitle>
             <DialogDescription>Please provide a reason for this supplier request</DialogDescription>

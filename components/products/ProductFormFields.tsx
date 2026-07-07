@@ -61,6 +61,11 @@ export default function ProductFormFields({
 }: ProductFormFieldsProps) {
   const fieldId = (name: string) => `${idPrefix}${name}`
 
+  const selectContentClass =
+    variant === "quick"
+      ? "z-[110] dark:bg-gray-800 dark:border-gray-700"
+      : "dark:bg-gray-800 dark:border-gray-700"
+
   const supplierOptions = useMemo(() => {
     if (!formData.supplier) return suppliers
     const exists = suppliers.some((supplier) => supplier.name === formData.supplier)
@@ -96,7 +101,7 @@ export default function ProductFormFields({
               <SelectTrigger id={fieldId("productName")} className={selectTriggerClass}>
                 <SelectValue placeholder="Select product name" />
               </SelectTrigger>
-              <SelectContent className="dark:bg-gray-800 dark:border-gray-700">
+              <SelectContent className={selectContentClass}>
                 {uniqueProductNames.map((name) => (
                   <SelectItem key={name} value={name}>
                     {name}
@@ -141,7 +146,7 @@ export default function ProductFormFields({
           <SelectTrigger id={fieldId("category")} className={selectTriggerClass}>
             <SelectValue placeholder="Select or add category" />
           </SelectTrigger>
-          <SelectContent className="dark:bg-gray-800 dark:border-gray-700">
+          <SelectContent className={selectContentClass}>
             {categories.map((cat) => (
               <SelectItem key={cat} value={cat}>
                 {cat}
@@ -190,7 +195,7 @@ export default function ProductFormFields({
             <SelectTrigger id={fieldId("supplier")} className={selectTriggerClass}>
               <SelectValue placeholder="Select a supplier" />
             </SelectTrigger>
-            <SelectContent className="dark:bg-gray-800 dark:border-gray-700">
+            <SelectContent className={selectContentClass}>
               {supplierOptions.map((supplier) => (
                 <SelectItem key={supplier.id} value={supplier.name}>
                   {supplier.name}
@@ -212,7 +217,7 @@ export default function ProductFormFields({
             <SelectTrigger id={fieldId("stockType")} className={selectTriggerClass}>
               <SelectValue placeholder="Select stock type" />
             </SelectTrigger>
-            <SelectContent className="dark:bg-gray-800 dark:border-gray-700">
+            <SelectContent className={selectContentClass}>
               <SelectItem value="new">New Stock</SelectItem>
               <SelectItem value="old">Old Stock</SelectItem>
             </SelectContent>
@@ -279,7 +284,7 @@ export default function ProductFormFields({
           <SelectTrigger id={fieldId("netWeight")} className={selectTriggerClass}>
             <SelectValue placeholder="Select net weight" />
           </SelectTrigger>
-          <SelectContent className="dark:bg-gray-800 dark:border-gray-700">
+          <SelectContent className={selectContentClass}>
             {uniqueNetWeights.map((weight) => (
               <SelectItem key={weight} value={String(weight)}>
                 {weight} kg

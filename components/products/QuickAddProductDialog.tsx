@@ -20,6 +20,14 @@ import { useEffect, useMemo, useState } from "react"
 import ProductFormFields from "./ProductFormFields"
 import { initialProductFormData, type ProductFormData } from "./types"
 
+const isPortaledSelectClick = (target: EventTarget | null) => {
+  if (!(target instanceof HTMLElement)) return false
+  return Boolean(
+    target.closest("[data-radix-select-content]") ||
+    target.closest("[data-radix-popper-content-wrapper]")
+  )
+}
+
 type QuickAddProductDialogProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -168,7 +176,20 @@ export default function QuickAddProductDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="w-[95vw] max-w-2xl max-h-[85vh] overflow-y-auto bg-white dark:bg-gray-800 border dark:border-gray-700 p-4 sm:p-6 z-[60]">
+      <DialogContent
+        overlayClassName="z-[100]"
+        className="w-[95vw] max-w-2xl max-h-[85vh] overflow-y-auto bg-white dark:bg-gray-800 border dark:border-gray-700 p-4 sm:p-6 z-[101]"
+        onPointerDownOutside={(event) => {
+          if (isPortaledSelectClick(event.target)) {
+            event.preventDefault()
+          }
+        }}
+        onInteractOutside={(event) => {
+          if (isPortaledSelectClick(event.target)) {
+            event.preventDefault()
+          }
+        }}
+      >
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold text-gray-800 dark:text-gray-200">
             Add New Product

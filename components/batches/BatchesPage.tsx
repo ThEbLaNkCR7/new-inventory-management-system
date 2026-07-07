@@ -20,7 +20,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "@/components/ui/use-toast"
 import type { Batch, BatchItem } from "@/contexts/BatchContext"
 import { useBatch } from "@/contexts/BatchContext"
+import type { Product } from "@/contexts/InventoryContext"
 import { useInventory } from "@/contexts/InventoryContext"
+import QuickAddProductDialog from "@/components/products/QuickAddProductDialog"
 import { Separator } from "@/components/ui/separator"
 import AddSupplierDialog from "@/components/suppliers/AddSupplierDialog"
 import DeleteBatchDialog from "./DeleteBatchDialog"
@@ -52,8 +54,11 @@ const isPortaledSelectClick = (target: EventTarget | null) => {
   )
 }
 
-const shouldPreventBatchDialogClose = (target: EventTarget | null, isAddSupplierDialogOpen: boolean) =>
-  isPortaledSelectClick(target) || isAddSupplierDialogOpen
+const shouldPreventBatchDialogClose = (
+  target: EventTarget | null,
+  isAddSupplierDialogOpen: boolean,
+  isQuickAddProductOpen: boolean,
+) => isPortaledSelectClick(target) || isAddSupplierDialogOpen || isQuickAddProductOpen
 
 export default function BatchesPage() {
   const { batches, addBatch, deleteBatch, updateBatchStatus } = useBatch()
@@ -61,6 +66,8 @@ export default function BatchesPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [isAddSupplierDialogOpen, setIsAddSupplierDialogOpen] = useState(false)
+  const [isQuickAddProductOpen, setIsQuickAddProductOpen] = useState(false)
+  const [addingProductItemIndex, setAddingProductItemIndex] = useState<number | null>(null)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [deletingBatch, setDeletingBatch] = useState<Batch | null>(null)
   const [isDetailOpen, setIsDetailOpen] = useState(false)
@@ -107,6 +114,9 @@ export default function BatchesPage() {
 
   const handleSupplierChange = (value: string) => {
     if (value === "__new__") {
+      if (document.activeElement instanceof HTMLElement) {
+        document.activeElement.blur()
+      }
       setIsAddSupplierDialogOpen(true)
       return
     }
@@ -125,8 +135,33 @@ export default function BatchesPage() {
   }
 
   const handleAddDialogOpenChange = (open: boolean) => {
-    if (!open && isAddSupplierDialogOpen) return
+    if (!open && (isAddSupplierDialogOpen || isQuickAddProductOpen)) return
     setIsAddDialogOpen(open)
+  }
+
+  const getBatchSupplierName = () =>
+    suppliers.find((s) => s.id === formData.supplier)?.name || ""
+
+  const openQuickAddProduct = (index: number) => {
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur()
+    }
+    setAddingProductItemIndex(index)
+    setIsQuickAddProductOpen(true)
+  }
+
+  const handleQuickAddProductCreated = (product: Product) => {
+    if (addingProductItemIndex === null) return
+
+    const updatedItems = [...batchItems]
+    updatedItems[addingProductItemIndex] = {
+      ...updatedItems[addingProductItemIndex],
+      productId: product.id,
+      productName: product.name,
+      unitCost: updatedItems[addingProductItemIndex].unitCost || product.unitPrice,
+    }
+    setBatchItems(updatedItems)
+    setAddingProductItemIndex(null)
   }
 
   const resetForm = () => {
@@ -139,6 +174,8 @@ export default function BatchesPage() {
     })
     setBatchItems([])
     setCollapsedItems(new Set())
+    setAddingProductItemIndex(null)
+    setIsQuickAddProductOpen(false)
   }
 
   const addBatchItem = () => {
@@ -228,7 +265,7 @@ export default function BatchesPage() {
     }
 
     for (const item of batchItems) {
-      if (!item.productId) {
+      if (!item.productId || item.productId === "__new__") {
         toast({ title: "Error", description: "Please select a product for each batch item.", variant: "destructive" })
         return
       }
@@ -429,12 +466,12 @@ export default function BatchesPage() {
             <DialogContent
               className="max-w-4xl max-h-[90vh] overflow-y-auto"
               onPointerDownOutside={(event) => {
-                if (shouldPreventBatchDialogClose(event.target, isAddSupplierDialogOpen)) {
+                if (shouldPreventBatchDialogClose(event.target, isAddSupplierDialogOpen, isQuickAddProductOpen)) {
                   event.preventDefault()
                 }
               }}
               onInteractOutside={(event) => {
-                if (shouldPreventBatchDialogClose(event.target, isAddSupplierDialogOpen)) {
+                if (shouldPreventBatchDialogClose(event.target, isAddSupplierDialogOpen, isQuickAddProductOpen)) {
                   event.preventDefault()
                 }
               }}
@@ -606,13 +643,20 @@ export default function BatchesPage() {
                                 Product
                               </Label>
                               <Select
-                                value={item.productId}
-                                onValueChange={(value) => updateBatchItem(index, "productId", value)}
+                                value={item.productId || undefined}
+                                onValueChange={(value) => {
+                                  if (value === "__new__") {
+                                    openQuickAddProduct(index)
+                                    return
+                                  }
+                                  updateBatchItem(index, "productId", value)
+                                }}
                               >
                                 <SelectTrigger className="h-10 bg-white dark:bg-slate-900">
                                   <SelectValue placeholder="Select a product from inventory" />
                                 </SelectTrigger>
                                 <SelectContent>
+                                  <SelectItem value="__new__">+ Add New Product</SelectItem>
                                   {products.map((product) => (
                                     <SelectItem key={product.id} value={product.id}>
                                       {product.name} (Stock: {product.stockQuantity})
@@ -789,6 +833,17 @@ export default function BatchesPage() {
             open={isAddSupplierDialogOpen}
             onOpenChange={setIsAddSupplierDialogOpen}
             onSupplierAdded={handleSupplierAdded}
+          />
+          <QuickAddProductDialog
+            open={isQuickAddProductOpen}
+            onOpenChange={setIsQuickAddProductOpen}
+            onProductCreated={handleQuickAddProductCreated}
+            defaultSupplier={getBatchSupplierName()}
+            defaultUnitPrice={
+              addingProductItemIndex !== null
+                ? batchItems[addingProductItemIndex]?.unitCost || 0
+                : 0
+            }
           />
         </div>
       </div>
