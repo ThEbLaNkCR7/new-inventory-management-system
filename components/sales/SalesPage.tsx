@@ -25,6 +25,7 @@ import { useSaleChange } from "@/hooks/useSaleChange"
 import { CheckCircle, Clock, Loader2, Plus, Search } from "lucide-react"
 import React, { useEffect, useState } from "react"
 import ClientHistoryDialog from "./ClientHistoryDialog"
+import AddClientDialog from "@/components/clients/AddClientDialog"
 import DeleteSaleDialog from "./DeleteSaleDialog"
 import EditSaleDialog from "./EditSaleDialog"
 import ProductHistoryDialog from "./ProductHistoryDialog"
@@ -46,6 +47,7 @@ export default function SalesPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [activeTab, setActiveTab] = useState("all")
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
+  const [isAddClientDialogOpen, setIsAddClientDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false)
@@ -139,6 +141,16 @@ export default function SalesPage() {
 
   const filteredProducts = React.useMemo(() => products, [products])
 
+  const clientOptions = React.useMemo(() => {
+    if (!formData.client) return clients
+    const exists = clients.some((client) => client.name === formData.client)
+    if (exists) return clients
+    return [
+      ...clients,
+      { id: `pending-${formData.client}`, name: formData.client },
+    ]
+  }, [clients, formData.client])
+
   useEffect(() => {
     if (showSuccessAlert) {
       const timer = setTimeout(() => setShowSuccessAlert(false), 4000)
@@ -196,6 +208,18 @@ export default function SalesPage() {
     resetForm()
     setEditReason("")
     setIsAddDialogOpen(false)
+  }
+
+  const handleClientChange = (value: string) => {
+    if (value === "__new__") {
+      setIsAddClientDialogOpen(true)
+      return
+    }
+    updateForm({ client: value, customClient: "" })
+  }
+
+  const handleClientAdded = (clientName: string) => {
+    updateForm({ client: clientName, customClient: "" })
   }
 
   const showAlert = (message: string, isSuccess = true) => {
@@ -314,10 +338,7 @@ export default function SalesPage() {
 
       updateProgress("Processing client data...", 4, 6)
 
-      const clientName =
-        formData.client === "custom"
-          ? formData.customClient
-          : formData.client
+      const clientName = formData.client
 
       const payload: Omit<Sale, "id"> = {
         client: clientName,
@@ -758,34 +779,23 @@ export default function SalesPage() {
 
                 <div className="space-y-2">
                   <Label htmlFor="client">Client *</Label>
-                  <div className="space-y-2">
-                    <Select
-                      value={formData.client}
-                      onValueChange={(value) => updateForm({ ...formData, client: value })}
-                      required
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select client or enter custom name" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="custom">+ Add Custom Client</SelectItem>
-                        {clients.map((client) => (
-                          <SelectItem key={client.id} value={client.name}>
-                            {client.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {formData.client === "custom" && (
-                      <Input
-                        placeholder="Enter custom client name"
-                        value={formData.customClient || ""}
-                        onChange={(e) => updateForm({ ...formData, customClient: e.target.value })}
-                        className="mt-2"
-                        required
-                      />
-                    )}
-                  </div>
+                  <Select
+                    value={formData.client || undefined}
+                    onValueChange={handleClientChange}
+                    required
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select client" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {clientOptions.map((client) => (
+                        <SelectItem key={client.id} value={client.name}>
+                          {client.name}
+                        </SelectItem>
+                      ))}
+                      <SelectItem value="__new__">Add new client...</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="space-y-2">
@@ -873,6 +883,11 @@ export default function SalesPage() {
               </form>
             </DialogContent>
           </Dialog>
+          <AddClientDialog
+            open={isAddClientDialogOpen}
+            onOpenChange={setIsAddClientDialogOpen}
+            onClientAdded={handleClientAdded}
+          />
         </div>
       </div>
 

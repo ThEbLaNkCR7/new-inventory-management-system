@@ -34,20 +34,21 @@ const initialFormData = {
   customCompany: "",
   address: "",
   status: "Active",
+  paymentStatus: "Pending" as "Received" | "Pending",
 }
 
-interface AddSupplierDialogProps {
+interface AddClientDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  onSupplierAdded: (supplierName: string) => void
+  onClientAdded: (clientName: string) => void
 }
 
-export default function AddSupplierDialog({
+export default function AddClientDialog({
   open,
   onOpenChange,
-  onSupplierAdded,
-}: AddSupplierDialogProps) {
-  const { suppliers, addSupplier } = useInventory()
+  onClientAdded,
+}: AddClientDialogProps) {
+  const { clients, addClient } = useInventory()
   const { submitChange } = useApproval()
   const { user } = useAuth()
   const { toast } = useToast()
@@ -74,31 +75,43 @@ export default function AddSupplierDialog({
     }
   }, [open])
 
-  const buildSupplierData = () => {
+  const buildClientData = () => {
     const companyName = formData.company === "custom" ? formData.customCompany : formData.company
-    const { customCompany, ...supplierData } = formData
+    const { customCompany, ...clientData } = formData
     return {
-      ...supplierData,
+      ...clientData,
       company: companyName,
-      orders: 0,
+      address: {
+        street: formData.address,
+        city: "",
+        state: "",
+        zipCode: "",
+        country: "",
+      },
+      taxId: "",
+      creditLimit: 0,
+      currentBalance: 0,
       totalSpent: 0,
+      orders: 0,
       lastOrder: new Date().toISOString().split("T")[0],
+      isActive: formData.status === "Active",
+      paymentStatus: formData.paymentStatus || "Pending",
     }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    const newSupplierData = buildSupplierData()
+    const newClientData = buildClientData()
 
     setIsSubmitting(true)
     try {
-      const addedSupplier = await addSupplier(newSupplierData)
-      toast({ title: "Success", description: "Supplier added successfully!" })
-      onSupplierAdded(addedSupplier.name || newSupplierData.name)
+      const addedClient = await addClient(newClientData)
+      toast({ title: "Success", description: "Client added successfully!" })
+      onClientAdded(addedClient.name || newClientData.name)
       onOpenChange(false)
       resetForm()
     } catch {
-      toast({ title: "Error", description: "Failed to add supplier.", variant: "destructive" })
+      toast({ title: "Error", description: "Failed to add client.", variant: "destructive" })
     } finally {
       setIsSubmitting(false)
     }
@@ -106,30 +119,30 @@ export default function AddSupplierDialog({
 
   const submitForApproval = () => {
     submitChange({
-      type: "supplier",
+      type: "client",
       action: "create",
-      proposedData: buildSupplierData(),
+      proposedData: buildClientData(),
       requestedBy: user?.email || "",
       reason: approvalReason,
     })
     toast({
       title: "Submitted",
-      description: "Supplier request submitted for approval.",
+      description: "Client request submitted for approval.",
     })
     onOpenChange(false)
     resetForm()
   }
 
-  const companyOptions = [...new Set(suppliers.map((supplier) => supplier.company))]
+  const companyOptions = [...new Set(clients.map((client) => client.company))]
 
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Add New Supplier</DialogTitle>
+            <DialogTitle>Add New Client</DialogTitle>
             <DialogDescription>
-              Enter supplier information to add to your database
+              Enter client information to add to your database
               {!isAdmin && (
                 <div className="mt-2 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
                   <div className="flex items-center text-amber-800 dark:text-amber-200">
@@ -142,18 +155,18 @@ export default function AddSupplierDialog({
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="add-supplier-name">Full Name</Label>
+              <Label htmlFor="add-client-name">Full Name</Label>
               <Input
-                id="add-supplier-name"
+                id="add-client-name"
                 value={formData.name}
                 onChange={(e) => updateForm({ name: e.target.value })}
                 required
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="add-supplier-email">Email</Label>
+              <Label htmlFor="add-client-email">Email</Label>
               <Input
-                id="add-supplier-email"
+                id="add-client-email"
                 type="email"
                 value={formData.email}
                 onChange={(e) => updateForm({ email: e.target.value })}
@@ -161,23 +174,23 @@ export default function AddSupplierDialog({
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="add-supplier-phone">Phone</Label>
+              <Label htmlFor="add-client-phone">Phone</Label>
               <Input
-                id="add-supplier-phone"
+                id="add-client-phone"
                 value={formData.phone}
                 onChange={(e) => updateForm({ phone: e.target.value })}
                 required
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="add-supplier-company">Company Type</Label>
+              <Label htmlFor="add-client-company">Company Type</Label>
               <div className="space-y-2">
                 <Select
                   value={formData.company}
                   onValueChange={(value) => updateForm({ company: value })}
                   required
                 >
-                  <SelectTrigger id="add-supplier-company">
+                  <SelectTrigger id="add-client-company">
                     <SelectValue placeholder="Select company type or enter custom type" />
                   </SelectTrigger>
                   <SelectContent className="max-h-60">
@@ -201,25 +214,40 @@ export default function AddSupplierDialog({
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="add-supplier-address">Address</Label>
+              <Label htmlFor="add-client-address">Address</Label>
               <Input
-                id="add-supplier-address"
+                id="add-client-address"
                 value={formData.address}
                 onChange={(e) => updateForm({ address: e.target.value })}
                 placeholder="Enter full address"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="add-supplier-status">Status</Label>
+              <Label htmlFor="add-client-paymentStatus">Payment Status</Label>
+              <Select
+                value={formData.paymentStatus}
+                onValueChange={(value) =>
+                  updateForm({ paymentStatus: value as "Received" | "Pending" })
+                }
+              >
+                <SelectTrigger id="add-client-paymentStatus">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Received">Received</SelectItem>
+                  <SelectItem value="Pending">Pending</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="add-client-status">Status</Label>
               <Select value={formData.status} onValueChange={(value) => updateForm({ status: value })}>
-                <SelectTrigger id="add-supplier-status">
+                <SelectTrigger id="add-client-status">
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="Active">Active</SelectItem>
                   <SelectItem value="Inactive">Inactive</SelectItem>
-                  <SelectItem value="Pending">Pending</SelectItem>
-                  <SelectItem value="Suspended">Suspended</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -236,7 +264,7 @@ export default function AddSupplierDialog({
               </Button>
               {isAdmin ? (
                 <Button type="submit" disabled={isSubmitting}>
-                  {isSubmitting ? "Adding..." : "Add Supplier"}
+                  {isSubmitting ? "Adding..." : "Add Client"}
                 </Button>
               ) : (
                 <Button
@@ -256,16 +284,16 @@ export default function AddSupplierDialog({
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Submit for Approval</DialogTitle>
-            <DialogDescription>Please provide a reason for this supplier request</DialogDescription>
+            <DialogDescription>Please provide a reason for this client request</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="add-supplier-reason">Reason for Request</Label>
+              <Label htmlFor="add-client-reason">Reason for Request</Label>
               <Textarea
-                id="add-supplier-reason"
+                id="add-client-reason"
                 value={approvalReason}
                 onChange={(e) => setApprovalReason(e.target.value)}
-                placeholder="Explain why this supplier should be added..."
+                placeholder="Explain why this client should be added..."
                 rows={4}
                 required
               />

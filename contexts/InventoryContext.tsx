@@ -116,10 +116,10 @@ interface InventoryContextType {
   addSale: (sale: Omit<Sale, "id">) => void
   updateSale: (id: string, sale: Partial<Sale>) => void
   deleteSale: (id: string) => void
-  addClient: (client: Omit<Client, "id">) => void
+  addClient: (client: Omit<Client, "id">) => Promise<Client>
   updateClient: (id: string, client: Partial<Client>) => void
   deleteClient: (id: string) => void
-  addSupplier: (supplier: Omit<Supplier, "id">) => void
+  addSupplier: (supplier: Omit<Supplier, "id">) => Promise<Supplier>
   updateSupplier: (id: string, supplier: Partial<Supplier>) => void
   deleteSupplier: (id: string) => void
   getLowStockProducts: () => Product[]
@@ -437,11 +437,13 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
       })
       if (!res.ok) throw new Error("Failed to add client")
       const newClient = await res.json()
-      setClients((prev) => [...prev, { ...newClient, id: newClient._id || newClient.id }])
+      const normalizedClient = { ...newClient, id: newClient._id || newClient.id }
+      setClients((prev) => [...prev, normalizedClient])
       console.log("✅ Client added successfully:", client.name)
 
       // Auto-refresh to ensure data consistency
       setTimeout(() => refreshData(), 500)
+      return normalizedClient
     } catch (error) {
       console.error("❌ Add client error:", error)
       throw error
@@ -496,11 +498,13 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
       })
       if (!res.ok) throw new Error("Failed to add supplier")
       const newSupplier = await res.json()
-      setSuppliers((prev) => [...prev, { ...newSupplier, id: newSupplier._id || newSupplier.id }])
+      const normalizedSupplier = { ...newSupplier, id: newSupplier._id || newSupplier.id }
+      setSuppliers((prev) => [...prev, normalizedSupplier])
       console.log("✅ Supplier added successfully:", supplier.company)
 
       // Auto-refresh to ensure data consistency
       setTimeout(() => refreshData(), 500)
+      return normalizedSupplier
     } catch (error) {
       console.error("❌ Add supplier error:", error)
       throw error

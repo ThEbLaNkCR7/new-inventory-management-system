@@ -98,9 +98,11 @@ export function usePersistentForm<T extends FormData>(
   })
 
   const updateForm = (updates: Partial<T>) => {
-    const newData = { ...formState, ...updates }
-    setFormState(newData)
-    setFormData(formId, newData)
+    setFormState((prev) => {
+      const newData = { ...prev, ...updates }
+      setFormData(formId, newData)
+      return newData
+    })
   }
 
   const resetForm = () => {

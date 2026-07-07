@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea"
 import type { Supplier } from "@/contexts/InventoryContext"
 import type { ProductFormData } from "./types"
+import { useMemo } from "react"
 
 const labelClass = "text-sm font-semibold text-gray-700 dark:text-gray-300"
 const inputClass =
@@ -59,6 +60,16 @@ export default function ProductFormFields({
   onCustomNetWeightChange,
 }: ProductFormFieldsProps) {
   const fieldId = (name: string) => `${idPrefix}${name}`
+
+  const supplierOptions = useMemo(() => {
+    if (!formData.supplier) return suppliers
+    const exists = suppliers.some((supplier) => supplier.name === formData.supplier)
+    if (exists) return suppliers
+    return [
+      ...suppliers,
+      { id: `pending-${formData.supplier}`, name: formData.supplier } as Supplier,
+    ]
+  }, [suppliers, formData.supplier])
 
   return (
     <div className="space-y-6">
@@ -167,7 +178,7 @@ export default function ProductFormFields({
             )}
           </div>
           <Select
-            value={formData.supplier}
+            value={formData.supplier || undefined}
             onValueChange={(value) => {
               if (onSupplierChange) {
                 onSupplierChange(value)
@@ -180,7 +191,7 @@ export default function ProductFormFields({
               <SelectValue placeholder="Select a supplier" />
             </SelectTrigger>
             <SelectContent className="dark:bg-gray-800 dark:border-gray-700">
-              {suppliers.map((supplier) => (
+              {supplierOptions.map((supplier) => (
                 <SelectItem key={supplier.id} value={supplier.name}>
                   {supplier.name}
                 </SelectItem>
