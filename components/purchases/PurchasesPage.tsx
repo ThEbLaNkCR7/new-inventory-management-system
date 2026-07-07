@@ -1,6 +1,7 @@
 "use client"
 
 import QuickAddProductDialog from "@/components/products/QuickAddProductDialog"
+import AddSupplierDialog from "@/components/suppliers/AddSupplierDialog"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -26,7 +27,7 @@ import { useInventory } from "@/contexts/InventoryContext"
 import { usePurchaseChange } from "@/hooks/usePurchaseChange"
 import { formatNepaliDateForTable } from "@/lib/utils"
 import { AlertTriangle, CheckCircle, Clock, Loader2, Plus, Search } from "lucide-react"
-import { useEffect, useState, type FormEvent } from "react"
+import { useEffect, useMemo, useState, type FormEvent } from "react"
 import DeletePurchaseDialog from "./DeletePurchaseDialog"
 import EditPurchaseDialog from "./EditPurchaseDialog"
 import PurchasesTable from "./PurchasesTable"
@@ -65,6 +66,7 @@ export default function PurchasesPage() {
   const [activeTab, setActiveTab] = useState("all")
   const [billImage, setBillImage] = useState<File | null>(null);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
+  const [isAddSupplierDialogOpen, setIsAddSupplierDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false)
@@ -124,8 +126,34 @@ export default function PurchasesPage() {
     setAddingProductItemIndex(null)
   }
 
-  const getPurchaseSupplierName = () =>
-    formData.supplier === "custom" ? formData.customSupplier : formData.supplier
+  const getPurchaseSupplierName = () => formData.supplier
+
+  const supplierOptions = useMemo(() => {
+    if (!formData.supplier || formData.supplier === "custom") return suppliers
+    const exists = suppliers.some((supplier) => supplier.name === formData.supplier)
+    if (exists) return suppliers
+    return [
+      ...suppliers,
+      { id: `pending-${formData.supplier}`, name: formData.supplier },
+    ]
+  }, [suppliers, formData.supplier])
+
+  const handleSupplierChange = (value: string) => {
+    if (value === "__new__") {
+      setIsAddSupplierDialogOpen(true)
+      return
+    }
+    updateForm({ supplier: value, customSupplier: "" })
+  }
+
+  const handleSupplierAdded = (supplierName: string) => {
+    updateForm({ supplier: supplierName, customSupplier: "" })
+  }
+
+  const handleAddDialogOpenChange = (open: boolean) => {
+    if (!open && (isAddSupplierDialogOpen || isQuickAddProductOpen)) return
+    setIsAddDialogOpen(open)
+  }
 
   const notifyStockExceeded = (product: Product, quantity: number) => {
     toast({
@@ -134,6 +162,12 @@ export default function PurchasesPage() {
       variant: "destructive",
     })
   }
+
+  useEffect(() => {
+    if (formData.supplier === "custom" && formData.customSupplier) {
+      updateForm({ supplier: formData.customSupplier, customSupplier: "" })
+    }
+  }, [formData.supplier, formData.customSupplier, updateForm])
 
   useEffect(() => {
     if (showSuccessAlert) {
@@ -251,6 +285,16 @@ export default function PurchasesPage() {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
 
+    const supplierName = formData.supplier?.trim() || ""
+    if (!supplierName || supplierName === "__new__" || supplierName === "custom") {
+      toast({
+        title: "Error",
+        description: "Please select or add a supplier.",
+        variant: "destructive",
+      })
+      return
+    }
+
     for (const item of formData.items) {
       if (item.productId === "__new__") {
         toast({
@@ -319,11 +363,6 @@ export default function PurchasesPage() {
       await new Promise((r) => setTimeout(r, 400))
 
       updateProgress("Processing supplier data...", 4, 6)
-
-      const supplierName =
-        formData.supplier === "custom"
-          ? formData.customSupplier
-          : formData.supplier
 
       const payload = {
         supplier: supplierName,
@@ -600,7 +639,7 @@ export default function PurchasesPage() {
             </div>
           )}
         </div>
-        <div className="absolute top-6 right-0 flex space-x-3">
+        <div className="absolute top-6 right-0 z-10 flex space-x-3">
           <Button
             type="button"
             onClick={() => exportPurchasesToCSV(filteredPurchases)}
@@ -608,7 +647,7 @@ export default function PurchasesPage() {
           >
             Export Purchases CSV
           </Button>
-          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+          <Dialog open={isAddDialogOpen} onOpenChange={handleAddDialogOpenChange}>
             <DialogTrigger asChild>
               <Button
                 onClick={() => setIsAddDialogOpen(true)}
@@ -619,7 +658,19 @@ export default function PurchasesPage() {
                 Add Purchase
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-md">
+            <DialogContent
+              className="max-w-md"
+              onPointerDownOutside={(event) => {
+                if (isAddSupplierDialogOpen || isQuickAddProductOpen) {
+                  event.preventDefault()
+                }
+              }}
+              onInteractOutside={(event) => {
+                if (isAddSupplierDialogOpen || isQuickAddProductOpen) {
+                  event.preventDefault()
+                }
+              }}
+            >
               <DialogHeader>
                 <DialogTitle>Add New Purchase</DialogTitle>
                 <DialogDescription>
@@ -763,31 +814,21 @@ export default function PurchasesPage() {
                   <Label htmlFor="supplier">Supplier *</Label>
                   <div className="space-y-2">
                     <Select
-                      value={formData.supplier}
-                      onValueChange={(value) => updateForm({ ...formData, supplier: value })}
-                      required
+                      value={formData.supplier || undefined}
+                      onValueChange={handleSupplierChange}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Select supplier or enter custom name" />
+                        <SelectValue placeholder="Select supplier" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="custom">+ Add Custom Supplier</SelectItem>
-                        {suppliers.map((supplier) => (
+                        {supplierOptions.map((supplier) => (
                           <SelectItem key={supplier.id} value={supplier.name}>
                             {supplier.name}
                           </SelectItem>
                         ))}
+                        <SelectItem value="__new__">Add new supplier...</SelectItem>
                       </SelectContent>
                     </Select>
-                    {formData.supplier === "custom" && (
-                      <Input
-                        placeholder="Enter custom supplier name"
-                        value={formData.customSupplier || ""}
-                        onChange={(e) => updateForm({ ...formData, customSupplier: e.target.value })}
-                        className="mt-2"
-                        required
-                      />
-                    )}
                   </div>
                 </div>
 
@@ -796,7 +837,6 @@ export default function PurchasesPage() {
                   <Select
                     value={formData.supplierType}
                     onValueChange={(value) => updateForm({ ...formData, supplierType: value })}
-                    required
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select supplier type" />
@@ -871,6 +911,11 @@ export default function PurchasesPage() {
               </form>
             </DialogContent>
           </Dialog>
+          <AddSupplierDialog
+            open={isAddSupplierDialogOpen}
+            onOpenChange={setIsAddSupplierDialogOpen}
+            onSupplierAdded={handleSupplierAdded}
+          />
         </div>
       </div>
 

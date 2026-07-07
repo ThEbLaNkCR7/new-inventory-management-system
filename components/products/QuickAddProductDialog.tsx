@@ -168,7 +168,7 @@ export default function QuickAddProductDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="w-[95vw] max-w-2xl max-h-[85vh] overflow-y-auto bg-white dark:bg-gray-800 border dark:border-gray-700 p-4 sm:p-6">
+      <DialogContent className="w-[95vw] max-w-2xl max-h-[85vh] overflow-y-auto bg-white dark:bg-gray-800 border dark:border-gray-700 p-4 sm:p-6 z-[60]">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold text-gray-800 dark:text-gray-200">
             Add New Product

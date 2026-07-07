@@ -125,7 +125,7 @@ export default function AddSupplierDialog({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md z-[60]">
           <DialogHeader>
             <DialogTitle>Add New Supplier</DialogTitle>
             <DialogDescription>
@@ -253,7 +253,7 @@ export default function AddSupplierDialog({
       </Dialog>
 
       <Dialog open={showApprovalDialog} onOpenChange={setShowApprovalDialog}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md z-[60]">
           <DialogHeader>
             <DialogTitle>Submit for Approval</DialogTitle>
             <DialogDescription>Please provide a reason for this supplier request</DialogDescription>
