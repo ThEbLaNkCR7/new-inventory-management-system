@@ -19,6 +19,7 @@ import { Clock, Loader2 } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 import ProductFormFields from "./ProductFormFields"
 import { initialProductFormData, type ProductFormData } from "./types"
+import { validateProductFormData } from "./utils"
 
 const isPortaledSelectClick = (target: EventTarget | null) => {
   if (!(target instanceof HTMLElement)) return false
@@ -58,6 +59,16 @@ export default function QuickAddProductDialog({
   const [newCategoryName, setNewCategoryName] = useState("")
   const [approvalReason, setApprovalReason] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
+
+  const clearFieldErrors = (...fields: string[]) => {
+    setFieldErrors((prev) => {
+      if (fields.length === 0) return {}
+      const next = { ...prev }
+      fields.forEach((field) => delete next[field])
+      return next
+    })
+  }
 
   const categories = useMemo(
     () => [...new Set(products.map((p) => p.category).filter(Boolean))],
@@ -86,6 +97,7 @@ export default function QuickAddProductDialog({
     setIsAddingCustomNetWeight(false)
     setNewCategoryName("")
     setApprovalReason("")
+    clearFieldErrors()
   }
 
   useEffect(() => {
@@ -100,10 +112,12 @@ export default function QuickAddProductDialog({
   }
 
   const updateForm = (updates: Partial<ProductFormData>) => {
+    clearFieldErrors(...Object.keys(updates))
     setFormData((prev) => ({ ...prev, ...updates }))
   }
 
   const handleCategoryChange = (value: string) => {
+    clearFieldErrors("category")
     if (value === "__new__") {
       setIsAddingNewCategory(true)
       setNewCategoryName("")
@@ -116,6 +130,7 @@ export default function QuickAddProductDialog({
   }
 
   const handleNetWeightChange = (value: string) => {
+    clearFieldErrors("netWeight")
     if (value === "__new__") {
       setIsAddingCustomNetWeight(true)
       updateForm({ netWeight: 0 })
@@ -133,18 +148,23 @@ export default function QuickAddProductDialog({
       category: isAddingNewCategory ? newCategoryName : formData.category,
     }
 
-    if (!submitData.name.trim()) {
-      toast({ title: "Error", description: "Product name is required.", variant: "destructive" })
+    const errors = validateProductFormData(submitData, {
+      category: submitData.category,
+      variant: "quick",
+      isAddingNewCategory,
+      isAddingCustomNetWeight,
+    })
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors)
+      toast({
+        title: "Validation Error",
+        description: Object.values(errors)[0],
+        variant: "destructive",
+      })
       return
     }
-    if (!submitData.supplier.trim()) {
-      toast({ title: "Error", description: "Supplier is required.", variant: "destructive" })
-      return
-    }
-    if (!submitData.category.trim()) {
-      toast({ title: "Error", description: "Category is required.", variant: "destructive" })
-      return
-    }
+    clearFieldErrors()
+
     if (user?.role !== "admin" && !approvalReason.trim()) {
       toast({ title: "Error", description: "Please provide a reason for this request.", variant: "destructive" })
       return
@@ -221,13 +241,17 @@ export default function QuickAddProductDialog({
             isAddingNewCategory={isAddingNewCategory}
             isAddingCustomNetWeight={isAddingCustomNetWeight}
             newCategoryName={newCategoryName}
-            onNewCategoryNameChange={setNewCategoryName}
+            onNewCategoryNameChange={(value) => {
+              clearFieldErrors("category")
+              setNewCategoryName(value)
+            }}
             onCategoryChange={handleCategoryChange}
             autoFilledFields={{}}
             onProductNameChange={() => {}}
             onNetWeightChange={handleNetWeightChange}
             onCustomProductNameChange={(value) => updateForm({ name: value })}
             onCustomNetWeightChange={(value) => updateForm({ netWeight: value })}
+            fieldErrors={fieldErrors}
           />
 
           {user?.role !== "admin" && (

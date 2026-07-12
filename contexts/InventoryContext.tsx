@@ -13,6 +13,7 @@ export interface Product {
   stockQuantity: number
   unitPrice: number
   netWeight?: number
+  weightUnit?: "kg" | "liter"
   supplier: string
   createdAt: string
   batchId?: string
@@ -188,7 +189,11 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
       const clientsData = await clientsRes.json()
       const suppliersData = await suppliersRes.json()
 
-      setProducts((productsData.products || []).map((p: any) => ({ ...p, id: p._id || p.id })).filter((p: any) => p.isActive !== false))
+      setProducts((productsData.products || []).map((p: any) => ({
+        ...p,
+        id: p._id || p.id,
+        weightUnit: p.weightUnit === "liter" ? "liter" : "kg",
+      })).filter((p: any) => p.isActive !== false))
       setPurchases((purchasesData.purchases || []).map((p: any) => ({ ...p, id: p._id || p.id })).filter((p: any) => p.isActive !== false))
       setSales((salesData.sales || []).map((s: any) => ({ ...s, id: s._id || s.id })).filter((s: any) => s.isActive !== false))
       setClients((clientsData.clients || []).map((c: any) => ({ ...c, id: c._id || c.id })).filter((c: any) => c.isActive !== false))
@@ -220,7 +225,10 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
       const res = await fetch("/api/products", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(product),
+        body: JSON.stringify({
+          ...product,
+          weightUnit: product.weightUnit === "liter" ? "liter" : "kg",
+        }),
       })
 
       if (!res.ok) {
@@ -230,7 +238,11 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
       }
 
       const newProduct = await res.json()
-      const normalizedProduct = { ...newProduct, id: newProduct._id || newProduct.id }
+      const normalizedProduct = {
+        ...newProduct,
+        id: newProduct._id || newProduct.id,
+        weightUnit: newProduct.weightUnit === "liter" ? "liter" : "kg",
+      }
       setProducts((prev) => [...prev, normalizedProduct])
       console.log("✅ Product added successfully:", product.name)
 
@@ -246,14 +258,30 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
   const updateProduct = async (id: string, updatedProduct: Partial<Product>) => {
     try {
       console.log("🔄 Updating product:", id)
+      const payload = {
+        ...updatedProduct,
+        ...(updatedProduct.weightUnit !== undefined
+          ? { weightUnit: updatedProduct.weightUnit === "liter" ? "liter" : "kg" }
+          : {}),
+      }
       const res = await fetch(`/api/products/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(updatedProduct),
+        body: JSON.stringify(payload),
       })
       if (!res.ok) throw new Error("Failed to update product")
       const product = await res.json()
-      setProducts((prev) => prev.map((p) => (p.id === id ? { ...product, id: product._id || product.id } : p)))
+      setProducts((prev) =>
+        prev.map((p) =>
+          p.id === id
+            ? {
+                ...product,
+                id: product._id || product.id,
+                weightUnit: product.weightUnit === "liter" ? "liter" : "kg",
+              }
+            : p,
+        ),
+      )
       console.log("✅ Product updated successfully:", id)
 
       // Auto-refresh to ensure data consistency

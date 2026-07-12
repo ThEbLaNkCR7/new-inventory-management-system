@@ -9,6 +9,7 @@ import type { Product } from "@/contexts/InventoryContext"
 import { AlertTriangle, Edit, Eye, Package, Search, Trash2 } from "lucide-react"
 import { useState } from "react"
 import type { ProductGroup } from "./types"
+import { formatProductNetWeight } from "./utils"
 
 interface ProductsTableProps {
   groupedProducts: ProductGroup[]
@@ -133,18 +134,20 @@ export default function ProductsTable({
                             onValueChange={(value) => setSelectedVariants((prev) => ({ ...prev, [group.name]: value }))}
                           >
                             <SelectTrigger className="w-full text-xs">
-                              <SelectValue placeholder="Select weight" />
+                              <SelectValue placeholder="Select weight">
+                                {formatProductNetWeight(selectedVariant)}
+                              </SelectValue>
                             </SelectTrigger>
                             <SelectContent>
                               {group.variants.map((variant) => (
                                 <SelectItem key={variant.id} value={variant.id}>
-                                  <span>{variant.netWeight}kg</span>
+                                  {formatProductNetWeight(variant)}
                                 </SelectItem>
                               ))}
                             </SelectContent>
                           </Select>
                         ) : (
-                          <span>{selectedVariant.netWeight ?? "-"}</span>
+                          <span>{formatProductNetWeight(selectedVariant)}</span>
                         )}
                       </TableCell>
                       <TableCell>

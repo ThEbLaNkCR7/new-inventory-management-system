@@ -68,6 +68,11 @@ const productSchema = new mongoose.Schema(
       type: Number,
       min: 0,
     },
+    weightUnit: {
+      type: String,
+      enum: ["kg", "liter"],
+      default: "kg",
+    },
   },
   {
     timestamps: true,
@@ -109,4 +114,8 @@ productSchema.pre("save", function (next) {
   next()
 })
 
-export default mongoose.models.Product || mongoose.model("Product", productSchema) 
+if (mongoose.models.Product) {
+  delete mongoose.models.Product
+}
+
+export default mongoose.model("Product", productSchema) 

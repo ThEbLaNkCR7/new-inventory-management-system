@@ -6,13 +6,16 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import type { Supplier } from "@/contexts/InventoryContext"
-import type { ProductFormData } from "./types"
+import { cn } from "@/lib/utils"
+import type { ProductFormData, WeightUnit } from "./types"
+import { normalizeWeightUnit } from "./utils"
 import { useMemo } from "react"
 
 const labelClass = "text-sm font-semibold text-gray-700 dark:text-gray-300"
 const inputClass =
   "border-2 focus:border-slate-500 transition-colors dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
 const selectTriggerClass = inputClass
+const errorTextClass = "text-sm text-red-600 dark:text-red-400"
 
 interface ProductFormFieldsProps {
   idPrefix?: string
@@ -35,6 +38,9 @@ interface ProductFormFieldsProps {
   onNetWeightChange: (value: string) => void
   onCustomProductNameChange: (value: string) => void
   onCustomNetWeightChange: (value: number) => void
+  showWeightUnitSelector?: boolean
+  onWeightUnitChange?: (unit: WeightUnit) => void
+  fieldErrors?: Record<string, string>
 }
 
 export default function ProductFormFields({
@@ -58,8 +64,17 @@ export default function ProductFormFields({
   onNetWeightChange,
   onCustomProductNameChange,
   onCustomNetWeightChange,
+  showWeightUnitSelector = false,
+  onWeightUnitChange,
+  fieldErrors = {},
 }: ProductFormFieldsProps) {
   const fieldId = (name: string) => `${idPrefix}${name}`
+  const weightUnit = normalizeWeightUnit(formData.weightUnit)
+  const weightUnitLabel = weightUnit === "liter" ? "Liter" : "kg"
+  const fieldErrorClass = (field: string) =>
+    fieldErrors[field] ? "border-red-500 focus:border-red-500 dark:border-red-500" : ""
+  const renderFieldError = (field: string) =>
+    fieldErrors[field] ? <p className={errorTextClass}>{fieldErrors[field]}</p> : null
 
   const selectContentClass =
     variant === "quick"
@@ -78,6 +93,31 @@ export default function ProductFormFields({
 
   return (
     <div className="space-y-6">
+      {showWeightUnitSelector && (
+        <div className="space-y-2">
+          <Label htmlFor={fieldId("weightUnit")} className={labelClass}>
+            Weight Unit *
+          </Label>
+          <Select
+            value={weightUnit}
+            onValueChange={(value: WeightUnit) =>
+              onWeightUnitChange
+                ? onWeightUnitChange(value)
+                : updateForm({ weightUnit: value, netWeight: 0 })
+            }
+          >
+            <SelectTrigger id={fieldId("weightUnit")} className={cn(selectTriggerClass, fieldErrorClass("weightUnit"))}>
+              <SelectValue placeholder="Select unit" />
+            </SelectTrigger>
+            <SelectContent className={selectContentClass}>
+              <SelectItem value="kg">Kilogram (kg)</SelectItem>
+              <SelectItem value="liter">Liter</SelectItem>
+            </SelectContent>
+          </Select>
+          {renderFieldError("weightUnit")}
+        </div>
+      )}
+
       <div className="space-y-2">
         <Label htmlFor={fieldId("productName")} className={labelClass}>
           Product Name *
@@ -89,16 +129,16 @@ export default function ProductFormFields({
             value={formData.name}
             onChange={(e) => onCustomProductNameChange(e.target.value)}
             placeholder="Enter product name"
-            className={inputClass}
+            className={cn(inputClass, fieldErrorClass("name"))}
             required
           />
         ) : (
           <>
             <Select
-              value={isAddingNewProduct ? "__new__" : formData.name}
+              value={isAddingNewProduct ? "__new__" : formData.name || undefined}
               onValueChange={onProductNameChange}
             >
-              <SelectTrigger id={fieldId("productName")} className={selectTriggerClass}>
+              <SelectTrigger id={fieldId("productName")} className={cn(selectTriggerClass, fieldErrorClass("name"))}>
                 <SelectValue placeholder="Select product name" />
               </SelectTrigger>
               <SelectContent className={selectContentClass}>
@@ -117,10 +157,11 @@ export default function ProductFormFields({
                 value={formData.name}
                 onChange={(e) => onCustomProductNameChange(e.target.value)}
                 placeholder="Enter new product name"
-                className={inputClass}
+                className={cn(inputClass, fieldErrorClass("name"))}
                 required
               />
             )}
+            {renderFieldError("name")}
           </>
         )}
       </div>
@@ -140,10 +181,10 @@ export default function ProductFormFields({
           )}
         </div>
         <Select
-          value={isAddingNewCategory ? "__new__" : formData.category}
+          value={isAddingNewCategory ? "__new__" : formData.category || undefined}
           onValueChange={onCategoryChange}
         >
-          <SelectTrigger id={fieldId("category")} className={selectTriggerClass}>
+          <SelectTrigger id={fieldId("category")} className={cn(selectTriggerClass, fieldErrorClass("category"))}>
             <SelectValue placeholder="Select or add category" />
           </SelectTrigger>
           <SelectContent className={selectContentClass}>
@@ -161,10 +202,11 @@ export default function ProductFormFields({
             value={newCategoryName}
             onChange={(e) => onNewCategoryNameChange(e.target.value)}
             placeholder="Enter new category name"
-            className={inputClass}
+            className={cn(inputClass, fieldErrorClass("category"))}
             required
           />
         )}
+        {renderFieldError("category")}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -192,7 +234,7 @@ export default function ProductFormFields({
               }
             }}
           >
-            <SelectTrigger id={fieldId("supplier")} className={selectTriggerClass}>
+            <SelectTrigger id={fieldId("supplier")} className={cn(selectTriggerClass, fieldErrorClass("supplier"))}>
               <SelectValue placeholder="Select a supplier" />
             </SelectTrigger>
             <SelectContent className={selectContentClass}>
@@ -204,6 +246,7 @@ export default function ProductFormFields({
               <SelectItem value="__new__">Add new supplier...</SelectItem>
             </SelectContent>
           </Select>
+          {renderFieldError("supplier")}
         </div>
 
         <div className="space-y-2">
@@ -242,8 +285,9 @@ export default function ProductFormFields({
             }}
             required
             placeholder="0"
-            className={inputClass}
+            className={cn(inputClass, fieldErrorClass("stockQuantity"))}
           />
+          {renderFieldError("stockQuantity")}
         </div>
 
         <div className="space-y-2">
@@ -261,15 +305,16 @@ export default function ProductFormFields({
               updateForm({ unitPrice: value === "" ? 0 : Number.parseFloat(value) })
             }}
             placeholder="0.00"
-            className={inputClass}
+            className={cn(inputClass, fieldErrorClass("unitPrice"))}
             required
           />
+          {renderFieldError("unitPrice")}
         </div>
       </div>
 
       <div className="space-y-2">
         <Label htmlFor={fieldId("netWeight")} className={labelClass}>
-          Net Weight (kg)
+          Net Weight ({weightUnitLabel}) *
         </Label>
         <Select
           value={
@@ -277,17 +322,17 @@ export default function ProductFormFields({
               ? "__new__"
               : uniqueNetWeights.includes(formData.netWeight)
                 ? String(formData.netWeight)
-                : ""
+                : undefined
           }
           onValueChange={onNetWeightChange}
         >
-          <SelectTrigger id={fieldId("netWeight")} className={selectTriggerClass}>
-            <SelectValue placeholder="Select net weight" />
+          <SelectTrigger id={fieldId("netWeight")} className={cn(selectTriggerClass, fieldErrorClass("netWeight"))}>
+            <SelectValue placeholder={`Select net weight (${weightUnitLabel})`} />
           </SelectTrigger>
           <SelectContent className={selectContentClass}>
             {uniqueNetWeights.map((weight) => (
               <SelectItem key={weight} value={String(weight)}>
-                {weight} kg
+                {weight} {weightUnitLabel}
               </SelectItem>
             ))}
             <SelectItem value="__new__">Add new weight...</SelectItem>
@@ -305,10 +350,11 @@ export default function ProductFormFields({
               const num = value === "" ? 0 : Number(value)
               onCustomNetWeightChange(num)
             }}
-            placeholder="Enter new net weight"
-            className={inputClass}
+            placeholder={`Enter new net weight (${weightUnitLabel})`}
+            className={cn(inputClass, fieldErrorClass("netWeight"))}
           />
         )}
+        {renderFieldError("netWeight")}
       </div>
 
       <div className="space-y-2">

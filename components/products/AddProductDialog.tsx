@@ -13,7 +13,7 @@ import type { Supplier } from "@/contexts/InventoryContext"
 import { Clock, Plus } from "lucide-react"
 import type React from "react"
 import ProductFormFields from "./ProductFormFields"
-import type { ProductFormData } from "./types"
+import type { ProductFormData, WeightUnit } from "./types"
 
 interface AddProductDialogProps {
   isOpen: boolean
@@ -37,6 +37,8 @@ interface AddProductDialogProps {
   onNetWeightChange: (value: string) => void
   onCustomProductNameChange: (value: string) => void
   onCustomNetWeightChange: (value: number) => void
+  onWeightUnitChange?: (unit: WeightUnit) => void
+  fieldErrors?: Record<string, string>
   userRole?: string
   onSubmit: (e: React.FormEvent) => void
   onCancel: () => void
@@ -64,6 +66,8 @@ export default function AddProductDialog({
   onNetWeightChange,
   onCustomProductNameChange,
   onCustomNetWeightChange,
+  onWeightUnitChange,
+  fieldErrors,
   userRole,
   onSubmit,
   onCancel,
@@ -117,6 +121,9 @@ export default function AddProductDialog({
             onNetWeightChange={onNetWeightChange}
             onCustomProductNameChange={onCustomProductNameChange}
             onCustomNetWeightChange={onCustomNetWeightChange}
+            onWeightUnitChange={onWeightUnitChange}
+            showWeightUnitSelector
+            fieldErrors={fieldErrors}
           />
           <div className="flex justify-end space-x-2 pt-4">
             <Button type="button" variant="neutralOutline" onClick={onCancel}>

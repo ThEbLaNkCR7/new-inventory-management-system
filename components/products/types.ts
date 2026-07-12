@@ -1,5 +1,7 @@
 import type { Product } from "@/contexts/InventoryContext"
 
+export type WeightUnit = "kg" | "liter"
+
 export type ProductFormData = {
   name: string
   description: string
@@ -7,6 +9,7 @@ export type ProductFormData = {
   stockQuantity: number
   unitPrice: number
   netWeight: number
+  weightUnit: WeightUnit
   supplier: string
   stockType: "new" | "old"
   lowStockThreshold: number
@@ -35,6 +38,7 @@ export const initialProductFormData: ProductFormData = {
   stockQuantity: 0,
   unitPrice: 0,
   netWeight: 0,
+  weightUnit: "kg",
   supplier: "",
   stockType: "new",
   lowStockThreshold: 5,

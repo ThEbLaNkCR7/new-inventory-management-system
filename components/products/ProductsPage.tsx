@@ -23,8 +23,8 @@ import ProcessingOverlay from "./ProcessingOverlay"
 import ProductApprovalDialog from "./ProductApprovalDialog"
 import ProductTransactionHistoryDialog from "./ProductTransactionHistoryDialog"
 import ProductsTable from "./ProductsTable"
-import { initialProductFormData, type PendingProductAction, type ProductFormData } from "./types"
-import { exportAllProductsToCSV, filterProducts, groupProductsByName } from "./utils"
+import { initialProductFormData, type PendingProductAction, type ProductFormData, type WeightUnit } from "./types"
+import { exportAllProductsToCSV, filterProducts, groupProductsByName, normalizeWeightUnit, validateProductFormData } from "./utils"
 import ViewProductDialog from "./ViewProductDialog"
 
 export default function ProductsPage() {
@@ -69,11 +69,25 @@ export default function ProductsPage() {
   const [customNetWeight, setCustomNetWeight] = useState(0)
   const [customProductName, setCustomProductName] = useState("")
   const [autoFilledFields, setAutoFilledFields] = useState<Record<string, boolean>>({})
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
+
+  const clearFieldErrors = (...fields: string[]) => {
+    setFieldErrors((prev) => {
+      if (fields.length === 0) return {}
+      const next = { ...prev }
+      fields.forEach((field) => delete next[field])
+      return next
+    })
+  }
 
   const uniqueNetWeights = useMemo(() => {
-    const weights = products.map((p) => p.netWeight).filter((w) => typeof w === "number" && !isNaN(w))
+    const unit = formData.weightUnit || "kg"
+    const weights = products
+      .filter((p) => (p.weightUnit || "kg") === unit)
+      .map((p) => p.netWeight)
+      .filter((w) => typeof w === "number" && !isNaN(w))
     return Array.from(new Set(weights)).sort((a, b) => (a as number) - (b as number)) as number[]
-  }, [products])
+  }, [products, formData.weightUnit])
 
   const categories = useMemo(() => [...new Set(products.map((p) => p.category))], [products])
   const uniqueProductNames = useMemo(
@@ -113,10 +127,12 @@ export default function ProductsPage() {
     setIsAddingCustomNetWeight(false)
     setNewCategoryName("")
     setAutoFilledFields({})
+    clearFieldErrors()
     setIsAddDialogOpen(false)
   }
 
   const handleNetWeightChange = (value: string) => {
+    clearFieldErrors("netWeight")
     if (value === "__new__") {
       setIsAddingCustomNetWeight(true)
       setCustomNetWeight(0)
@@ -127,7 +143,15 @@ export default function ProductsPage() {
     }
   }
 
+  const handleWeightUnitChange = (unit: WeightUnit) => {
+    clearFieldErrors("weightUnit", "netWeight")
+    setIsAddingCustomNetWeight(false)
+    setCustomNetWeight(0)
+    updateForm({ weightUnit: unit, netWeight: 0 })
+  }
+
   const handleProductNameChange = (value: string) => {
+    clearFieldErrors("name")
     if (value === "__new__") {
       setIsAddingNewProduct(true)
       setIsAddingNewCategory(false)
@@ -141,6 +165,7 @@ export default function ProductsPage() {
         stockQuantity: 0,
         unitPrice: 0,
         netWeight: 0,
+        weightUnit: formData.weightUnit || "kg",
         stockType: "new",
         description: "",
       })
@@ -155,6 +180,9 @@ export default function ProductsPage() {
       const updatedFormData: ProductFormData = {
         ...formData,
         name: value,
+        weightUnit: existingProduct.weightUnit && existingProduct.weightUnit !== "kg"
+          ? existingProduct.weightUnit
+          : formData.weightUnit || existingProduct.weightUnit || "kg",
         category: existingProduct.category && existingProduct.category.trim() !== "" ? existingProduct.category : formData.category,
         supplier: existingProduct.supplier && existingProduct.supplier.trim() !== "" ? existingProduct.supplier : formData.supplier,
       }
@@ -176,6 +204,7 @@ export default function ProductsPage() {
   }
 
   const handleCategoryChange = (value: string) => {
+    clearFieldErrors("category")
     if (value === "__new__") {
       setIsAddingNewCategory(true)
       setNewCategoryName("")
@@ -188,6 +217,7 @@ export default function ProductsPage() {
   }
 
   const handleSupplierChange = (value: string) => {
+    clearFieldErrors("supplier")
     if (value === "__new__") {
       setIsAddSupplierDialogOpen(true)
       return
@@ -203,22 +233,27 @@ export default function ProductsPage() {
 
   const getSubmitData = (): ProductFormData => ({
     ...formData,
+    weightUnit: normalizeWeightUnit(formData.weightUnit),
     category: isAddingNewCategory ? newCategoryName : formData.category,
   })
 
   const validateSubmitData = (submitData: ProductFormData) => {
-    if (!submitData.name || submitData.name.trim() === "") {
-      toast({ title: "Error", description: "Product name is required", variant: "destructive" })
+    const errors = validateProductFormData(submitData, {
+      category: submitData.category,
+      isAddingNewProduct,
+      isAddingNewCategory,
+      isAddingCustomNetWeight,
+    })
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors)
+      toast({
+        title: "Validation Error",
+        description: Object.values(errors)[0],
+        variant: "destructive",
+      })
       return false
     }
-    if (!submitData.supplier || submitData.supplier.trim() === "") {
-      toast({ title: "Error", description: "Supplier is required", variant: "destructive" })
-      return false
-    }
-    if (!submitData.category || submitData.category.trim() === "") {
-      toast({ title: "Error", description: "Category is required", variant: "destructive" })
-      return false
-    }
+    clearFieldErrors()
     return true
   }
 
@@ -369,6 +404,7 @@ export default function ProductsPage() {
       stockQuantity: product.stockQuantity,
       unitPrice: product.unitPrice,
       netWeight: product.netWeight || 0,
+      weightUnit: product.weightUnit || "kg",
       supplier: product.supplier,
       stockType: product.stockType,
       lowStockThreshold: (product as Product & { lowStockThreshold?: number }).lowStockThreshold ?? 5,
@@ -457,7 +493,10 @@ export default function ProductsPage() {
 
   const sharedFormProps = {
     formData,
-    updateForm,
+    updateForm: (updates: Partial<ProductFormData>) => {
+      clearFieldErrors(...Object.keys(updates))
+      updateForm(updates)
+    },
     categories,
     suppliers,
     uniqueProductNames,
@@ -466,20 +505,26 @@ export default function ProductsPage() {
     isAddingNewCategory,
     isAddingCustomNetWeight,
     newCategoryName,
-    onNewCategoryNameChange: setNewCategoryName,
     onCategoryChange: handleCategoryChange,
     onSupplierChange: handleSupplierChange,
     autoFilledFields,
     onProductNameChange: handleProductNameChange,
     onNetWeightChange: handleNetWeightChange,
     onCustomProductNameChange: (value: string) => {
+      clearFieldErrors("name")
       setCustomProductName(value)
       updateForm({ name: value })
     },
     onCustomNetWeightChange: (value: number) => {
+      clearFieldErrors("netWeight")
       setCustomNetWeight(value)
       updateForm({ netWeight: value })
     },
+    onNewCategoryNameChange: (value: string) => {
+      clearFieldErrors("category")
+      setNewCategoryName(value)
+    },
+    fieldErrors,
     userRole: user?.role,
   }
 
@@ -508,6 +553,7 @@ export default function ProductsPage() {
           <Button onClick={() => exportAllProductsToCSV(products)}>Export All Products</Button>
           <AddProductDialog
             {...sharedFormProps}
+            onWeightUnitChange={handleWeightUnitChange}
             isOpen={isAddDialogOpen}
             onOpenChange={setIsAddDialogOpen}
             onResetForm={() => {
@@ -517,6 +563,7 @@ export default function ProductsPage() {
               setIsAddingCustomNetWeight(false)
               setNewCategoryName("")
               setAutoFilledFields({})
+              clearFieldErrors()
             }}
             onSubmit={handleSubmit}
             onCancel={clearForm}
@@ -538,6 +585,7 @@ export default function ProductsPage() {
 
       <EditProductDialog
         {...sharedFormProps}
+        onWeightUnitChange={handleWeightUnitChange}
         isOpen={isEditDialogOpen}
         onOpenChange={setIsEditDialogOpen}
         onSubmit={handleEditSubmit}

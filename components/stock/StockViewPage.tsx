@@ -7,6 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useBatch } from "@/contexts/BatchContext"
 import { useInventory } from "@/contexts/InventoryContext"
+import { formatProductNetWeight } from "@/components/products/utils"
 import { AlertTriangle, Clock, Package, Search } from "lucide-react"
 import { useState } from "react"
 
@@ -287,7 +288,7 @@ export default function StockViewPage() {
                       </TableCell>
 
                       <TableCell className="text-gray-700">
-                        {product.netWeight ?? "-"}
+                        {formatProductNetWeight(product)}
                       </TableCell>
 
                       <TableCell className="text-gray-700">
