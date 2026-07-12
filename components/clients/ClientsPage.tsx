@@ -29,10 +29,16 @@ import { useApproval } from "@/contexts/ApprovalContext"
 import { useAuth } from "@/contexts/AuthContext"
 import { usePersistentForm } from "@/contexts/FormPersistenceContext"
 import { useInventory } from "@/contexts/InventoryContext"
-import { formatNepaliDateForTable, getCurrentNepaliYear, getNepaliYear } from "@/lib/utils"
+import { cn, formatNepaliDateForTable, getCurrentNepaliYear, getNepaliYear } from "@/lib/utils"
 import { Building, CheckCircle, Clock, Edit, Eye, Loader2, Mail, Phone, Plus, Search, Trash2 } from "lucide-react"
 import { useState } from "react"
 import { Progress } from "../ui/progress"
+import { validateClientFormData } from "./utils"
+
+const inputClass =
+  "border-2 focus:border-slate-500 transition-colors dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
+const selectTriggerClass = inputClass
+const errorTextClass = "text-sm text-red-600 dark:text-red-400"
 
 export default function ClientsPage() {
   const {
@@ -68,7 +74,6 @@ export default function ClientsPage() {
     paymentStatus: "Received" as "Received" | "Pending",
   }
 
-  const { formData, updateForm, resetForm } = usePersistentForm('clients-form', initialFormData)
   const [showSuccessAlert, setShowSuccessAlert] = useState(false)
   const [alertMessage, setAlertMessage] = useState("")
   const [isLoading, setIsLoading] = useState(false)
@@ -78,8 +83,46 @@ export default function ClientsPage() {
   const [showApprovalDialog, setShowApprovalDialog] = useState(false)
   const [approvalReason, setApprovalReason] = useState("")
   const [paymentFilter, setPaymentFilter] = useState<"All" | "Received" | "Pending">("All")
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
 
   const { user } = useAuth()
+
+  const clearFieldErrors = (...fields: string[]) => {
+    setFieldErrors((prev) => {
+      if (fields.length === 0) return {}
+      const next = { ...prev }
+      fields.forEach((field) => delete next[field])
+      return next
+    })
+  }
+
+  const fieldErrorClass = (field: string) =>
+    fieldErrors[field] ? "border-red-500 focus:border-red-500 dark:border-red-500" : ""
+
+  const renderFieldError = (field: string) =>
+    fieldErrors[field] ? <p className={errorTextClass}>{fieldErrors[field]}</p> : null
+
+  const { formData, updateForm: persistFormUpdate, resetForm } = usePersistentForm('clients-form', initialFormData)
+
+  const updateForm = (updates: Partial<typeof initialFormData>) => {
+    clearFieldErrors(...Object.keys(updates))
+    persistFormUpdate(updates)
+  }
+
+  const validateForm = () => {
+    const errors = validateClientFormData(formData)
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors)
+      toast({
+        title: "Validation Error",
+        description: Object.values(errors)[0],
+        variant: "destructive",
+      })
+      return false
+    }
+    clearFieldErrors()
+    return true
+  }
 
   const filteredClients = clients.filter((client) => {
     const matchesSearch =
@@ -124,12 +167,13 @@ export default function ClientsPage() {
 
   const clearForm = () => {
     resetForm()
+    clearFieldErrors()
     setIsAddDialogOpen(false)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setIsAddDialogOpen(false)
+    if (!validateForm()) return
     setIsLoading(true)
     setProgress(0)
     try {
@@ -216,6 +260,7 @@ export default function ClientsPage() {
 
   const handleEdit = (client: any) => {
     setEditingClient(client)
+    clearFieldErrors()
     updateForm({
       name: client.name,
       email: client.email,
@@ -231,7 +276,7 @@ export default function ClientsPage() {
 
   const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setIsEditDialogOpen(false)
+    if (!validateForm()) return
     setIsLoading(true)
     setProgress(0)
     try {
@@ -350,7 +395,10 @@ export default function ClientsPage() {
           <p className="text-gray-600 dark:text-gray-300">Manage client relationships and contact information</p>
         </div>
         <div className="absolute top-6 right-0 flex space-x-3">
-          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+          <Dialog open={isAddDialogOpen} onOpenChange={(open) => {
+            setIsAddDialogOpen(open)
+            if (!open) clearFieldErrors()
+          }}>
             <DialogTrigger asChild>
               <Button
                 onClick={resetForm}
@@ -378,42 +426,44 @@ export default function ClientsPage() {
               </DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="name">Full Name</Label>
+                  <Label htmlFor="name">Full Name *</Label>
                   <Input
                     id="name"
                     value={formData.name}
-                    onChange={(e) => updateForm({ ...formData, name: e.target.value })}
-                    required
+                    onChange={(e) => updateForm({ name: e.target.value })}
+                    className={cn(inputClass, fieldErrorClass("name"))}
                   />
+                  {renderFieldError("name")}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
+                  <Label htmlFor="email">Email *</Label>
                   <Input
                     id="email"
                     type="email"
                     value={formData.email}
-                    onChange={(e) => updateForm({ ...formData, email: e.target.value })}
-                    required
+                    onChange={(e) => updateForm({ email: e.target.value })}
+                    className={cn(inputClass, fieldErrorClass("email"))}
                   />
+                  {renderFieldError("email")}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="phone">Phone</Label>
+                  <Label htmlFor="phone">Phone *</Label>
                   <Input
                     id="phone"
                     value={formData.phone}
-                    onChange={(e) => updateForm({ ...formData, phone: e.target.value })}
-                    required
+                    onChange={(e) => updateForm({ phone: e.target.value })}
+                    className={cn(inputClass, fieldErrorClass("phone"))}
                   />
+                  {renderFieldError("phone")}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="company">Company Type</Label>
+                  <Label htmlFor="company">Company Type *</Label>
                   <div className="space-y-2">
                     <Select
                       value={formData.company}
-                      onValueChange={(value) => updateForm({ ...formData, company: value })}
-                      required
+                      onValueChange={(value) => updateForm({ company: value })}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger className={cn(selectTriggerClass, fieldErrorClass("company"))}>
                         <SelectValue placeholder="Select company type or enter custom type" />
                       </SelectTrigger>
                       <SelectContent className="max-h-60">
@@ -425,15 +475,16 @@ export default function ClientsPage() {
                         ))}
                       </SelectContent>
                     </Select>
+                    {renderFieldError("company")}
                     {formData.company === "custom" && (
                       <Input
                         placeholder="Enter custom company type"
                         value={formData.customCompany || ""}
-                        onChange={(e) => updateForm({ ...formData, customCompany: e.target.value })}
-                        className="mt-2"
-                        required
+                        onChange={(e) => updateForm({ customCompany: e.target.value })}
+                        className={cn("mt-2", inputClass, fieldErrorClass("customCompany"))}
                       />
                     )}
+                    {formData.company === "custom" && renderFieldError("customCompany")}
                   </div>
                 </div>
                 <div className="space-y-2">
@@ -441,19 +492,20 @@ export default function ClientsPage() {
                   <Input
                     id="address"
                     value={formData.address}
-                    onChange={(e) => updateForm({ ...formData, address: e.target.value })}
+                    onChange={(e) => updateForm({ address: e.target.value })}
                     placeholder="Enter full address"
+                    className={inputClass}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="paymentStatus">Payment Status</Label>
+                  <Label htmlFor="paymentStatus">Payment Status *</Label>
                   <Select
                     value={formData.paymentStatus || "Pending"}
                     onValueChange={(value) =>
-                      updateForm({ ...formData, paymentStatus: value as "Received" | "Pending" })
+                      updateForm({ paymentStatus: value as "Received" | "Pending" })
                     }
                   >
-                    <SelectTrigger className="h-8 w-32">
+                    <SelectTrigger className={cn("h-8 w-32", selectTriggerClass, fieldErrorClass("paymentStatus"))}>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -461,14 +513,15 @@ export default function ClientsPage() {
                       <SelectItem value="Pending">Pending</SelectItem>
                     </SelectContent>
                   </Select>
+                  {renderFieldError("paymentStatus")}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="status">Status</Label>
+                  <Label htmlFor="status">Status *</Label>
                   <Select
                     value={formData.status}
-                    onValueChange={(value) => updateForm({ ...formData, status: value })}
+                    onValueChange={(value) => updateForm({ status: value })}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className={cn(selectTriggerClass, fieldErrorClass("status"))}>
                       <SelectValue placeholder="Select status" />
                     </SelectTrigger>
                     <SelectContent>
@@ -476,6 +529,7 @@ export default function ClientsPage() {
                       <SelectItem value="Inactive">Inactive</SelectItem>
                     </SelectContent>
                   </Select>
+                  {renderFieldError("status")}
                 </div>
                 <div className="flex justify-end space-x-2">
                   <Button type="button" variant="neutralOutline" onClick={clearForm}>
@@ -524,7 +578,13 @@ export default function ClientsPage() {
       </div>
 
       {/* Edit Client Dialog */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+      <Dialog open={isEditDialogOpen} onOpenChange={(open) => {
+        setIsEditDialogOpen(open)
+        if (!open) {
+          clearFieldErrors()
+          setEditingClient(null)
+        }
+      }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Edit Client</DialogTitle>
@@ -532,42 +592,44 @@ export default function ClientsPage() {
           </DialogHeader>
           <form onSubmit={handleEditSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="edit-name">Full Name</Label>
+              <Label htmlFor="edit-name">Full Name *</Label>
               <Input
                 id="edit-name"
                 value={formData.name}
-                onChange={(e) => updateForm({ ...formData, name: e.target.value })}
-                required
+                onChange={(e) => updateForm({ name: e.target.value })}
+                className={cn(inputClass, fieldErrorClass("name"))}
               />
+              {renderFieldError("name")}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="edit-email">Email</Label>
+              <Label htmlFor="edit-email">Email *</Label>
               <Input
                 id="edit-email"
                 type="email"
                 value={formData.email}
-                onChange={(e) => updateForm({ ...formData, email: e.target.value })}
-                required
+                onChange={(e) => updateForm({ email: e.target.value })}
+                className={cn(inputClass, fieldErrorClass("email"))}
               />
+              {renderFieldError("email")}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="edit-phone">Phone</Label>
+              <Label htmlFor="edit-phone">Phone *</Label>
               <Input
                 id="edit-phone"
                 value={formData.phone}
-                onChange={(e) => updateForm({ ...formData, phone: e.target.value })}
-                required
+                onChange={(e) => updateForm({ phone: e.target.value })}
+                className={cn(inputClass, fieldErrorClass("phone"))}
               />
+              {renderFieldError("phone")}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="edit-company">Company Type</Label>
+              <Label htmlFor="edit-company">Company Type *</Label>
               <div className="space-y-2">
                 <Select
                   value={formData.company}
-                  onValueChange={(value) => updateForm({ ...formData, company: value })}
-                  required
+                  onValueChange={(value) => updateForm({ company: value })}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className={cn(selectTriggerClass, fieldErrorClass("company"))}>
                     <SelectValue placeholder="Select company type or enter custom type" />
                   </SelectTrigger>
                   <SelectContent className="max-h-60">
@@ -579,15 +641,16 @@ export default function ClientsPage() {
                     ))}
                   </SelectContent>
                 </Select>
+                {renderFieldError("company")}
                 {formData.company === "custom" && (
                   <Input
                     placeholder="Enter custom company type"
                     value={formData.customCompany || ""}
-                    onChange={(e) => updateForm({ ...formData, customCompany: e.target.value })}
-                    className="mt-2"
-                    required
+                    onChange={(e) => updateForm({ customCompany: e.target.value })}
+                    className={cn("mt-2", inputClass, fieldErrorClass("customCompany"))}
                   />
                 )}
+                {formData.company === "custom" && renderFieldError("customCompany")}
               </div>
             </div>
             <div className="space-y-2">
@@ -595,17 +658,18 @@ export default function ClientsPage() {
               <Input
                 id="edit-address"
                 value={formData.address}
-                onChange={(e) => updateForm({ ...formData, address: e.target.value })}
+                onChange={(e) => updateForm({ address: e.target.value })}
                 placeholder="Enter full address"
+                className={inputClass}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="edit-status">Status</Label>
+              <Label htmlFor="edit-status">Status *</Label>
               <Select
                 value={formData.status}
-                onValueChange={(value) => updateForm({ ...formData, status: value })}
+                onValueChange={(value) => updateForm({ status: value })}
               >
-                <SelectTrigger>
+                <SelectTrigger className={cn(selectTriggerClass, fieldErrorClass("status"))}>
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
                 <SelectContent>
@@ -613,16 +677,17 @@ export default function ClientsPage() {
                   <SelectItem value="Inactive">Inactive</SelectItem>
                 </SelectContent>
               </Select>
+              {renderFieldError("status")}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="paymentStatus">Payment Status</Label>
+              <Label htmlFor="edit-paymentStatus">Payment Status *</Label>
               <Select
                 value={formData.paymentStatus || "Pending"}
                 onValueChange={(value) =>
-                  updateForm({ ...formData, paymentStatus: value as "Received" | "Pending" })
+                  updateForm({ paymentStatus: value as "Received" | "Pending" })
                 }
               >
-                <SelectTrigger className="h-8 w-32">
+                <SelectTrigger className={cn("h-8 w-32", selectTriggerClass, fieldErrorClass("paymentStatus"))}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -630,6 +695,7 @@ export default function ClientsPage() {
                   <SelectItem value="Pending">Pending</SelectItem>
                 </SelectContent>
               </Select>
+              {renderFieldError("paymentStatus")}
             </div>
             <div className="flex justify-end space-x-2">
               <Button type="button" variant="neutralOutline" onClick={() => {

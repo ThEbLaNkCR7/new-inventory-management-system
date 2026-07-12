@@ -24,7 +24,14 @@ import { useToast } from "@/components/ui/use-toast"
 import { useApproval } from "@/contexts/ApprovalContext"
 import { useAuth } from "@/contexts/AuthContext"
 import { useInventory } from "@/contexts/InventoryContext"
+import { cn } from "@/lib/utils"
 import { Clock } from "lucide-react"
+import { validateClientFormData } from "./utils"
+
+const inputClass =
+  "border-2 focus:border-slate-500 transition-colors dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
+const selectTriggerClass = inputClass
+const errorTextClass = "text-sm text-red-600 dark:text-red-400"
 
 const initialFormData = {
   name: "",
@@ -58,15 +65,48 @@ export default function AddClientDialog({
   const [showApprovalDialog, setShowApprovalDialog] = useState(false)
   const [approvalReason, setApprovalReason] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
+
+  const clearFieldErrors = (...fields: string[]) => {
+    setFieldErrors((prev) => {
+      if (fields.length === 0) return {}
+      const next = { ...prev }
+      fields.forEach((field) => delete next[field])
+      return next
+    })
+  }
+
+  const fieldErrorClass = (field: string) =>
+    fieldErrors[field] ? "border-red-500 focus:border-red-500 dark:border-red-500" : ""
+
+  const renderFieldError = (field: string) =>
+    fieldErrors[field] ? <p className={errorTextClass}>{fieldErrors[field]}</p> : null
 
   const updateForm = (updates: Partial<typeof initialFormData>) => {
+    clearFieldErrors(...Object.keys(updates))
     setFormData((prev) => ({ ...prev, ...updates }))
+  }
+
+  const validateForm = () => {
+    const errors = validateClientFormData(formData)
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors)
+      toast({
+        title: "Validation Error",
+        description: Object.values(errors)[0],
+        variant: "destructive",
+      })
+      return false
+    }
+    clearFieldErrors()
+    return true
   }
 
   const resetForm = () => {
     setFormData(initialFormData)
     setApprovalReason("")
     setShowApprovalDialog(false)
+    clearFieldErrors()
   }
 
   useEffect(() => {
@@ -101,6 +141,7 @@ export default function AddClientDialog({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!validateForm()) return
     const newClientData = buildClientData()
 
     setIsSubmitting(true)
@@ -118,6 +159,7 @@ export default function AddClientDialog({
   }
 
   const submitForApproval = () => {
+    if (!validateForm()) return
     submitChange({
       type: "client",
       action: "create",
@@ -137,7 +179,10 @@ export default function AddClientDialog({
 
   return (
     <>
-      <Dialog open={open} onOpenChange={onOpenChange}>
+      <Dialog open={open} onOpenChange={(isOpen) => {
+        onOpenChange(isOpen)
+        if (!isOpen) clearFieldErrors()
+      }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Add New Client</DialogTitle>
@@ -155,42 +200,44 @@ export default function AddClientDialog({
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="add-client-name">Full Name</Label>
+              <Label htmlFor="add-client-name">Full Name *</Label>
               <Input
                 id="add-client-name"
                 value={formData.name}
                 onChange={(e) => updateForm({ name: e.target.value })}
-                required
+                className={cn(inputClass, fieldErrorClass("name"))}
               />
+              {renderFieldError("name")}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="add-client-email">Email</Label>
+              <Label htmlFor="add-client-email">Email *</Label>
               <Input
                 id="add-client-email"
                 type="email"
                 value={formData.email}
                 onChange={(e) => updateForm({ email: e.target.value })}
-                required
+                className={cn(inputClass, fieldErrorClass("email"))}
               />
+              {renderFieldError("email")}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="add-client-phone">Phone</Label>
+              <Label htmlFor="add-client-phone">Phone *</Label>
               <Input
                 id="add-client-phone"
                 value={formData.phone}
                 onChange={(e) => updateForm({ phone: e.target.value })}
-                required
+                className={cn(inputClass, fieldErrorClass("phone"))}
               />
+              {renderFieldError("phone")}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="add-client-company">Company Type</Label>
+              <Label htmlFor="add-client-company">Company Type *</Label>
               <div className="space-y-2">
                 <Select
                   value={formData.company}
                   onValueChange={(value) => updateForm({ company: value })}
-                  required
                 >
-                  <SelectTrigger id="add-client-company">
+                  <SelectTrigger id="add-client-company" className={cn(selectTriggerClass, fieldErrorClass("company"))}>
                     <SelectValue placeholder="Select company type or enter custom type" />
                   </SelectTrigger>
                   <SelectContent className="max-h-60">
@@ -202,15 +249,16 @@ export default function AddClientDialog({
                     ))}
                   </SelectContent>
                 </Select>
+                {renderFieldError("company")}
                 {formData.company === "custom" && (
                   <Input
                     placeholder="Enter custom company type"
                     value={formData.customCompany || ""}
                     onChange={(e) => updateForm({ customCompany: e.target.value })}
-                    className="mt-2"
-                    required
+                    className={cn("mt-2", inputClass, fieldErrorClass("customCompany"))}
                   />
                 )}
+                {formData.company === "custom" && renderFieldError("customCompany")}
               </div>
             </div>
             <div className="space-y-2">
@@ -220,17 +268,18 @@ export default function AddClientDialog({
                 value={formData.address}
                 onChange={(e) => updateForm({ address: e.target.value })}
                 placeholder="Enter full address"
+                className={inputClass}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="add-client-paymentStatus">Payment Status</Label>
+              <Label htmlFor="add-client-paymentStatus">Payment Status *</Label>
               <Select
                 value={formData.paymentStatus}
                 onValueChange={(value) =>
                   updateForm({ paymentStatus: value as "Received" | "Pending" })
                 }
               >
-                <SelectTrigger id="add-client-paymentStatus">
+                <SelectTrigger id="add-client-paymentStatus" className={cn(selectTriggerClass, fieldErrorClass("paymentStatus"))}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -238,11 +287,12 @@ export default function AddClientDialog({
                   <SelectItem value="Pending">Pending</SelectItem>
                 </SelectContent>
               </Select>
+              {renderFieldError("paymentStatus")}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="add-client-status">Status</Label>
+              <Label htmlFor="add-client-status">Status *</Label>
               <Select value={formData.status} onValueChange={(value) => updateForm({ status: value })}>
-                <SelectTrigger id="add-client-status">
+                <SelectTrigger id="add-client-status" className={cn(selectTriggerClass, fieldErrorClass("status"))}>
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
                 <SelectContent>
@@ -250,6 +300,7 @@ export default function AddClientDialog({
                   <SelectItem value="Inactive">Inactive</SelectItem>
                 </SelectContent>
               </Select>
+              {renderFieldError("status")}
             </div>
             <div className="flex justify-end space-x-2">
               <Button
@@ -269,8 +320,10 @@ export default function AddClientDialog({
               ) : (
                 <Button
                   type="button"
-                  onClick={() => setShowApprovalDialog(true)}
-                  disabled={!formData.name.trim() || !formData.email.trim()}
+                  onClick={() => {
+                    if (!validateForm()) return
+                    setShowApprovalDialog(true)
+                  }}
                 >
                   Submit for Approval
                 </Button>
