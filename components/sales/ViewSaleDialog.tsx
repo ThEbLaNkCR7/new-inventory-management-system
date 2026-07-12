@@ -84,6 +84,16 @@ export default function ViewSaleDialog({
                 {formatNepaliDateForTable(sale.saleDate)}
               </p>
             </div>
+            {sale.batchNumber && (
+              <div className="space-y-2">
+                <Label className="text-sm font-medium text-gray-900 dark:text-gray-100 uppercase tracking-wide">
+                  Batch
+                </Label>
+                <p className="text-gray-600 dark:text-gray-500 text-base">
+                  {sale.batchNumber}
+                </p>
+              </div>
+            )}
             <div className="space-y-2">
               <Label className="text-sm font-medium text-gray-900 dark:text-gray-100 uppercase tracking-wide">
                 Updated Date

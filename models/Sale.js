@@ -45,6 +45,16 @@ const saleSchema = new mongoose.Schema(
 
     billUrl: String,
 
+    batchId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Batch",
+    },
+
+    batchNumber: {
+      type: String,
+      trim: true,
+    },
+
     isActive: {
       type: Boolean,
       default: true,

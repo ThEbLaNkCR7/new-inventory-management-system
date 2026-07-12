@@ -27,6 +27,7 @@ import { formatProductNetWeight } from "@/components/products/utils"
 import { Separator } from "@/components/ui/separator"
 import AddSupplierDialog from "@/components/suppliers/AddSupplierDialog"
 import DeleteBatchDialog from "./DeleteBatchDialog"
+import { createBatchTrackingContext, getBatchItemRemaining, getSoldItemsForBatch, getSoldQuantityForBatchItem } from "./utils"
 import {
   Calendar,
   CalendarClock,
@@ -63,7 +64,7 @@ const shouldPreventBatchDialogClose = (
 
 export default function BatchesPage() {
   const { batches, addBatch, deleteBatch, updateBatchStatus } = useBatch()
-  const { products, suppliers, refreshData } = useInventory()
+  const { products, suppliers, sales, refreshData } = useInventory()
   const [searchTerm, setSearchTerm] = useState("")
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [isAddSupplierDialogOpen, setIsAddSupplierDialogOpen] = useState(false)
@@ -943,12 +944,25 @@ export default function BatchesPage() {
               <div className="space-y-2">
                 <h4 className="font-medium text-sm">Items:</h4>
                 <div className="space-y-1">
-                  {batch.items.slice(0, 3).map((item, index) => (
-                    <div key={index} className="text-xs text-gray-600 flex justify-between">
-                      <span>{item.productName}</span>
-                      <span>×{item.quantity}</span>
-                    </div>
-                  ))}
+                  {batch.items.slice(0, 3).map((item, index) => {
+                    const product = products.find((p) => p.id === item.productId)
+                    const context = createBatchTrackingContext(batch.id, batch.batchNumber, batch.items, product)
+                    const sold = getSoldQuantityForBatchItem(sales, item.productId, context)
+                    const remaining = getBatchItemRemaining(sales, item.productId, item.quantity, context)
+
+                    return (
+                      <div key={index} className="text-xs text-gray-600">
+                        <div className="flex justify-between">
+                          <span>{item.productName}</span>
+                          <span>×{item.quantity}</span>
+                        </div>
+                        <div className="flex justify-between text-[11px] text-gray-500 mt-0.5">
+                          <span className="text-orange-600">{sold} sold</span>
+                          <span className="text-green-600">{remaining} in stock</span>
+                        </div>
+                      </div>
+                    )
+                  })}
                   {batch.items.length > 3 && (
                     <div className="text-xs text-gray-500">+{batch.items.length - 3} more items</div>
                   )}
@@ -988,14 +1002,31 @@ export default function BatchesPage() {
                 <div className="grid grid-cols-1 gap-3">
                   {selectedBatch.items.map((item, idx) => {
                     const product = products.find((p) => p.id === item.productId)
-                    const imgSrc = (product && ((product as any).image || (product as any).imageUrl)) || "/placeholder.jpg"
+                    const context = createBatchTrackingContext(
+                      selectedBatch.id,
+                      selectedBatch.batchNumber,
+                      selectedBatch.items,
+                      product,
+                    )
+                    const sold = getSoldQuantityForBatchItem(sales, item.productId, context)
+                    const remaining = getBatchItemRemaining(sales, item.productId, item.quantity, context)
+
                     return (
                       <div key={idx} className="flex items-center space-x-4 p-3 rounded-lg border">
-                        {/* <img src={imgSrc} alt={item.productName} className="h-16 w-16 object-cover rounded" /> */}
                         <div className="flex-1">
                           <div className="font-medium">{item.productName}</div>
-                          <div className="text-sm text-gray-500">Quantity: {item.quantity} • Unit Cost: Rs {item.unitCost}</div>
-                          <div className="space-y-1">
+                          <div className="text-sm text-gray-500">
+                            Original Qty: {item.quantity} • Unit Cost: Rs {item.unitCost}
+                          </div>
+                          <div className="flex gap-3 mt-1">
+                            <Badge variant="outline" className="text-orange-700 border-orange-200 bg-orange-50">
+                              {sold} sold
+                            </Badge>
+                            <Badge variant="outline" className="text-green-700 border-green-200 bg-green-50">
+                              {remaining} in stock
+                            </Badge>
+                          </div>
+                          <div className="space-y-1 mt-2">
                             {item.manufactureDate && (
                               <div className="text-xs text-gray-400">
                                 Manufactured: {formatNepaliDateForTable(item.manufactureDate)}
@@ -1014,6 +1045,41 @@ export default function BatchesPage() {
                     )
                   })}
                 </div>
+
+                {(() => {
+                  const soldItems = getSoldItemsForBatch(
+                    sales,
+                    selectedBatch.id,
+                    selectedBatch.batchNumber,
+                    selectedBatch.items,
+                    products,
+                  )
+                  if (soldItems.length === 0) return null
+
+                  return (
+                    <div className="mt-6 pt-4 border-t">
+                      <h4 className="font-semibold mb-3">Sold Items</h4>
+                      <div className="space-y-2">
+                        {soldItems.map((entry, index) => (
+                          <div key={`${entry.saleId}-${entry.productId}-${index}`} className="flex items-center justify-between p-3 rounded-lg border bg-orange-50/50 dark:bg-orange-950/20">
+                            <div>
+                              <div className="font-medium">{entry.productName}</div>
+                              <div className="text-sm text-gray-500">
+                                {entry.quantitySold} units · Client: {entry.client}
+                              </div>
+                              <div className="text-xs text-gray-400">
+                                {formatNepaliDateForTable(entry.saleDate)}
+                              </div>
+                            </div>
+                            <div className="text-sm font-medium text-orange-700">
+                              Rs {(entry.quantitySold * entry.salePrice).toLocaleString()}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )
+                })()}
               </div>
             ) : (
               <div>No batch selected</div>

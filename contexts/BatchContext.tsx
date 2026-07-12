@@ -52,9 +52,13 @@ export function BatchProvider({ children }: { children: React.ReactNode }) {
           if (!mounted) return
           const loaded: Batch[] = (data.batches || []).map((b: any) => ({
             ...b,
-            id: b._id || b.id,
+            id: String(b._id || b.id),
             arrivalDate: b.arrivalDate ? new Date(b.arrivalDate).toISOString().split('T')[0] : b.arrivalDate,
             createdAt: b.createdAt || b.createdAt,
+            items: (b.items || []).map((item: any) => ({
+              ...item,
+              productId: String(item.productId?._id || item.productId),
+            })),
           }))
           setBatches(loaded)
         } catch (e) {
@@ -77,9 +81,13 @@ export function BatchProvider({ children }: { children: React.ReactNode }) {
       const created = await res.json()
       const newBatch: Batch = {
         ...created,
-        id: created._id || created.id,
+        id: String(created._id || created.id),
         arrivalDate: created.arrivalDate ? new Date(created.arrivalDate).toISOString().split('T')[0] : created.arrivalDate,
         createdAt: created.createdAt || created.createdAt,
+        items: (created.items || []).map((item: any) => ({
+          ...item,
+          productId: String(item.productId?._id || item.productId),
+        })),
       }
       setBatches((prev) => [...prev, newBatch])
     } catch (e) {

@@ -58,6 +58,7 @@ export type Sale = {
   billUrl?: string
   isActive?: boolean
   batchId?: string
+  batchNumber?: string
   isVat: boolean
   items: SaleItem[]
 }
@@ -191,11 +192,22 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
 
       setProducts((productsData.products || []).map((p: any) => ({
         ...p,
-        id: p._id || p.id,
+        id: String(p._id || p.id),
+        batchId: p.batchId ? String(p.batchId) : undefined,
+        batchNumber: p.batchNumber || undefined,
         weightUnit: p.weightUnit === "liter" ? "liter" : "kg",
       })).filter((p: any) => p.isActive !== false))
       setPurchases((purchasesData.purchases || []).map((p: any) => ({ ...p, id: p._id || p.id })).filter((p: any) => p.isActive !== false))
-      setSales((salesData.sales || []).map((s: any) => ({ ...s, id: s._id || s.id })).filter((s: any) => s.isActive !== false))
+      setSales((salesData.sales || []).map((s: any) => ({
+        ...s,
+        id: String(s._id || s.id),
+        batchId: s.batchId ? String(s.batchId) : undefined,
+        batchNumber: s.batchNumber || undefined,
+        items: (s.items || []).map((item: any) => ({
+          ...item,
+          productId: String(item.productId?._id || item.productId),
+        })),
+      })).filter((s: any) => s.isActive !== false))
       setClients((clientsData.clients || []).map((c: any) => ({ ...c, id: c._id || c.id })).filter((c: any) => c.isActive !== false))
       setSuppliers((suppliersData.suppliers || []).map((s: any) => ({ ...s, id: s._id || s.id })).filter((s: any) => s.isActive !== false))
 
@@ -392,7 +404,16 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
       })
       if (!res.ok) throw new Error("Failed to add sale")
       const newSale = await res.json()
-      setSales((prev) => [...prev, { ...newSale, id: newSale._id || newSale.id }])
+      setSales((prev) => [...prev, {
+        ...newSale,
+        id: String(newSale._id || newSale.id),
+        batchId: newSale.batchId ? String(newSale.batchId) : undefined,
+        batchNumber: newSale.batchNumber || undefined,
+        items: (newSale.items || []).map((item: any) => ({
+          ...item,
+          productId: String(item.productId?._id || item.productId),
+        })),
+      }])
       // console.log("✅ Sale added successfully:", sale.productName)
 
       // Update client statistics

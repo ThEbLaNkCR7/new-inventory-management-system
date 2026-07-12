@@ -120,7 +120,9 @@ export function ApprovalProvider({ children }: { children: React.ReactNode }) {
           clientType: change.proposedData.clientType,
           saleDate: change.proposedData.saleDate,
           batchId: change.proposedData.batchId,
-          items: [
+          batchNumber: change.proposedData.batchNumber,
+          isVat: change.proposedData.isVat ?? false,
+          items: change.proposedData.items || [
             {
               productId: change.proposedData.productId,
               productName: change.proposedData.productName,

@@ -21,12 +21,14 @@ import { useToast } from "@/components/ui/use-toast"
 import { useAuth } from "@/contexts/AuthContext"
 import { usePersistentForm } from "@/contexts/FormPersistenceContext"
 import { Sale, useInventory } from "@/contexts/InventoryContext"
+import { useBatch } from "@/contexts/BatchContext"
 import { useSaleChange } from "@/hooks/useSaleChange"
 import { cn } from "@/lib/utils"
 import { CheckCircle, Clock, Loader2, Plus, Search } from "lucide-react"
 import React, { useEffect, useState } from "react"
 import { formatProductNetWeight } from "@/components/products/utils"
 import { mapSaleItemErrorsToEditFields, validateSaleFormData } from "./utils"
+import { createBatchTrackingContext, getBatchItemRemaining, getSoldQuantityForBatchItem } from "@/components/batches/utils"
 import ClientHistoryDialog from "./ClientHistoryDialog"
 import AddClientDialog from "@/components/clients/AddClientDialog"
 import DeleteSaleDialog from "./DeleteSaleDialog"
@@ -50,6 +52,7 @@ const errorTextClass = "text-sm text-red-600 dark:text-red-400"
 export default function SalesPage() {
   const { user } = useAuth()
   const { products, sales, clients, purchases, addSale, updateSale, deleteSale } = useInventory()
+  const { batches } = useBatch()
   const { requestSaleChange } = useSaleChange()
   const { toast } = useToast()
   const [searchTerm, setSearchTerm] = useState("")
@@ -68,6 +71,7 @@ export default function SalesPage() {
   const [selectedProduct, setSelectedProduct] = useState<any>(null)
 
   const initialFormData = {
+    batchId: "",
     items: [
       {
         productId: "",
@@ -169,7 +173,20 @@ export default function SalesPage() {
     ) as number[]
   }, [products, formData.items])
 
-  const filteredProducts = React.useMemo(() => products, [products])
+  const filteredProducts = React.useMemo(() => {
+    if (!formData.batchId) return products
+
+    const batch = batches.find((b) => b.id === formData.batchId)
+    if (!batch) return products
+
+    const batchProductIds = new Set(batch.items.map((item) => item.productId))
+    return products.filter((product) => batchProductIds.has(product.id))
+  }, [products, batches, formData.batchId])
+
+  const selectedBatch = React.useMemo(
+    () => batches.find((batch) => batch.id === formData.batchId),
+    [batches, formData.batchId],
+  )
 
   const clientOptions = React.useMemo(() => {
     if (!formData.client) return clients
@@ -263,6 +280,25 @@ export default function SalesPage() {
       return
     }
     updateForm({ client: value, customClient: "" })
+  }
+
+  const handleBatchChange = (value: string) => {
+    clearFieldErrors("batchId")
+    if (value === "__none__") {
+      updateForm({ batchId: "" })
+      return
+    }
+
+    const batch = batches.find((b) => b.id === value)
+    const batchProductIds = new Set(batch?.items.map((item) => item.productId) || [])
+
+    const clearedItems = formData.items.map((item) =>
+      item.productId && !batchProductIds.has(item.productId)
+        ? { ...item, productId: "", quantitySold: 0, salePrice: 0 }
+        : item,
+    )
+
+    updateForm({ batchId: value, items: clearedItems })
   }
 
   const handleClientAdded = (clientName: string) => {
@@ -364,6 +400,42 @@ export default function SalesPage() {
           setIsLoading(false)
           return
         }
+
+        if (formData.batchId && selectedBatch) {
+          const batchItem = selectedBatch.items.find((batchEntry) => batchEntry.productId === item.productId)
+          if (!batchItem) {
+            toast({
+              title: "Invalid Batch Item",
+              description: `${product.name} is not part of the selected batch.`,
+              variant: "destructive",
+            })
+            setIsLoading(false)
+            return
+          }
+
+          const batchContext = createBatchTrackingContext(
+            formData.batchId,
+            selectedBatch.batchNumber,
+            selectedBatch.items,
+            product,
+          )
+          const remainingInBatch = getBatchItemRemaining(
+            sales,
+            item.productId,
+            batchItem.quantity,
+            batchContext,
+          )
+
+          if (item.quantitySold > remainingInBatch) {
+            toast({
+              title: "Insufficient Batch Stock",
+              description: `${product.name} only has ${remainingInBatch} units remaining in this batch.`,
+              variant: "destructive",
+            })
+            setIsLoading(false)
+            return
+          }
+        }
       }
 
       await new Promise((r) => setTimeout(r, 400))
@@ -393,7 +465,9 @@ export default function SalesPage() {
         clientType: formData.clientType,
         saleDate: formData.saleDate,
         billUrl: uploadedBillUrl,
-        batchId: "",
+        ...(formData.batchId
+          ? { batchId: formData.batchId, batchNumber: selectedBatch?.batchNumber || "" }
+          : {}),
         isVat: formData.isVat,
         items: formData.items.map((item) => {
           const product = products.find((p) => p.id === item.productId)
@@ -737,6 +811,31 @@ export default function SalesPage() {
                 </DialogDescription>
               </DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="batch">Batch (optional)</Label>
+                  <Select
+                    value={formData.batchId || "__none__"}
+                    onValueChange={handleBatchChange}
+                  >
+                    <SelectTrigger className={cn(selectTriggerClass, fieldErrorClass("batchId"))}>
+                      <SelectValue placeholder="No batch" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">No batch</SelectItem>
+                      {batches.map((batch) => (
+                        <SelectItem key={batch.id} value={batch.id}>
+                          {batch.batchNumber} — {batch.items.length} items
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {selectedBatch && (
+                    <p className="text-xs text-gray-500">
+                      Products filtered to batch {selectedBatch.batchNumber}
+                    </p>
+                  )}
+                </div>
+
                 <div className="space-y-3">
                   <Label>Products *</Label>
 
@@ -775,11 +874,27 @@ export default function SalesPage() {
                           </SelectTrigger>
 
                           <SelectContent>
-                            {products.map((product) => (
-                              <SelectItem key={product.id} value={product.id}>
-                                {product.name} ({formatProductNetWeight(product)}) — Stock: {product.stockQuantity}
-                              </SelectItem>
-                            ))}
+                            {filteredProducts.map((product) => {
+                              const batchItem = selectedBatch?.items.find((entry) => entry.productId === product.id)
+                              const batchContext = formData.batchId && selectedBatch && batchItem
+                                ? createBatchTrackingContext(
+                                    formData.batchId,
+                                    selectedBatch.batchNumber,
+                                    selectedBatch.items,
+                                    product,
+                                  )
+                                : null
+                              const remainingInBatch = batchContext && batchItem
+                                ? getBatchItemRemaining(sales, product.id, batchItem.quantity, batchContext)
+                                : product.stockQuantity
+
+                              return (
+                                <SelectItem key={product.id} value={product.id}>
+                                  {product.name} ({formatProductNetWeight(product)}) — Stock: {product.stockQuantity}
+                                  {formData.batchId ? ` · Batch left: ${remainingInBatch}` : ""}
+                                </SelectItem>
+                              )
+                            })}
                           </SelectContent>
                         </Select>
                         {renderFieldError(`items.${index}.productId`)}
@@ -819,6 +934,19 @@ export default function SalesPage() {
                         {selectedProduct && (
                           <p className="text-xs text-gray-500">
                             {formatProductNetWeight(selectedProduct)} — Stock: {selectedProduct.stockQuantity}
+                            {formData.batchId && selectedBatch && (() => {
+                              const batchItem = selectedBatch.items.find((entry) => entry.productId === selectedProduct.id)
+                              if (!batchItem) return null
+                              const batchContext = createBatchTrackingContext(
+                                formData.batchId,
+                                selectedBatch.batchNumber,
+                                selectedBatch.items,
+                                selectedProduct,
+                              )
+                              const sold = getSoldQuantityForBatchItem(sales, selectedProduct.id, batchContext)
+                              const remaining = getBatchItemRemaining(sales, selectedProduct.id, batchItem.quantity, batchContext)
+                              return ` · Batch: ${sold} sold, ${remaining} in stock`
+                            })()}
                           </p>
                         )}
                       </Card>

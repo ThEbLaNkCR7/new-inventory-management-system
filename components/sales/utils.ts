@@ -23,6 +23,7 @@ export type SaleFormItem = {
 
 export type SaleFormData = {
   items: SaleFormItem[]
+  batchId?: string
   client: string
   clientType: string
   customClient?: string
