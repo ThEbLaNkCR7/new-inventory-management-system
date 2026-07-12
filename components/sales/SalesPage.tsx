@@ -25,6 +25,7 @@ import { useSaleChange } from "@/hooks/useSaleChange"
 import { cn } from "@/lib/utils"
 import { CheckCircle, Clock, Loader2, Plus, Search } from "lucide-react"
 import React, { useEffect, useState } from "react"
+import { formatProductNetWeight } from "@/components/products/utils"
 import { mapSaleItemErrorsToEditFields, validateSaleFormData } from "./utils"
 import ClientHistoryDialog from "./ClientHistoryDialog"
 import AddClientDialog from "@/components/clients/AddClientDialog"
@@ -766,13 +767,17 @@ export default function SalesPage() {
                           }
                         >
                           <SelectTrigger className={cn(selectTriggerClass, fieldErrorClass(`items.${index}.productId`))}>
-                            <SelectValue placeholder="Select product" />
+                            <SelectValue placeholder="Select product">
+                              {selectedProduct
+                                ? `${selectedProduct.name} (${formatProductNetWeight(selectedProduct)}) — Stock: ${selectedProduct.stockQuantity}`
+                                : null}
+                            </SelectValue>
                           </SelectTrigger>
 
                           <SelectContent>
                             {products.map((product) => (
                               <SelectItem key={product.id} value={product.id}>
-                                {product.name} (Stock: {product.stockQuantity})
+                                {product.name} ({formatProductNetWeight(product)}) — Stock: {product.stockQuantity}
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -813,7 +818,7 @@ export default function SalesPage() {
 
                         {selectedProduct && (
                           <p className="text-xs text-gray-500">
-                            Stock: {selectedProduct.stockQuantity}
+                            {formatProductNetWeight(selectedProduct)} — Stock: {selectedProduct.stockQuantity}
                           </p>
                         )}
                       </Card>

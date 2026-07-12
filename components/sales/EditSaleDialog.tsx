@@ -1,5 +1,4 @@
-"use client";
-
+import { formatProductNetWeight } from "@/components/products/utils";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
@@ -120,7 +119,9 @@ export default function EditSaleDialog({
                 {filteredProducts.map((product) => (
                   <SelectItem key={product.id} value={product.id}>
                     <div className="flex flex-col">
-                      <span className="font-medium">{product.name}</span>
+                      <span className="font-medium">
+                        {product.name} ({formatProductNetWeight(product)})
+                      </span>
                       <span className="text-sm text-gray-500">
                         Stock: {product.stockQuantity}
                       </span>

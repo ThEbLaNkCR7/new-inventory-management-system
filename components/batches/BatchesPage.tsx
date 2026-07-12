@@ -23,6 +23,7 @@ import { useBatch } from "@/contexts/BatchContext"
 import type { Product } from "@/contexts/InventoryContext"
 import { useInventory } from "@/contexts/InventoryContext"
 import QuickAddProductDialog from "@/components/products/QuickAddProductDialog"
+import { formatProductNetWeight } from "@/components/products/utils"
 import { Separator } from "@/components/ui/separator"
 import AddSupplierDialog from "@/components/suppliers/AddSupplierDialog"
 import DeleteBatchDialog from "./DeleteBatchDialog"
@@ -586,7 +587,9 @@ export default function BatchesPage() {
                               </Badge>
                               <div className="min-w-0">
                                 <span className="text-sm font-medium text-slate-700 dark:text-slate-200 truncate block">
-                                  {selectedProduct?.name || item.productName || "Select product..."}
+                                  {selectedProduct
+                                    ? `${selectedProduct.name} (${formatProductNetWeight(selectedProduct)})`
+                                    : item.productName || "Select product..."}
                                 </span>
                                 {isCollapsed && (
                                   <span className="text-xs text-slate-500 dark:text-slate-400 truncate block">
@@ -653,20 +656,25 @@ export default function BatchesPage() {
                                 }}
                               >
                                 <SelectTrigger className="h-10 bg-white dark:bg-slate-900">
-                                  <SelectValue placeholder="Select a product from inventory" />
+                                  <SelectValue placeholder="Select a product from inventory">
+                                    {selectedProduct
+                                      ? `${selectedProduct.name} (${formatProductNetWeight(selectedProduct)}) — Stock: ${selectedProduct.stockQuantity}`
+                                      : null}
+                                  </SelectValue>
                                 </SelectTrigger>
                                 <SelectContent>
                                   <SelectItem value="__new__">+ Add New Product</SelectItem>
                                   {products.map((product) => (
                                     <SelectItem key={product.id} value={product.id}>
-                                      {product.name} (Stock: {product.stockQuantity})
+                                      {product.name} ({formatProductNetWeight(product)}) — Stock: {product.stockQuantity}
                                     </SelectItem>
                                   ))}
                                 </SelectContent>
                               </Select>
                               {selectedProduct && (
                                 <p className="text-xs text-slate-500 dark:text-slate-400">
-                                  Current stock: <span className="font-medium text-slate-700 dark:text-slate-300">{selectedProduct.stockQuantity}</span> units
+                                  {formatProductNetWeight(selectedProduct)} — Current stock:{" "}
+                                  <span className="font-medium text-slate-700 dark:text-slate-300">{selectedProduct.stockQuantity}</span> units
                                 </p>
                               )}
                             </div>

@@ -1,5 +1,6 @@
 "use client"
 
+import { formatProductNetWeight } from "@/components/products/utils"
 import QuickAddProductDialog from "@/components/products/QuickAddProductDialog"
 import AddSupplierDialog from "@/components/suppliers/AddSupplierDialog"
 import { Alert, AlertDescription } from "@/components/ui/alert"
@@ -768,7 +769,7 @@ export default function PurchasesPage() {
                               <SelectItem value="__new__">+ Add New Product</SelectItem>
                               {products.map((product) => (
                                 <SelectItem key={product.id} value={product.id}>
-                                  {product.name} (Stock: {product.stockQuantity})
+                                  {product.name} ({formatProductNetWeight(product)}) — Stock: {product.stockQuantity}
                                 </SelectItem>
                               ))}
                             </SelectContent>

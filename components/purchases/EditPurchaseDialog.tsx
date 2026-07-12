@@ -1,5 +1,4 @@
-"use client";
-
+import { formatProductNetWeight } from "@/components/products/utils";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
@@ -137,8 +136,8 @@ export default function EditPurchaseDialog({
               <SelectContent>
                 {products.map((product) => (
                   <SelectItem key={product.id} value={product.id}>
-                    {product.name} - {product.netWeight}kg (Stock:{" "}
-                    {product.stockQuantity})
+                    {product.name} ({formatProductNetWeight(product)}) — Stock:{" "}
+                    {product.stockQuantity}
                   </SelectItem>
                 ))}
               </SelectContent>
