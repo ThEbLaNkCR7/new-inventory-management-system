@@ -76,11 +76,6 @@ export default function PurchasesTable({
             <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">
               Supplier
             </TableHead>
-            {showSupplierType && (
-              <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">
-                Supplier Type
-              </TableHead>
-            )}
             <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">
               Quantity
             </TableHead>
@@ -115,11 +110,6 @@ export default function PurchasesTable({
                   {purchase.supplier}
                 </span>
               </TableCell>
-              {showSupplierType && (
-                <TableCell className="text-gray-700">
-                  {purchase.supplierType || "Company"}
-                </TableCell>
-              )}
               <TableCell className="font-medium">
                 {purchase.items?.reduce(
                   (total: number, item: any) => total + (item.quantityPurchased || 0),

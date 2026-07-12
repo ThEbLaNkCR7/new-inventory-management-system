@@ -86,9 +86,9 @@ export default function ProductsTable({
                 <TableRow className="bg-gray-50 dark:bg-gray-700">
                   <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">Product Name</TableHead>
                   <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">Category</TableHead>
-                  <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">Number of units</TableHead>
-                  <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">Unit Weight (kg)</TableHead>
-                  <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">Unit Price (Rs)</TableHead>
+                  <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">No. of units</TableHead>
+                  <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">Unit Weight</TableHead>
+                  <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">Unit Price</TableHead>
                   <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">Actions</TableHead>
                 </TableRow>
               </TableHeader>

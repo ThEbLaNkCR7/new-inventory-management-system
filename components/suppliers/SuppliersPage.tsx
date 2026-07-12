@@ -561,7 +561,6 @@ export default function SuppliersPage() {
               <TableHeader>
                 <TableRow className="bg-gray-50 dark:bg-gray-700">
                   <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">Supplier Name</TableHead>
-                  <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">Company Type</TableHead>
                   <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">Contact</TableHead>
                   <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">Total Spent</TableHead>
                   <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">Actions</TableHead>
@@ -581,12 +580,6 @@ export default function SuppliersPage() {
                         <p className="text-gray-700 dark:text-gray-400">
                           {getSupplierOrderCount(supplier.name)} orders
                         </p>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center">
-                        <Building className="h-4 w-4 mr-2 text-gray-400" />
-                        <span className="text-gray-700 dark:text-gray-100">{supplier.company}</span>
                       </div>
                     </TableCell>
                     <TableCell>

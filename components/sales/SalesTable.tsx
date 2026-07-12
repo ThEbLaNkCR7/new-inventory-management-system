@@ -153,9 +153,6 @@ export default function SalesTable({
                       Client
                     </TableHead>
                     <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">
-                      Client Type
-                    </TableHead>
-                    <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">
                       Quantity
                     </TableHead>
                     <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">
@@ -187,9 +184,6 @@ export default function SalesTable({
                         >
                           {sale.client}
                         </span>
-                      </TableCell>
-                      <TableCell className="text-gray-700">
-                        {sale.clientType || "Company"}
                       </TableCell>
                       <TableCell className="font-medium">
                         {sale.items?.reduce(

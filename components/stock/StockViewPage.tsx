@@ -335,7 +335,6 @@ export default function StockViewPage() {
                   <TableRow>
                     <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">Product</TableHead>
                     <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">Client</TableHead>
-                    <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">Client Type</TableHead>
                     <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">Quantity</TableHead>
                     <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">Units Sold</TableHead>
                     <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">Total</TableHead>
@@ -359,11 +358,6 @@ export default function StockViewPage() {
 
                       {/* Client */}
                       <TableCell className="text-gray-700">{product.client}</TableCell>
-
-                      {/* Client Type */}
-                      <TableCell className="text-gray-700">
-                        <Badge variant="outline" className="text-gray-700">{product.clientType}</Badge>
-                      </TableCell>
 
                       {/* Quantity */}
                       <TableCell className="text-gray-700">{product.soldQuantity}</TableCell>
