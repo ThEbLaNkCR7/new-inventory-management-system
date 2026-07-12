@@ -24,7 +24,14 @@ import { useToast } from "@/components/ui/use-toast"
 import { useApproval } from "@/contexts/ApprovalContext"
 import { useAuth } from "@/contexts/AuthContext"
 import { useInventory } from "@/contexts/InventoryContext"
+import { cn } from "@/lib/utils"
 import { Clock } from "lucide-react"
+import { validateSupplierFormData } from "./utils"
+
+const inputClass =
+  "border-2 focus:border-slate-500 transition-colors dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
+const selectTriggerClass = inputClass
+const errorTextClass = "text-sm text-red-600 dark:text-red-400"
 
 const initialFormData = {
   name: "",
@@ -65,15 +72,48 @@ export default function AddSupplierDialog({
   const [showApprovalDialog, setShowApprovalDialog] = useState(false)
   const [approvalReason, setApprovalReason] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
+
+  const clearFieldErrors = (...fields: string[]) => {
+    setFieldErrors((prev) => {
+      if (fields.length === 0) return {}
+      const next = { ...prev }
+      fields.forEach((field) => delete next[field])
+      return next
+    })
+  }
+
+  const fieldErrorClass = (field: string) =>
+    fieldErrors[field] ? "border-red-500 focus:border-red-500 dark:border-red-500" : ""
+
+  const renderFieldError = (field: string) =>
+    fieldErrors[field] ? <p className={errorTextClass}>{fieldErrors[field]}</p> : null
 
   const updateForm = (updates: Partial<typeof initialFormData>) => {
+    clearFieldErrors(...Object.keys(updates))
     setFormData((prev) => ({ ...prev, ...updates }))
+  }
+
+  const validateForm = () => {
+    const errors = validateSupplierFormData(formData)
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors)
+      toast({
+        title: "Validation Error",
+        description: Object.values(errors)[0],
+        variant: "destructive",
+      })
+      return false
+    }
+    clearFieldErrors()
+    return true
   }
 
   const resetForm = () => {
     setFormData(initialFormData)
     setApprovalReason("")
     setShowApprovalDialog(false)
+    clearFieldErrors()
   }
 
   useEffect(() => {
@@ -96,6 +136,7 @@ export default function AddSupplierDialog({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!validateForm()) return
     const newSupplierData = buildSupplierData()
 
     setIsSubmitting(true)
@@ -113,6 +154,7 @@ export default function AddSupplierDialog({
   }
 
   const submitForApproval = () => {
+    if (!validateForm()) return
     submitChange({
       type: "supplier",
       action: "create",
@@ -138,7 +180,10 @@ export default function AddSupplierDialog({
 
   return (
     <>
-      <Dialog open={open} onOpenChange={onOpenChange}>
+      <Dialog open={open} onOpenChange={(isOpen) => {
+        onOpenChange(isOpen)
+        if (!isOpen) clearFieldErrors()
+      }}>
         <DialogContent
           className="max-w-md z-[101]"
           overlayClassName="z-[100]"
@@ -161,42 +206,44 @@ export default function AddSupplierDialog({
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="add-supplier-name">Full Name</Label>
+              <Label htmlFor="add-supplier-name">Full Name *</Label>
               <Input
                 id="add-supplier-name"
                 value={formData.name}
                 onChange={(e) => updateForm({ name: e.target.value })}
-                required
+                className={cn(inputClass, fieldErrorClass("name"))}
               />
+              {renderFieldError("name")}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="add-supplier-email">Email</Label>
+              <Label htmlFor="add-supplier-email">Email *</Label>
               <Input
                 id="add-supplier-email"
                 type="email"
                 value={formData.email}
                 onChange={(e) => updateForm({ email: e.target.value })}
-                required
+                className={cn(inputClass, fieldErrorClass("email"))}
               />
+              {renderFieldError("email")}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="add-supplier-phone">Phone</Label>
+              <Label htmlFor="add-supplier-phone">Phone *</Label>
               <Input
                 id="add-supplier-phone"
                 value={formData.phone}
                 onChange={(e) => updateForm({ phone: e.target.value })}
-                required
+                className={cn(inputClass, fieldErrorClass("phone"))}
               />
+              {renderFieldError("phone")}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="add-supplier-company">Company Type</Label>
+              <Label htmlFor="add-supplier-company">Company Type *</Label>
               <div className="space-y-2">
                 <Select
                   value={formData.company}
                   onValueChange={(value) => updateForm({ company: value })}
-                  required
                 >
-                  <SelectTrigger id="add-supplier-company">
+                  <SelectTrigger id="add-supplier-company" className={cn(selectTriggerClass, fieldErrorClass("company"))}>
                     <SelectValue placeholder="Select company type or enter custom type" />
                   </SelectTrigger>
                   <SelectContent className="z-[110] max-h-60">
@@ -208,15 +255,16 @@ export default function AddSupplierDialog({
                     ))}
                   </SelectContent>
                 </Select>
+                {renderFieldError("company")}
                 {formData.company === "custom" && (
                   <Input
                     placeholder="Enter custom company type"
                     value={formData.customCompany || ""}
                     onChange={(e) => updateForm({ customCompany: e.target.value })}
-                    className="mt-2"
-                    required
+                    className={cn("mt-2", inputClass, fieldErrorClass("customCompany"))}
                   />
                 )}
+                {formData.company === "custom" && renderFieldError("customCompany")}
               </div>
             </div>
             <div className="space-y-2">
@@ -226,12 +274,13 @@ export default function AddSupplierDialog({
                 value={formData.address}
                 onChange={(e) => updateForm({ address: e.target.value })}
                 placeholder="Enter full address"
+                className={inputClass}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="add-supplier-status">Status</Label>
+              <Label htmlFor="add-supplier-status">Status *</Label>
               <Select value={formData.status} onValueChange={(value) => updateForm({ status: value })}>
-                <SelectTrigger id="add-supplier-status">
+                <SelectTrigger id="add-supplier-status" className={cn(selectTriggerClass, fieldErrorClass("status"))}>
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
                 <SelectContent className="z-[110]">
@@ -241,6 +290,7 @@ export default function AddSupplierDialog({
                   <SelectItem value="Suspended">Suspended</SelectItem>
                 </SelectContent>
               </Select>
+              {renderFieldError("status")}
             </div>
             <div className="flex justify-end space-x-2">
               <Button
@@ -260,8 +310,10 @@ export default function AddSupplierDialog({
               ) : (
                 <Button
                   type="button"
-                  onClick={() => setShowApprovalDialog(true)}
-                  disabled={!formData.name.trim() || !formData.email.trim()}
+                  onClick={() => {
+                    if (!validateForm()) return
+                    setShowApprovalDialog(true)
+                  }}
                 >
                   Submit for Approval
                 </Button>

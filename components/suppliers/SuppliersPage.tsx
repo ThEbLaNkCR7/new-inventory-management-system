@@ -31,9 +31,15 @@ import { useApproval } from "@/contexts/ApprovalContext"
 import { useAuth } from "@/contexts/AuthContext"
 import { usePersistentForm } from "@/contexts/FormPersistenceContext"
 import { useInventory } from "@/contexts/InventoryContext"
-import { formatNepaliDateForTable, getCurrentNepaliYear, getNepaliYear } from "@/lib/utils"
+import { cn, formatNepaliDateForTable, getCurrentNepaliYear, getNepaliYear } from "@/lib/utils"
 import { Building, CheckCircle, Clock, Edit, Eye, Loader2, Mail, Phone, Plus, Search, Trash2 } from "lucide-react"
 import { useEffect, useState } from "react"
+import { validateSupplierFormData } from "./utils"
+
+const inputClass =
+  "border-2 focus:border-slate-500 transition-colors dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
+const selectTriggerClass = inputClass
+const errorTextClass = "text-sm text-red-600 dark:text-red-400"
 
 export default function SuppliersPage() {
   const {
@@ -70,7 +76,6 @@ export default function SuppliersPage() {
     status: "Active",
   }
 
-  const { formData, updateForm, resetForm } = usePersistentForm('suppliers-form', initialFormData)
   const [showSuccessAlert, setShowSuccessAlert] = useState(false)
   const [alertMessage, setAlertMessage] = useState("")
   const [showApprovalDialog, setShowApprovalDialog] = useState(false)
@@ -81,6 +86,44 @@ export default function SuppliersPage() {
   const [currentStep, setCurrentStep] = useState("")
   const [totalSteps, setTotalSteps] = useState(0)
   const [selectedYear, setSelectedYear] = useState(getCurrentNepaliYear())
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
+
+  const clearFieldErrors = (...fields: string[]) => {
+    setFieldErrors((prev) => {
+      if (fields.length === 0) return {}
+      const next = { ...prev }
+      fields.forEach((field) => delete next[field])
+      return next
+    })
+  }
+
+  const fieldErrorClass = (field: string) =>
+    fieldErrors[field] ? "border-red-500 focus:border-red-500 dark:border-red-500" : ""
+
+  const renderFieldError = (field: string) =>
+    fieldErrors[field] ? <p className={errorTextClass}>{fieldErrors[field]}</p> : null
+
+  const { formData, updateForm: persistFormUpdate, resetForm } = usePersistentForm('suppliers-form', initialFormData)
+
+  const updateForm = (updates: Partial<typeof initialFormData>) => {
+    clearFieldErrors(...Object.keys(updates))
+    persistFormUpdate(updates)
+  }
+
+  const validateForm = () => {
+    const errors = validateSupplierFormData(formData)
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors)
+      toast({
+        title: "Validation Error",
+        description: Object.values(errors)[0],
+        variant: "destructive",
+      })
+      return false
+    }
+    clearFieldErrors()
+    return true
+  }
 
   useEffect(() => {
     if (showSuccessAlert) {
@@ -108,6 +151,7 @@ export default function SuppliersPage() {
   const clearForm = () => {
     resetForm()
     setDeleteReason("")
+    clearFieldErrors()
     setIsAddDialogOpen(false)
   }
 
@@ -125,6 +169,7 @@ export default function SuppliersPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!validateForm()) return
 
     const companyName = formData.company === "custom" ? formData.customCompany : formData.company
     const { customCompany, ...supplierData } = formData
@@ -162,6 +207,7 @@ export default function SuppliersPage() {
   }
 
   const submitForApproval = () => {
+    if (!validateForm()) return
     const companyName = formData.company === "custom" ? formData.customCompany : formData.company
     const { customCompany, ...supplierData } = formData
     submitChange({
@@ -186,6 +232,7 @@ export default function SuppliersPage() {
 
   const handleEdit = (supplier: any) => {
     setEditingSupplier(supplier)
+    clearFieldErrors()
     updateForm({
       name: supplier.name,
       email: supplier.email,
@@ -200,7 +247,7 @@ export default function SuppliersPage() {
 
   const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setIsEditDialogOpen(false)
+    if (!validateForm()) return
 
     if (!editingSupplier) {
       toast({ title: "Error", description: "No supplier selected for editing.", variant: "destructive" })
@@ -354,7 +401,10 @@ export default function SuppliersPage() {
           <p className="text-gray-600 dark:text-gray-300">Manage supplier relationships and procurement</p>
         </div>
         <div className="absolute top-6 right-0 flex space-x-3">
-          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+          <Dialog open={isAddDialogOpen} onOpenChange={(open) => {
+            setIsAddDialogOpen(open)
+            if (!open) clearFieldErrors()
+          }}>
             <DialogTrigger asChild>
               <Button
                 onClick={() => { resetForm(); setIsAddDialogOpen(true); }}
@@ -382,42 +432,44 @@ export default function SuppliersPage() {
               </DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="name">Full Name</Label>
+                  <Label htmlFor="name">Full Name *</Label>
                   <Input
                     id="name"
                     value={formData.name}
-                    onChange={(e) => updateForm({ ...formData, name: e.target.value })}
-                    required
+                    onChange={(e) => updateForm({ name: e.target.value })}
+                    className={cn(inputClass, fieldErrorClass("name"))}
                   />
+                  {renderFieldError("name")}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
+                  <Label htmlFor="email">Email *</Label>
                   <Input
                     id="email"
                     type="email"
                     value={formData.email}
-                    onChange={(e) => updateForm({ ...formData, email: e.target.value })}
-                    required
+                    onChange={(e) => updateForm({ email: e.target.value })}
+                    className={cn(inputClass, fieldErrorClass("email"))}
                   />
+                  {renderFieldError("email")}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="phone">Phone</Label>
+                  <Label htmlFor="phone">Phone *</Label>
                   <Input
                     id="phone"
                     value={formData.phone}
-                    onChange={(e) => updateForm({ ...formData, phone: e.target.value })}
-                    required
+                    onChange={(e) => updateForm({ phone: e.target.value })}
+                    className={cn(inputClass, fieldErrorClass("phone"))}
                   />
+                  {renderFieldError("phone")}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="company">Company Type</Label>
+                  <Label htmlFor="company">Company Type *</Label>
                   <div className="space-y-2">
                     <Select
                       value={formData.company}
-                      onValueChange={(value) => updateForm({ ...formData, company: value })}
-                      required
+                      onValueChange={(value) => updateForm({ company: value })}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger className={cn(selectTriggerClass, fieldErrorClass("company"))}>
                         <SelectValue placeholder="Select company type or enter custom type" />
                       </SelectTrigger>
                       <SelectContent className="max-h-60">
@@ -429,15 +481,16 @@ export default function SuppliersPage() {
                         ))}
                       </SelectContent>
                     </Select>
+                    {renderFieldError("company")}
                     {formData.company === "custom" && (
                       <Input
                         placeholder="Enter custom company type"
                         value={formData.customCompany || ""}
-                        onChange={(e) => updateForm({ ...formData, customCompany: e.target.value })}
-                        className="mt-2"
-                        required
+                        onChange={(e) => updateForm({ customCompany: e.target.value })}
+                        className={cn("mt-2", inputClass, fieldErrorClass("customCompany"))}
                       />
                     )}
+                    {formData.company === "custom" && renderFieldError("customCompany")}
                   </div>
                 </div>
                 <div className="space-y-2">
@@ -445,14 +498,15 @@ export default function SuppliersPage() {
                   <Input
                     id="address"
                     value={formData.address}
-                    onChange={(e) => updateForm({ ...formData, address: e.target.value })}
+                    onChange={(e) => updateForm({ address: e.target.value })}
                     placeholder="Enter full address"
+                    className={inputClass}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="status">Status</Label>
-                  <Select value={formData.status} onValueChange={(value) => updateForm({ ...formData, status: value })}>
-                    <SelectTrigger>
+                  <Label htmlFor="status">Status *</Label>
+                  <Select value={formData.status} onValueChange={(value) => updateForm({ status: value })}>
+                    <SelectTrigger className={cn(selectTriggerClass, fieldErrorClass("status"))}>
                       <SelectValue placeholder="Select status" />
                     </SelectTrigger>
                     <SelectContent>
@@ -462,6 +516,7 @@ export default function SuppliersPage() {
                       <SelectItem value="Suspended">Suspended</SelectItem>
                     </SelectContent>
                   </Select>
+                  {renderFieldError("status")}
                 </div>
                 <div className="flex justify-end space-x-2">
                   <Button type="button" variant="neutralOutline" onClick={clearForm}>
@@ -472,7 +527,13 @@ export default function SuppliersPage() {
                       Add Supplier
                     </Button>
                   ) : (
-                    <Button type="button" onClick={() => setShowApprovalDialog(true)} disabled={!formData.name.trim() || !formData.email.trim()}>
+                    <Button
+                      type="button"
+                      onClick={() => {
+                        if (!validateForm()) return
+                        setShowApprovalDialog(true)
+                      }}
+                    >
                       Submit for Approval
                     </Button>
                   )}
@@ -839,7 +900,13 @@ export default function SuppliersPage() {
       </Dialog>
 
       {/* Edit Supplier Dialog */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+      <Dialog open={isEditDialogOpen} onOpenChange={(open) => {
+        setIsEditDialogOpen(open)
+        if (!open) {
+          clearFieldErrors()
+          setEditingSupplier(null)
+        }
+      }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Edit Supplier</DialogTitle>
@@ -857,42 +924,44 @@ export default function SuppliersPage() {
           </DialogHeader>
           <form onSubmit={handleEditSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="edit-name">Contact Name</Label>
+              <Label htmlFor="edit-name">Contact Name *</Label>
               <Input
                 id="edit-name"
                 value={formData.name}
-                onChange={(e) => updateForm({ ...formData, name: e.target.value })}
-                required
+                onChange={(e) => updateForm({ name: e.target.value })}
+                className={cn(inputClass, fieldErrorClass("name"))}
               />
+              {renderFieldError("name")}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="edit-email">Email</Label>
+              <Label htmlFor="edit-email">Email *</Label>
               <Input
                 id="edit-email"
                 type="email"
                 value={formData.email}
-                onChange={(e) => updateForm({ ...formData, email: e.target.value })}
-                required
+                onChange={(e) => updateForm({ email: e.target.value })}
+                className={cn(inputClass, fieldErrorClass("email"))}
               />
+              {renderFieldError("email")}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="edit-phone">Phone</Label>
+              <Label htmlFor="edit-phone">Phone *</Label>
               <Input
                 id="edit-phone"
                 value={formData.phone}
-                onChange={(e) => updateForm({ ...formData, phone: e.target.value })}
-                required
+                onChange={(e) => updateForm({ phone: e.target.value })}
+                className={cn(inputClass, fieldErrorClass("phone"))}
               />
+              {renderFieldError("phone")}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="edit-company">Company Type</Label>
+              <Label htmlFor="edit-company">Company Type *</Label>
               <div className="space-y-2">
                 <Select
                   value={formData.company}
-                  onValueChange={(value) => updateForm({ ...formData, company: value })}
-                  required
+                  onValueChange={(value) => updateForm({ company: value })}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className={cn(selectTriggerClass, fieldErrorClass("company"))}>
                     <SelectValue placeholder="Select company type or enter custom type" />
                   </SelectTrigger>
                   <SelectContent className="max-h-60">
@@ -904,15 +973,16 @@ export default function SuppliersPage() {
                     ))}
                   </SelectContent>
                 </Select>
+                {renderFieldError("company")}
                 {formData.company === "custom" && (
                   <Input
                     placeholder="Enter custom company type"
                     value={formData.customCompany || ""}
-                    onChange={(e) => updateForm({ ...formData, customCompany: e.target.value })}
-                    className="mt-2"
-                    required
+                    onChange={(e) => updateForm({ customCompany: e.target.value })}
+                    className={cn("mt-2", inputClass, fieldErrorClass("customCompany"))}
                   />
                 )}
+                {formData.company === "custom" && renderFieldError("customCompany")}
               </div>
             </div>
             <div className="space-y-2">
@@ -920,13 +990,14 @@ export default function SuppliersPage() {
               <Input
                 id="edit-address"
                 value={formData.address}
-                onChange={(e) => updateForm({ ...formData, address: e.target.value })}
+                onChange={(e) => updateForm({ address: e.target.value })}
+                className={inputClass}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="edit-status">Status</Label>
-              <Select value={formData.status} onValueChange={(value) => updateForm({ ...formData, status: value })}>
-                <SelectTrigger>
+              <Label htmlFor="edit-status">Status *</Label>
+              <Select value={formData.status} onValueChange={(value) => updateForm({ status: value })}>
+                <SelectTrigger className={cn(selectTriggerClass, fieldErrorClass("status"))}>
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
                 <SelectContent>
@@ -936,6 +1007,7 @@ export default function SuppliersPage() {
                   <SelectItem value="Suspended">Suspended</SelectItem>
                 </SelectContent>
               </Select>
+              {renderFieldError("status")}
             </div>
             {!isAdmin && (
               <div className="space-y-2">
