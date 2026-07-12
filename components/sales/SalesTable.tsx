@@ -21,6 +21,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatNepaliDateForTable } from "@/lib/utils";
 import { Building2, Edit, Eye, Trash2, TrendingUp, Users } from "lucide-react";
 import React from "react";
+import { formatSaleTotal } from "./utils";
 
 interface SalesTableProps {
   filteredSales: any[];
@@ -51,24 +52,6 @@ export default function SalesTable({
   onProductClick,
   onClientClick,
 }: SalesTableProps) {
-  const [activeItemIndex, setActiveItemIndex] = React.useState<
-    Record<string, number>
-  >({});
-
-  const getActiveIndex = (saleId: string) => {
-    return activeItemIndex[saleId] ?? 0;
-  };
-
-  const setActiveIndex = (saleId: string, index: number) => {
-    setActiveItemIndex((prev) => ({
-      ...prev,
-      [saleId]: index,
-    }));
-  };
-
-  const getActiveItem = (sale: any) => {
-    return sale.items?.[getActiveIndex(sale.id)];
-  };
   const tabSales = React.useMemo(() => {
     if (activeTab === "individual") {
       return filteredSales.filter((s) => s.clientType === "Individual");
@@ -192,11 +175,7 @@ export default function SalesTable({
                         ) || 0}
                       </TableCell>
                       <TableCell className="text-gray-700">
-                        Rs{" "}
-                        {(
-                          (getActiveItem(sale)?.quantitySold || 0) *
-                          (getActiveItem(sale)?.salePrice || 0)
-                        ).toFixed(2)}
+                        Rs {formatSaleTotal(sale)}
                       </TableCell>
                       <TableCell className="text-gray-700">
                         {formatNepaliDateForTable(sale.saleDate)}
@@ -296,7 +275,7 @@ export default function SalesTable({
                         ) || 0}
                       </TableCell>
                       <TableCell>
-                        Rs {((getActiveItem(sale)?.quantitySold || 0) * (getActiveItem(sale)?.salePrice || 0)).toFixed(2)}
+                        Rs {formatSaleTotal(sale)}
                       </TableCell>
                       <TableCell className="text-gray-700">
                         {formatNepaliDateForTable(sale.saleDate)}
@@ -396,7 +375,7 @@ export default function SalesTable({
                         ) || 0}
                       </TableCell>
                       <TableCell>
-                        Rs {((getActiveItem(sale)?.quantitySold || 0) * (getActiveItem(sale)?.salePrice || 0)).toFixed(2)}
+                        Rs {formatSaleTotal(sale)}
                       </TableCell>
                       <TableCell className="text-gray-700">
                         {formatNepaliDateForTable(sale.saleDate)}

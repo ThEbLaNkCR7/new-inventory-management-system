@@ -21,6 +21,12 @@ import {
 } from "@/components/ui/select";
 import { AlertTriangle, Edit } from "lucide-react";
 import React from "react";
+import { cn } from "@/lib/utils";
+
+const inputClass =
+  "border-2 focus:border-slate-500 transition-colors dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200";
+const selectTriggerClass = inputClass;
+const errorTextClass = "text-sm text-red-600 dark:text-red-400";
 
 interface EditSaleDialogProps {
   isOpen: boolean;
@@ -34,6 +40,7 @@ interface EditSaleDialogProps {
   filteredProducts: any[];
   selectedProductWeights: number[];
   clients: any[];
+  fieldErrors?: Record<string, string>;
   userRole?: string;
   onSubmit: (e: React.FormEvent) => Promise<void>;
   onCancel: () => void;
@@ -51,10 +58,29 @@ export default function EditSaleDialog({
   filteredProducts,
   selectedProductWeights,
   clients,
+  fieldErrors = {},
   userRole,
   onSubmit,
   onCancel,
 }: EditSaleDialogProps) {
+  const fieldErrorClass = (field: string) =>
+    fieldErrors[field] ? "border-red-500 focus:border-red-500 dark:border-red-500" : "";
+
+  const renderFieldError = (field: string) =>
+    fieldErrors[field] ? <p className={errorTextClass}>{fieldErrors[field]}</p> : null;
+
+  const firstItem = formData.items?.[0] || formData;
+
+  const updateFirstItem = (updates: Partial<{ productId: string; quantitySold: number; salePrice: number }>) => {
+    if (formData.items?.length) {
+      const updatedItems = [...formData.items];
+      updatedItems[0] = { ...updatedItems[0], ...updates };
+      onFormChange({ ...formData, items: updatedItems, ...updates });
+      return;
+    }
+    onFormChange({ ...formData, ...updates });
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
@@ -82,13 +108,12 @@ export default function EditSaleDialog({
           <div className="space-y-2">
             <Label htmlFor="edit-product">Product *</Label>
             <Select
-              value={formData.productId}
+              value={firstItem.productId || undefined}
               onValueChange={(value) => {
-                onFormChange({ ...formData, productId: value, netWeight: 0 });
+                updateFirstItem({ productId: value });
               }}
-              required
             >
-              <SelectTrigger>
+              <SelectTrigger className={cn(selectTriggerClass, fieldErrorClass("productId"))}>
                 <SelectValue placeholder="Select product" />
               </SelectTrigger>
               <SelectContent>
@@ -104,10 +129,10 @@ export default function EditSaleDialog({
                 ))}
               </SelectContent>
             </Select>
+            {renderFieldError("productId")}
           </div>
 
-          {/* Net Weight Selection - Only show if product is selected and has multiple weights */}
-          {formData.productId && selectedProductWeights.length > 1 && (
+          {firstItem.productId && selectedProductWeights.length > 1 && (
             <div className="space-y-2">
               <Label htmlFor="edit-netWeight">Net Weight (kg) *</Label>
               <Select
@@ -134,13 +159,12 @@ export default function EditSaleDialog({
           <div className="space-y-2">
             <Label htmlFor="edit-client">Client *</Label>
             <Select
-              value={formData.client}
+              value={formData.client || undefined}
               onValueChange={(value) =>
                 onFormChange({ ...formData, client: value })
               }
-              required
             >
-              <SelectTrigger>
+              <SelectTrigger className={cn(selectTriggerClass, fieldErrorClass("client"))}>
                 <SelectValue placeholder="Select client or enter custom name" />
               </SelectTrigger>
               <SelectContent>
@@ -159,22 +183,22 @@ export default function EditSaleDialog({
                 onChange={(e) =>
                   onFormChange({ ...formData, customClient: e.target.value })
                 }
-                className="mt-2"
-                required
+                className={cn("mt-2", inputClass, fieldErrorClass("customClient"))}
               />
             )}
+            {renderFieldError("client")}
+            {renderFieldError("customClient")}
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="edit-clientType">Client Type *</Label>
             <Select
-              value={formData.clientType}
+              value={formData.clientType || undefined}
               onValueChange={(value) =>
                 onFormChange({ ...formData, clientType: value })
               }
-              required
             >
-              <SelectTrigger>
+              <SelectTrigger className={cn(selectTriggerClass, fieldErrorClass("clientType"))}>
                 <SelectValue placeholder="Select client type" />
               </SelectTrigger>
               <SelectContent>
@@ -182,6 +206,7 @@ export default function EditSaleDialog({
                 <SelectItem value="Company">Company</SelectItem>
               </SelectContent>
             </Select>
+            {renderFieldError("clientType")}
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -191,16 +216,16 @@ export default function EditSaleDialog({
                 id="edit-quantity"
                 type="number"
                 min={1}
-                value={formData.quantitySold === 0 ? "" : formData.quantitySold}
+                value={firstItem.quantitySold === 0 ? "" : firstItem.quantitySold}
                 onChange={(e) => {
                   const value = e.target.value;
-                  onFormChange({
-                    ...formData,
+                  updateFirstItem({
                     quantitySold: value === "" ? 0 : Number.parseInt(value),
                   });
                 }}
-                required
+                className={cn(inputClass, fieldErrorClass("quantitySold"))}
               />
+              {renderFieldError("quantitySold")}
             </div>
             <div className="space-y-2">
               <Label htmlFor="edit-price">Unit Price (Rs) *</Label>
@@ -209,16 +234,16 @@ export default function EditSaleDialog({
                 type="number"
                 step="0.01"
                 min={0}
-                value={formData.salePrice === 0 ? "" : formData.salePrice}
+                value={firstItem.salePrice === 0 ? "" : firstItem.salePrice}
                 onChange={(e) => {
                   const value = e.target.value;
-                  onFormChange({
-                    ...formData,
+                  updateFirstItem({
                     salePrice: value === "" ? 0 : Number.parseFloat(value),
                   });
                 }}
-                required
+                className={cn(inputClass, fieldErrorClass("salePrice"))}
               />
+              {renderFieldError("salePrice")}
             </div>
           </div>
 
@@ -235,6 +260,7 @@ export default function EditSaleDialog({
                 })
               }
             />
+            {renderFieldError("saleDate")}
           </div>
 
           <div className="space-y-2">

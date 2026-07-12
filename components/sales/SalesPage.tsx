@@ -22,8 +22,10 @@ import { useAuth } from "@/contexts/AuthContext"
 import { usePersistentForm } from "@/contexts/FormPersistenceContext"
 import { Sale, useInventory } from "@/contexts/InventoryContext"
 import { useSaleChange } from "@/hooks/useSaleChange"
+import { cn } from "@/lib/utils"
 import { CheckCircle, Clock, Loader2, Plus, Search } from "lucide-react"
 import React, { useEffect, useState } from "react"
+import { mapSaleItemErrorsToEditFields, validateSaleFormData } from "./utils"
 import ClientHistoryDialog from "./ClientHistoryDialog"
 import AddClientDialog from "@/components/clients/AddClientDialog"
 import DeleteSaleDialog from "./DeleteSaleDialog"
@@ -38,6 +40,11 @@ type SaleItem = {
   salePrice: number
 }
 type ItemKey = keyof SaleItem
+
+const inputClass =
+  "border-2 focus:border-slate-500 transition-colors dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
+const selectTriggerClass = inputClass
+const errorTextClass = "text-sm text-red-600 dark:text-red-400"
 
 export default function SalesPage() {
   const { user } = useAuth()
@@ -91,6 +98,7 @@ export default function SalesPage() {
     key: ItemKey,
     value: SaleItem[ItemKey]
   ) => {
+    clearFieldErrors(`items.${index}.${key}`)
     const updated = [...formData.items]
     updated[index] = {
       ...updated[index],
@@ -99,7 +107,12 @@ export default function SalesPage() {
     updateForm({ items: updated })
   }
 
-  const { formData, updateForm, resetForm } = usePersistentForm("sales-form", initialFormData)
+  const { formData, updateForm: persistFormUpdate, resetForm } = usePersistentForm("sales-form", initialFormData)
+
+  const updateForm = (updates: Partial<typeof initialFormData>) => {
+    clearFieldErrors(...Object.keys(updates))
+    persistFormUpdate(updates)
+  }
   const [editReason, setEditReason] = useState("")
   const [deleteReason, setDeleteReason] = useState("")
   const [showSuccessAlert, setShowSuccessAlert] = useState(false)
@@ -111,6 +124,22 @@ export default function SalesPage() {
   const [productFilter, setProductFilter] = useState("all")
   const [billImage, setBillImage] = useState<File | null>(null)
   const [billUrl, setBillUrl] = useState<string>("")
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
+
+  const clearFieldErrors = (...fields: string[]) => {
+    setFieldErrors((prev) => {
+      if (fields.length === 0) return {}
+      const next = { ...prev }
+      fields.forEach((field) => delete next[field])
+      return next
+    })
+  }
+
+  const fieldErrorClass = (field: string) =>
+    fieldErrors[field] ? "border-red-500 focus:border-red-500 dark:border-red-500" : ""
+
+  const renderFieldError = (field: string) =>
+    fieldErrors[field] ? <p className={errorTextClass}>{fieldErrors[field]}</p> : null
 
   // Get unique product names
   const uniqueProductNames = React.useMemo(() => {
@@ -207,10 +236,27 @@ export default function SalesPage() {
   const clearForm = () => {
     resetForm()
     setEditReason("")
+    clearFieldErrors()
     setIsAddDialogOpen(false)
   }
 
+  const validateForm = () => {
+    const errors = validateSaleFormData(formData)
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors)
+      toast({
+        title: "Validation Error",
+        description: Object.values(errors)[0],
+        variant: "destructive",
+      })
+      return false
+    }
+    clearFieldErrors()
+    return true
+  }
+
   const handleClientChange = (value: string) => {
+    clearFieldErrors("client", "customClient")
     if (value === "__new__") {
       setIsAddClientDialogOpen(true)
       return
@@ -270,6 +316,7 @@ export default function SalesPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!validateForm()) return
 
     setIsAddDialogOpen(false)
     setIsLoading(true)
@@ -431,11 +478,23 @@ export default function SalesPage() {
     })
     setBillUrl(sale.billUrl || "")
     setBillImage(null)
+    clearFieldErrors()
     setIsEditDialogOpen(true)
   }
 
   const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!validateForm()) return
+
+    if (user?.role !== "admin" && !editReason.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "Please provide a reason for the changes.",
+        variant: "destructive",
+      })
+      return
+    }
+
     setIsEditDialogOpen(false)
     setIsLoading(true)
     setProgress(0)
@@ -506,7 +565,7 @@ export default function SalesPage() {
         showAlert("Sale updated successfully!", true)
       } else if (user?.role !== "admin" && !editReason.trim()) {
         toast({
-          title: "Error",
+          title: "Validation Error",
           description: "Please provide a reason for the changes.",
           variant: "destructive",
         })
@@ -650,7 +709,10 @@ export default function SalesPage() {
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
             <DialogTrigger asChild>
               <Button
-                onClick={() => setIsAddDialogOpen(true)}
+                onClick={() => {
+                  clearFieldErrors()
+                  setIsAddDialogOpen(true)
+                }}
                 variant="neutral"
                 className="shadow-lg hover:shadow-xl transition-all"
               >
@@ -698,12 +760,12 @@ export default function SalesPage() {
 
                         {/* PRODUCT SELECT */}
                         <Select
-                          value={item.productId}
+                          value={item.productId || undefined}
                           onValueChange={(value) =>
                             updateItem(index, "productId", value)
                           }
                         >
-                          <SelectTrigger>
+                          <SelectTrigger className={cn(selectTriggerClass, fieldErrorClass(`items.${index}.productId`))}>
                             <SelectValue placeholder="Select product" />
                           </SelectTrigger>
 
@@ -715,26 +777,38 @@ export default function SalesPage() {
                             ))}
                           </SelectContent>
                         </Select>
+                        {renderFieldError(`items.${index}.productId`)}
 
                         {/* QUANTITY + PRICE */}
                         <div className="grid grid-cols-2 gap-3">
-                          <Input
-                            type="number"
-                            placeholder="Quantity"
-                            value={item.quantitySold || ""}
-                            onChange={(e) =>
-                              updateItem(index, "quantitySold", Number(e.target.value))
-                            }
-                          />
+                          <div className="space-y-1">
+                            <Input
+                              type="number"
+                              min={1}
+                              placeholder="Quantity *"
+                              value={item.quantitySold || ""}
+                              onChange={(e) =>
+                                updateItem(index, "quantitySold", Number(e.target.value))
+                              }
+                              className={cn(inputClass, fieldErrorClass(`items.${index}.quantitySold`))}
+                            />
+                            {renderFieldError(`items.${index}.quantitySold`)}
+                          </div>
 
-                          <Input
-                            type="number"
-                            placeholder="Unit Price"
-                            value={item.salePrice || ""}
-                            onChange={(e) =>
-                              updateItem(index, "salePrice", Number(e.target.value))
-                            }
-                          />
+                          <div className="space-y-1">
+                            <Input
+                              type="number"
+                              min={0}
+                              step="0.01"
+                              placeholder="Unit Price *"
+                              value={item.salePrice || ""}
+                              onChange={(e) =>
+                                updateItem(index, "salePrice", Number(e.target.value))
+                              }
+                              className={cn(inputClass, fieldErrorClass(`items.${index}.salePrice`))}
+                            />
+                            {renderFieldError(`items.${index}.salePrice`)}
+                          </div>
                         </div>
 
                         {selectedProduct && (
@@ -782,9 +856,8 @@ export default function SalesPage() {
                   <Select
                     value={formData.client || undefined}
                     onValueChange={handleClientChange}
-                    required
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className={cn(selectTriggerClass, fieldErrorClass("client"))}>
                       <SelectValue placeholder="Select client" />
                     </SelectTrigger>
                     <SelectContent>
@@ -796,16 +869,16 @@ export default function SalesPage() {
                       <SelectItem value="__new__">Add new client...</SelectItem>
                     </SelectContent>
                   </Select>
+                  {renderFieldError("client")}
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="clientType">Client Type *</Label>
                   <Select
-                    value={formData.clientType}
-                    onValueChange={(value) => updateForm({ ...formData, clientType: value })}
-                    required
+                    value={formData.clientType || undefined}
+                    onValueChange={(value) => updateForm({ clientType: value })}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className={cn(selectTriggerClass, fieldErrorClass("clientType"))}>
                       <SelectValue placeholder="Select client type" />
                     </SelectTrigger>
                     <SelectContent>
@@ -813,6 +886,7 @@ export default function SalesPage() {
                       <SelectItem value="Company">Company</SelectItem>
                     </SelectContent>
                   </Select>
+                  {renderFieldError("clientType")}
                 </div>
 
                 <div className="space-y-2">
@@ -821,11 +895,11 @@ export default function SalesPage() {
                     value={formData.saleDate ? new Date(formData.saleDate) : undefined}
                     onChange={(date) =>
                       updateForm({
-                        ...formData,
                         saleDate: date ? date.toISOString().split("T")[0] : "",
                       })
                     }
                   />
+                  {renderFieldError("saleDate")}
                 </div>
 
                 <div className="space-y-2">
@@ -838,7 +912,7 @@ export default function SalesPage() {
                         name="isVat"
                         value="yes"
                         checked={formData.isVat === true}
-                        onChange={() => updateForm({ ...formData, isVat: true })}
+                        onChange={() => updateForm({ isVat: true })}
                         className="w-4 h-4 cursor-pointer"
                       />
                       <label htmlFor="vatYes" className="ml-2 cursor-pointer text-sm">
@@ -852,7 +926,7 @@ export default function SalesPage() {
                         name="isVat"
                         value="no"
                         checked={formData.isVat === false}
-                        onChange={() => updateForm({ ...formData, isVat: false })}
+                        onChange={() => updateForm({ isVat: false })}
                         className="w-4 h-4 cursor-pointer"
                       />
                       <label htmlFor="vatNo" className="ml-2 cursor-pointer text-sm">
@@ -941,10 +1015,12 @@ export default function SalesPage() {
         filteredProducts={filteredProducts}
         selectedProductWeights={selectedProductWeights}
         clients={clients}
+        fieldErrors={mapSaleItemErrorsToEditFields(fieldErrors)}
         userRole={user?.role}
         onSubmit={handleEditSubmit}
         onCancel={() => {
-          clearForm()
+          clearFieldErrors()
+          resetForm()
           setIsEditDialogOpen(false)
         }}
       />
