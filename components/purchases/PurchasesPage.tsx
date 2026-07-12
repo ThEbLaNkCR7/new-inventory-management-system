@@ -25,7 +25,7 @@ import { usePersistentForm } from "@/contexts/FormPersistenceContext"
 import type { Product, Purchase } from "@/contexts/InventoryContext"
 import { useInventory } from "@/contexts/InventoryContext"
 import { usePurchaseChange } from "@/hooks/usePurchaseChange"
-import { formatNepaliDateForTable } from "@/lib/utils"
+import { cn, formatNepaliDateForTable } from "@/lib/utils"
 import { AlertTriangle, CheckCircle, Clock, Loader2, Plus, Search } from "lucide-react"
 import { useEffect, useMemo, useState, type FormEvent } from "react"
 import DeletePurchaseDialog from "./DeletePurchaseDialog"
@@ -33,6 +33,7 @@ import EditPurchaseDialog from "./EditPurchaseDialog"
 import PurchasesTable from "./PurchasesTable"
 import SupplierHistoryDialog from "./SupplierHistoryDialog"
 import ViewPurchaseDialog from "./ViewPurchaseDialog"
+import { mapPurchaseItemErrorsToEditFields, validatePurchaseFormData } from "./utils"
 
 type PurchaseItem = {
   productId: string
@@ -56,6 +57,11 @@ const shouldPreventPurchaseDialogClose = (
   isQuickAddProductOpen: boolean,
 ) =>
   isPortaledSelectClick(target) || isAddSupplierDialogOpen || isQuickAddProductOpen
+
+const inputClass =
+  "border-2 focus:border-slate-500 transition-colors dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
+const selectTriggerClass = inputClass
+const errorTextClass = "text-sm text-red-600 dark:text-red-400"
 
 const getEmptyPurchaseForm = () => ({
   items: [
@@ -93,7 +99,6 @@ export default function PurchasesPage() {
   const [billUrl, setBillUrl] = useState<string>("");
   const [billInputKey, setBillInputKey] = useState(0)
 
-  const { formData, updateForm, resetForm } = usePersistentForm('purchases-form', getEmptyPurchaseForm())
   const [editReason, setEditReason] = useState("")
   const [deleteReason, setDeleteReason] = useState("")
   const [showSuccessAlert, setShowSuccessAlert] = useState(false)
@@ -104,6 +109,29 @@ export default function PurchasesPage() {
   const [totalSteps, setTotalSteps] = useState(0)
   const [isQuickAddProductOpen, setIsQuickAddProductOpen] = useState(false)
   const [addingProductItemIndex, setAddingProductItemIndex] = useState<number | null>(null)
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
+
+  const clearFieldErrors = (...fields: string[]) => {
+    setFieldErrors((prev) => {
+      if (fields.length === 0) return {}
+      const next = { ...prev }
+      fields.forEach((field) => delete next[field])
+      return next
+    })
+  }
+
+  const fieldErrorClass = (field: string) =>
+    fieldErrors[field] ? "border-red-500 focus:border-red-500 dark:border-red-500" : ""
+
+  const renderFieldError = (field: string) =>
+    fieldErrors[field] ? <p className={errorTextClass}>{fieldErrors[field]}</p> : null
+
+  const { formData, updateForm: persistFormUpdate, resetForm } = usePersistentForm('purchases-form', getEmptyPurchaseForm())
+
+  const updateForm = (updates: Partial<ReturnType<typeof getEmptyPurchaseForm>>) => {
+    clearFieldErrors(...Object.keys(updates))
+    persistFormUpdate(updates)
+  }
 
   const addItem = () => {
     updateForm({
@@ -118,6 +146,7 @@ export default function PurchasesPage() {
   }
 
   const updateItem = (index: number, key: ItemKey, value: any) => {
+    clearFieldErrors(`items.${index}.${key}`)
     const updated = [...formData.items]
     updated[index] = { ...updated[index], [key]: value }
     updateForm({ items: updated })
@@ -154,6 +183,7 @@ export default function PurchasesPage() {
   }, [suppliers, formData.supplier])
 
   const handleSupplierChange = (value: string) => {
+    clearFieldErrors("supplier", "customSupplier")
     if (value === "__new__") {
       setIsAddSupplierDialogOpen(true)
       return
@@ -244,11 +274,27 @@ export default function PurchasesPage() {
     setAddingProductItemIndex(null)
     setIsQuickAddProductOpen(false)
     setBillInputKey((key) => key + 1)
+    clearFieldErrors()
   }
 
   const clearForm = () => {
     resetPurchaseForm()
     setIsAddDialogOpen(false)
+  }
+
+  const validateForm = () => {
+    const errors = validatePurchaseFormData(formData)
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors)
+      toast({
+        title: "Validation Error",
+        description: Object.values(errors)[0],
+        variant: "destructive",
+      })
+      return false
+    }
+    clearFieldErrors()
+    return true
   }
 
   const updateProgress = (step: string, current: number, total: number) => {
@@ -299,53 +345,12 @@ export default function PurchasesPage() {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
-
-    const supplierName = formData.supplier?.trim() || ""
-    if (!supplierName || supplierName === "__new__" || supplierName === "custom") {
-      toast({
-        title: "Error",
-        description: "Please select or add a supplier.",
-        variant: "destructive",
-      })
-      return
-    }
+    if (!validateForm()) return
 
     for (const item of formData.items) {
-      if (item.productId === "__new__") {
-        toast({
-          title: "Error",
-          description: "Please click 'Add New Product' to create the product, or select an existing one.",
-          variant: "destructive",
-        })
-        return
-      }
-
       const product = products.find((p) => p.id === item.productId)
-
-      if (!product) {
-        toast({
-          title: "Error",
-          description: "One or more products not found.",
-          variant: "destructive",
-        })
-        return
-      }
-
-      if (item.quantityPurchased <= 0) {
-        toast({
-          title: "Error",
-          description: "All quantities must be greater than 0.",
-          variant: "destructive",
-        })
-        return
-      }
-
-      if (item.quantityPurchased > product.stockQuantity) {
-        toast({
-          title: "Stock Warning",
-          description: `${product.name}: purchase quantity (${item.quantityPurchased}) exceeds current stock (${product.stockQuantity}).`,
-          variant: "destructive",
-        })
+      if (product && item.quantityPurchased > product.stockQuantity) {
+        notifyStockExceeded(product, item.quantityPurchased)
       }
     }
 
@@ -378,6 +383,8 @@ export default function PurchasesPage() {
       await new Promise((r) => setTimeout(r, 400))
 
       updateProgress("Processing supplier data...", 4, 6)
+
+      const supplierName = formData.supplier?.trim() || ""
 
       const payload = {
         supplier: supplierName,
@@ -468,12 +475,23 @@ export default function PurchasesPage() {
     })
     setBillUrl(purchase.billUrl || "")
     setBillImage(null)
+    clearFieldErrors()
     setIsEditDialogOpen(true)
   }
 
   const handleEditSubmit = async (e: FormEvent) => {
     e.preventDefault()
-    // Close form instantly
+    if (!validateForm()) return
+
+    if (user?.role !== "admin" && !editReason.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "Please provide a reason for the changes.",
+        variant: "destructive",
+      })
+      return
+    }
+
     setIsEditDialogOpen(false)
     setIsLoading(true)
     setProgress(0)
@@ -541,7 +559,7 @@ export default function PurchasesPage() {
           toast({ title: "Submitted", description: "Purchase changes submitted for admin approval." })
         }
       } else if (user?.role !== "admin" && !editReason.trim()) {
-        toast({ title: "Error", description: "Please provide a reason for the changes.", variant: "destructive" })
+        toast({ title: "Validation Error", description: "Please provide a reason for the changes.", variant: "destructive" })
       }
     } catch (err) {
       toast({ title: "Error", description: "Failed to update purchase.", variant: "destructive" })
@@ -665,7 +683,10 @@ export default function PurchasesPage() {
           <Dialog open={isAddDialogOpen} onOpenChange={handleAddDialogOpenChange}>
             <DialogTrigger asChild>
               <Button
-                onClick={() => setIsAddDialogOpen(true)}
+                onClick={() => {
+                  clearFieldErrors()
+                  setIsAddDialogOpen(true)
+                }}
                 variant="neutral"
                 className="shadow-lg hover:shadow-xl transition-all"
               >
@@ -726,7 +747,7 @@ export default function PurchasesPage() {
                         {/* PRODUCT SELECT */}
                         <div className="space-y-2">
                           <Select
-                            value={item.productId}
+                            value={item.productId || undefined}
                             onValueChange={(value) => {
                               if (value === "__new__") {
                                 updateItem(index, "productId", value)
@@ -739,7 +760,7 @@ export default function PurchasesPage() {
                               }
                             }}
                           >
-                            <SelectTrigger>
+                            <SelectTrigger className={cn(selectTriggerClass, fieldErrorClass(`items.${index}.productId`))}>
                               <SelectValue placeholder="Select product" />
                             </SelectTrigger>
 
@@ -764,37 +785,49 @@ export default function PurchasesPage() {
                               Add New Product
                             </Button>
                           )}
+                          {renderFieldError(`items.${index}.productId`)}
                         </div>
 
                         {/* QUANTITY + PRICE */}
                         <div className="grid grid-cols-2 gap-3">
-                          <Input
-                            type="number"
-                            placeholder="Quantity"
-                            value={item.quantityPurchased || ""}
-                            onChange={(e) =>
-                              updateItem(index, "quantityPurchased", Number(e.target.value))
-                            }
-                            onBlur={(e) => {
-                              const quantity = Number(e.target.value)
-                              if (
-                                selectedProduct &&
-                                quantity > 0 &&
-                                quantity > selectedProduct.stockQuantity
-                              ) {
-                                notifyStockExceeded(selectedProduct, quantity)
+                          <div className="space-y-1">
+                            <Input
+                              type="number"
+                              min={1}
+                              placeholder="Quantity *"
+                              value={item.quantityPurchased || ""}
+                              onChange={(e) =>
+                                updateItem(index, "quantityPurchased", Number(e.target.value))
                               }
-                            }}
-                          />
+                              onBlur={(e) => {
+                                const quantity = Number(e.target.value)
+                                if (
+                                  selectedProduct &&
+                                  quantity > 0 &&
+                                  quantity > selectedProduct.stockQuantity
+                                ) {
+                                  notifyStockExceeded(selectedProduct, quantity)
+                                }
+                              }}
+                              className={cn(inputClass, fieldErrorClass(`items.${index}.quantityPurchased`))}
+                            />
+                            {renderFieldError(`items.${index}.quantityPurchased`)}
+                          </div>
 
-                          <Input
-                            type="number"
-                            placeholder="Unit Price"
-                            value={item.purchasePrice || ""}
-                            onChange={(e) =>
-                              updateItem(index, "purchasePrice", Number(e.target.value))
-                            }
-                          />
+                          <div className="space-y-1">
+                            <Input
+                              type="number"
+                              min={0}
+                              step="0.01"
+                              placeholder="Unit Price *"
+                              value={item.purchasePrice || ""}
+                              onChange={(e) =>
+                                updateItem(index, "purchasePrice", Number(e.target.value))
+                              }
+                              className={cn(inputClass, fieldErrorClass(`items.${index}.purchasePrice`))}
+                            />
+                            {renderFieldError(`items.${index}.purchasePrice`)}
+                          </div>
                         </div>
 
                         {selectedProduct &&
@@ -832,7 +865,7 @@ export default function PurchasesPage() {
                       value={formData.supplier || undefined}
                       onValueChange={handleSupplierChange}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger className={cn(selectTriggerClass, fieldErrorClass("supplier"))}>
                         <SelectValue placeholder="Select supplier" />
                       </SelectTrigger>
                       <SelectContent>
@@ -844,16 +877,17 @@ export default function PurchasesPage() {
                         <SelectItem value="__new__">Add new supplier...</SelectItem>
                       </SelectContent>
                     </Select>
+                    {renderFieldError("supplier")}
                   </div>
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="supplierType">Supplier Type *</Label>
                   <Select
-                    value={formData.supplierType}
-                    onValueChange={(value) => updateForm({ ...formData, supplierType: value })}
+                    value={formData.supplierType || undefined}
+                    onValueChange={(value) => updateForm({ supplierType: value })}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className={cn(selectTriggerClass, fieldErrorClass("supplierType"))}>
                       <SelectValue placeholder="Select supplier type" />
                     </SelectTrigger>
                     <SelectContent>
@@ -861,14 +895,18 @@ export default function PurchasesPage() {
                       <SelectItem value="Company">Company</SelectItem>
                     </SelectContent>
                   </Select>
+                  {renderFieldError("supplierType")}
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="date">Purchase Date *</Label>
                   <MaterialDatePicker
                     value={formData.purchaseDate ? new Date(formData.purchaseDate) : undefined}
-                    onChange={(date: Date | undefined) => updateForm({ ...formData, purchaseDate: date ? date.toISOString().split("T")[0] : "" })}
+                    onChange={(date: Date | undefined) =>
+                      updateForm({ purchaseDate: date ? date.toISOString().split("T")[0] : "" })
+                    }
                   />
+                  {renderFieldError("purchaseDate")}
                 </div>
 
                 <div className="space-y-2">
@@ -881,7 +919,7 @@ export default function PurchasesPage() {
                         name="isVat"
                         value="yes"
                         checked={formData.isVat === true}
-                        onChange={() => updateForm({ ...formData, isVat: true })}
+                        onChange={() => updateForm({ isVat: true })}
                         className="w-4 h-4 cursor-pointer"
                       />
                       <label htmlFor="vatYes" className="ml-2 cursor-pointer text-sm">
@@ -895,7 +933,7 @@ export default function PurchasesPage() {
                         name="isVat"
                         value="no"
                         checked={formData.isVat === false}
-                        onChange={() => updateForm({ ...formData, isVat: false })}
+                        onChange={() => updateForm({ isVat: false })}
                         className="w-4 h-4 cursor-pointer"
                       />
                       <label htmlFor="vatNo" className="ml-2 cursor-pointer text-sm">
@@ -978,10 +1016,12 @@ export default function PurchasesPage() {
         onBillImageChange={setBillImage}
         products={products}
         suppliers={suppliers}
+        fieldErrors={mapPurchaseItemErrorsToEditFields(fieldErrors)}
         userRole={user?.role}
         onSubmit={handleEditSubmit}
         onCancel={() => {
-          clearForm()
+          clearFieldErrors()
+          resetPurchaseForm()
           setIsEditDialogOpen(false)
         }}
       />

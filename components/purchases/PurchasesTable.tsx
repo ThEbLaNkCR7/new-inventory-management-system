@@ -22,6 +22,7 @@ import type { Purchase } from "@/contexts/InventoryContext";
 import { formatNepaliDateForTable } from "@/lib/utils";
 import { Building2, Edit, Eye, Trash2, TrendingUp, Users } from "lucide-react";
 import React from "react";
+import { formatPurchaseTotal } from "./utils";
 
 interface PurchasesTableProps {
   filteredPurchases: Purchase[];
@@ -123,14 +124,7 @@ export default function PurchasesTable({
                 ).toFixed(2)}
               </TableCell>
               <TableCell className="text-gray-700">
-                Rs{" "}
-                {(
-                  purchase.items?.reduce(
-                    (total: number, item: any) =>
-                      total + ((item.quantityPurchased || 0) * (item.purchasePrice || 0)),
-                    0
-                  ) || 0
-                ).toFixed(2)}
+                Rs {formatPurchaseTotal(purchase)}
               </TableCell>
               <TableCell className="text-gray-700">
                 {formatNepaliDateForTable(purchase.purchaseDate)}

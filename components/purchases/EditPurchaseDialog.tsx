@@ -20,16 +20,22 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { Product, Supplier } from "@/contexts/InventoryContext";
+import { cn } from "@/lib/utils";
 import { AlertTriangle, Edit } from "lucide-react";
 import React from "react";
 
+const inputClass =
+  "border-2 focus:border-slate-500 transition-colors dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200";
+const selectTriggerClass = inputClass;
+const errorTextClass = "text-sm text-red-600 dark:text-red-400";
+
 export type PurchaseFormData = {
-  productId: string;
+  productId?: string;
   supplier: string;
   supplierType: string;
   customSupplier: string;
-  quantityPurchased: number;
-  purchasePrice: number;
+  quantityPurchased?: number;
+  purchasePrice?: number;
   purchaseDate: string;
   items: Array<{
     productId: string;
@@ -49,6 +55,7 @@ interface EditPurchaseDialogProps {
   onBillImageChange: (file: File | null) => void;
   products: Product[];
   suppliers: Supplier[];
+  fieldErrors?: Record<string, string>;
   userRole?: string;
   onSubmit: (e: React.FormEvent) => Promise<void>;
   onCancel: () => void;
@@ -65,10 +72,35 @@ export default function EditPurchaseDialog({
   onBillImageChange,
   products,
   suppliers,
+  fieldErrors = {},
   userRole,
   onSubmit,
   onCancel,
 }: EditPurchaseDialogProps) {
+  const fieldErrorClass = (field: string) =>
+    fieldErrors[field] ? "border-red-500 focus:border-red-500 dark:border-red-500" : "";
+
+  const renderFieldError = (field: string) =>
+    fieldErrors[field] ? <p className={errorTextClass}>{fieldErrors[field]}</p> : null;
+
+  const firstItem = formData.items?.[0] || {
+    productId: formData.productId || "",
+    quantityPurchased: formData.quantityPurchased || 0,
+    purchasePrice: formData.purchasePrice || 0,
+  };
+
+  const updateFirstItem = (
+    updates: Partial<{ productId: string; quantityPurchased: number; purchasePrice: number }>,
+  ) => {
+    if (formData.items?.length) {
+      const updatedItems = [...formData.items];
+      updatedItems[0] = { ...updatedItems[0], ...updates };
+      onFormChange({ ...formData, items: updatedItems, ...updates });
+      return;
+    }
+    onFormChange({ ...formData, ...updates });
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
@@ -96,11 +128,10 @@ export default function EditPurchaseDialog({
           <div className="space-y-2">
             <Label htmlFor="edit-product">Product *</Label>
             <Select
-              value={formData.productId}
-              onValueChange={(value) => onFormChange({ productId: value })}
-              required
+              value={firstItem.productId || undefined}
+              onValueChange={(value) => updateFirstItem({ productId: value })}
             >
-              <SelectTrigger>
+              <SelectTrigger className={cn(selectTriggerClass, fieldErrorClass("productId"))}>
                 <SelectValue placeholder="Select product" />
               </SelectTrigger>
               <SelectContent>
@@ -112,16 +143,16 @@ export default function EditPurchaseDialog({
                 ))}
               </SelectContent>
             </Select>
+            {renderFieldError("productId")}
           </div>
           <div className="space-y-2">
             <Label htmlFor="edit-supplier">Supplier *</Label>
             <div className="space-y-2">
               <Select
-                value={formData.supplier}
+                value={formData.supplier || undefined}
                 onValueChange={(value) => onFormChange({ supplier: value })}
-                required
               >
-                <SelectTrigger>
+                <SelectTrigger className={cn(selectTriggerClass, fieldErrorClass("supplier"))}>
                   <SelectValue placeholder="Select supplier or enter custom name" />
                 </SelectTrigger>
                 <SelectContent>
@@ -140,20 +171,20 @@ export default function EditPurchaseDialog({
                   onChange={(e) =>
                     onFormChange({ customSupplier: e.target.value })
                   }
-                  className="mt-2"
-                  required
+                  className={cn("mt-2", inputClass, fieldErrorClass("customSupplier"))}
                 />
               )}
+              {renderFieldError("supplier")}
+              {renderFieldError("customSupplier")}
             </div>
           </div>
           <div className="space-y-2">
             <Label htmlFor="edit-supplierType">Supplier Type *</Label>
             <Select
-              value={formData.supplierType}
+              value={formData.supplierType || undefined}
               onValueChange={(value) => onFormChange({ supplierType: value })}
-              required
             >
-              <SelectTrigger>
+              <SelectTrigger className={cn(selectTriggerClass, fieldErrorClass("supplierType"))}>
                 <SelectValue placeholder="Select supplier type" />
               </SelectTrigger>
               <SelectContent>
@@ -161,6 +192,7 @@ export default function EditPurchaseDialog({
                 <SelectItem value="Company">Company</SelectItem>
               </SelectContent>
             </Select>
+            {renderFieldError("supplierType")}
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -170,19 +202,20 @@ export default function EditPurchaseDialog({
                 type="number"
                 min={1}
                 value={
-                  formData.quantityPurchased === 0
+                  firstItem.quantityPurchased === 0
                     ? ""
-                    : formData.quantityPurchased
+                    : firstItem.quantityPurchased
                 }
                 onChange={(e) => {
                   const value = e.target.value;
-                  onFormChange({
+                  updateFirstItem({
                     quantityPurchased:
                       value === "" ? 0 : Number.parseInt(value, 10),
                   });
                 }}
-                required
+                className={cn(inputClass, fieldErrorClass("quantityPurchased"))}
               />
+              {renderFieldError("quantityPurchased")}
             </div>
             <div className="space-y-2">
               <Label htmlFor="edit-price">Unit Price (Rs) *</Label>
@@ -192,17 +225,18 @@ export default function EditPurchaseDialog({
                 step="0.01"
                 min={0}
                 value={
-                  formData.purchasePrice === 0 ? "" : formData.purchasePrice
+                  firstItem.purchasePrice === 0 ? "" : firstItem.purchasePrice
                 }
                 onChange={(e) => {
                   const value = e.target.value;
-                  onFormChange({
+                  updateFirstItem({
                     purchasePrice:
                       value === "" ? 0 : Number.parseFloat(value),
                   });
                 }}
-                required
+                className={cn(inputClass, fieldErrorClass("purchasePrice"))}
               />
+              {renderFieldError("purchasePrice")}
             </div>
           </div>
           <div className="space-y-2">
@@ -219,6 +253,7 @@ export default function EditPurchaseDialog({
                 })
               }
             />
+            {renderFieldError("purchaseDate")}
           </div>
           <div className="space-y-2">
             <Label>Bill Image</Label>
