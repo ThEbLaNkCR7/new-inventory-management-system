@@ -93,31 +93,6 @@ export default function ProductFormFields({
 
   return (
     <div className="space-y-6">
-      {showWeightUnitSelector && (
-        <div className="space-y-2">
-          <Label htmlFor={fieldId("weightUnit")} className={labelClass}>
-            Weight Unit *
-          </Label>
-          <Select
-            value={weightUnit}
-            onValueChange={(value: WeightUnit) =>
-              onWeightUnitChange
-                ? onWeightUnitChange(value)
-                : updateForm({ weightUnit: value, netWeight: 0 })
-            }
-          >
-            <SelectTrigger id={fieldId("weightUnit")} className={cn(selectTriggerClass, fieldErrorClass("weightUnit"))}>
-              <SelectValue placeholder="Select unit" />
-            </SelectTrigger>
-            <SelectContent className={selectContentClass}>
-              <SelectItem value="kg">Kilogram (kg)</SelectItem>
-              <SelectItem value="liter">Liter</SelectItem>
-            </SelectContent>
-          </Select>
-          {renderFieldError("weightUnit")}
-        </div>
-      )}
-
       <div className="space-y-2">
         <Label htmlFor={fieldId("productName")} className={labelClass}>
           Product Name *
@@ -312,49 +287,76 @@ export default function ProductFormFields({
         </div>
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor={fieldId("netWeight")} className={labelClass}>
-          Net Weight ({weightUnitLabel}) *
-        </Label>
-        <Select
-          value={
-            isAddingCustomNetWeight
-              ? "__new__"
-              : uniqueNetWeights.includes(formData.netWeight)
-                ? String(formData.netWeight)
-                : undefined
-          }
-          onValueChange={onNetWeightChange}
-        >
-          <SelectTrigger id={fieldId("netWeight")} className={cn(selectTriggerClass, fieldErrorClass("netWeight"))}>
-            <SelectValue placeholder={`Select net weight (${weightUnitLabel})`} />
-          </SelectTrigger>
-          <SelectContent className={selectContentClass}>
-            {uniqueNetWeights.map((weight) => (
-              <SelectItem key={weight} value={String(weight)}>
-                {weight} {weightUnitLabel}
-              </SelectItem>
-            ))}
-            <SelectItem value="__new__">Add new weight...</SelectItem>
-          </SelectContent>
-        </Select>
-        {isAddingCustomNetWeight && (
-          <Input
-            id={fieldId("netWeight-new")}
-            type="number"
-            min={0}
-            step="any"
-            value={formData.netWeight === 0 ? "" : formData.netWeight}
-            onChange={(e) => {
-              const value = e.target.value
-              const num = value === "" ? 0 : Number(value)
-              onCustomNetWeightChange(num)
-            }}
-            placeholder={`Enter new net weight (${weightUnitLabel})`}
-            className={cn(inputClass, fieldErrorClass("netWeight"))}
-          />
+      <div className={cn("grid gap-6", showWeightUnitSelector ? "grid-cols-1 md:grid-cols-2" : "grid-cols-1")}>
+        {showWeightUnitSelector && (
+          <div className="space-y-2">
+            <Label htmlFor={fieldId("weightUnit")} className={labelClass}>
+              Weight Unit *
+            </Label>
+            <Select
+              value={weightUnit}
+              onValueChange={(value: WeightUnit) =>
+                onWeightUnitChange
+                  ? onWeightUnitChange(value)
+                  : updateForm({ weightUnit: value, netWeight: 0 })
+              }
+            >
+              <SelectTrigger id={fieldId("weightUnit")} className={cn(selectTriggerClass, fieldErrorClass("weightUnit"))}>
+                <SelectValue placeholder="Select unit" />
+              </SelectTrigger>
+              <SelectContent className={selectContentClass}>
+                <SelectItem value="kg">Kilogram (kg)</SelectItem>
+                <SelectItem value="liter">Liter</SelectItem>
+              </SelectContent>
+            </Select>
+            {renderFieldError("weightUnit")}
+          </div>
         )}
-        {renderFieldError("netWeight")}
+
+        <div className="space-y-2">
+          <Label htmlFor={fieldId("netWeight")} className={labelClass}>
+            Net Weight ({weightUnitLabel}) *
+          </Label>
+          <Select
+            value={
+              isAddingCustomNetWeight
+                ? "__new__"
+                : uniqueNetWeights.includes(formData.netWeight)
+                  ? String(formData.netWeight)
+                  : undefined
+            }
+            onValueChange={onNetWeightChange}
+          >
+            <SelectTrigger id={fieldId("netWeight")} className={cn(selectTriggerClass, fieldErrorClass("netWeight"))}>
+              <SelectValue placeholder={`Select net weight (${weightUnitLabel})`} />
+            </SelectTrigger>
+            <SelectContent className={selectContentClass}>
+              {uniqueNetWeights.map((weight) => (
+                <SelectItem key={weight} value={String(weight)}>
+                  {weight} {weightUnitLabel}
+                </SelectItem>
+              ))}
+              <SelectItem value="__new__">Add new weight...</SelectItem>
+            </SelectContent>
+          </Select>
+          {isAddingCustomNetWeight && (
+            <Input
+              id={fieldId("netWeight-new")}
+              type="number"
+              min={0}
+              step="any"
+              value={formData.netWeight === 0 ? "" : formData.netWeight}
+              onChange={(e) => {
+                const value = e.target.value
+                const num = value === "" ? 0 : Number(value)
+                onCustomNetWeightChange(num)
+              }}
+              placeholder={`Enter new net weight (${weightUnitLabel})`}
+              className={cn(inputClass, fieldErrorClass("netWeight"))}
+            />
+          )}
+          {renderFieldError("netWeight")}
+        </div>
       </div>
 
       <div className="space-y-2">
