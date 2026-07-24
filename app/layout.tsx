@@ -7,6 +7,7 @@ import { ApprovalProvider } from "@/contexts/ApprovalContext"
 import { ThemeProvider } from "@/contexts/ThemeContext"
 import { NotificationProvider } from "@/contexts/NotificationContext"
 import { FormPersistenceProvider } from "@/contexts/FormPersistenceContext"
+import { LedgerProvider } from "@/contexts/LedgerContext"
 import "./globals.css"
 
 const outfit = Outfit({
@@ -28,15 +29,17 @@ export default function RootLayout({
           <AuthProvider>
             {/* inventory must exist before approval; approval applies inventory changes */}
             <InventoryProvider>
-              <ApprovalProvider>
-                <BatchProvider>
-                  <NotificationProvider>
-                    <FormPersistenceProvider>
-                      {children}
-                    </FormPersistenceProvider>
-                  </NotificationProvider>
-                </BatchProvider>
-              </ApprovalProvider>
+              <LedgerProvider>
+                <ApprovalProvider>
+                  <BatchProvider>
+                    <NotificationProvider>
+                      <FormPersistenceProvider>
+                        {children}
+                      </FormPersistenceProvider>
+                    </NotificationProvider>
+                  </BatchProvider>
+                </ApprovalProvider>
+              </LedgerProvider>
             </InventoryProvider>
           </AuthProvider>
         </ThemeProvider>

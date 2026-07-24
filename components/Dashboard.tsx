@@ -11,6 +11,7 @@ import ReportsPage from "@/components/reports/ReportsPage"
 import VisualReports from "@/components/reports/VisualReports"
 import SalesPage from "@/components/sales/SalesPage"
 import StockViewPage from "@/components/stock/StockViewPage"
+import LedgerAccountsPage from "@/components/ledger-accounts/LedgerAccountsPage"
 import SuppliersPage from "@/components/suppliers/SuppliersPage"
 import { ChevronRight } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
@@ -98,6 +99,8 @@ useEffect(() => {
         return <ClientsPage />
       case "suppliers":
         return <SuppliersPage />
+      case "ledger-accounts":
+        return <LedgerAccountsPage />
       case "approvals":
         return <ApprovalsPage />
       case "reports":

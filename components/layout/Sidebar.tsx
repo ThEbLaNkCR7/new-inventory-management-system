@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/contexts/AuthContext"
-import { BarChart3, CheckCircle, ChevronLeft, Home, Package, ShoppingCart, TrendingUp, Truck, Users, X } from "lucide-react"
+import { BarChart3, BookOpen, CheckCircle, ChevronLeft, Home, Package, ShoppingCart, TrendingUp, Truck, Users, X } from "lucide-react"
 
 interface SidebarProps {
   activeTab: string
@@ -24,6 +24,7 @@ export default function Sidebar({ activeTab, setActiveTab, isOpen, setIsOpen, is
     { id: "batches", label: "Batches", icon: Truck, adminOnly: true },
     { id: "clients", label: "Clients", icon: Users, adminOnly: false },
     { id: "suppliers", label: "Suppliers", icon: Truck, adminOnly: false },
+    { id: "ledger-accounts", label: "Ledger Account", icon: BookOpen, adminOnly: false },
     { id: "approvals", label: "Approvals", icon: CheckCircle, adminOnly: true },
     { id: "reports", label: "Reports", icon: BarChart3, adminOnly: true },
   ]
