@@ -1,7 +1,62 @@
 import * as XLSX from "xlsx"
 
+export type ExcelTableColumn = {
+  key: string
+  header: string
+  width?: number
+}
+
 export const exportToExcel = (data: any[], filename: string, sheetName = "Sheet1") => {
   const worksheet = XLSX.utils.json_to_sheet(data)
+  const workbook = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(workbook, worksheet, sheetName)
+  XLSX.writeFile(workbook, `${filename}.xlsx`)
+}
+
+/** Export rows as a titled Excel table matching on-screen table columns. */
+export const exportTableToExcel = (
+  rows: Record<string, unknown>[],
+  filename: string,
+  options: {
+    sheetName?: string
+    title?: string
+    columns: ExcelTableColumn[]
+  },
+) => {
+  const { columns, title, sheetName = "Sheet1" } = options
+  if (!columns.length) return
+
+  const aoa: (string | number)[][] = []
+  let headerRowIndex = 0
+
+  if (title) {
+    aoa.push([title])
+    aoa.push([])
+    headerRowIndex = 2
+  }
+
+  aoa.push(columns.map((col) => col.header))
+  rows.forEach((row) => {
+    aoa.push(columns.map((col) => (row[col.key] ?? "") as string | number))
+  })
+
+  const worksheet = XLSX.utils.aoa_to_sheet(aoa)
+
+  if (title && columns.length > 1) {
+    worksheet["!merges"] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: columns.length - 1 } }]
+  }
+
+  worksheet["!cols"] = columns.map((col) => ({
+    wch: col.width ?? Math.max(col.header.length + 2, 14),
+  }))
+
+  const lastRow = headerRowIndex + rows.length
+  const lastCol = XLSX.utils.encode_col(columns.length - 1)
+  const headerCell = XLSX.utils.encode_cell({ r: headerRowIndex, c: 0 })
+  worksheet["!autofilter"] = {
+    ref: `${headerCell}:${lastCol}${lastRow + 1}`,
+  }
+
   const workbook = XLSX.utils.book_new()
   XLSX.utils.book_append_sheet(workbook, worksheet, sheetName)
   XLSX.writeFile(workbook, `${filename}.xlsx`)

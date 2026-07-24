@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useToast } from "@/components/ui/use-toast"
 import { useInventory } from "@/contexts/InventoryContext"
 import { formatDateForReports, getCurrentNepaliYear, getNepaliMonth, getNepaliYear, toTitleCase } from "@/lib/utils"
+import { exportTableToExcel } from "@/utils/exportUtils"
 import { AlertTriangle, BarChart, BarChart3, Calendar, DollarSign, Package, TrendingDown, TrendingUp } from "lucide-react"
 import { useState } from "react"
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts"
@@ -15,6 +16,8 @@ import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YA
 const formatDate = (dateString: string) => {
   return formatDateForReports(dateString)
 }
+
+const formatRs = (value: number) => `Rs ${Number(value || 0).toLocaleString()}`
 
 export default function ReportsPage() {
   const { products, purchases, sales, getLowStockProducts, getTotalSales, getTotalPurchases, getProfit } =
@@ -31,68 +34,58 @@ export default function ReportsPage() {
   const currentNepaliYear = getCurrentNepaliYear()
   const currentNepaliMonth = getNepaliMonth(new Date().toISOString())
 
-  // Export Monthly Report to CSV
-  const exportMonthlyReportToCSV = (monthlyData: any[]) => {
-    if (!monthlyData || monthlyData.length === 0) {
+  // Export Monthly Report as Excel table (matches weekly chart breakdown)
+  const exportMonthlyReportToExcel = (weeklyRows: any[]) => {
+    if (!weeklyRows || weeklyRows.length === 0) {
       toast({ title: "No monthly data", description: "There is no monthly report to export.", variant: "destructive" });
       return;
     }
 
-    const headers = ["Month", "Sales (Rs)", "Purchases (Rs)", "Profit (Rs)", "Sales Count", "Purchases Count"];
+    const data = weeklyRows.map((row) => ({
+      week: row.week,
+      sales: formatRs(row.sales),
+      purchases: formatRs(row.purchases),
+      profit: formatRs(row.profit),
+    }));
 
-    const rows = monthlyData.map((month) => [
-      month.month,
-      month.sales,
-      month.purchases,
-      month.profit,
-      month.salesCount || 0,
-      month.purchasesCount || 0,
-    ]);
-
-    const csvContent = [headers, ...rows]
-      .map(row => row.map(v => `"${v}"`).join(","))
-      .join("\n");
-
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `monthly_report_${new Date().toISOString().split("T")[0]}.csv`;
-    link.click();
-    URL.revokeObjectURL(url);
+    exportTableToExcel(data, `monthly_report_${new Date().toISOString().split("T")[0]}`, {
+      sheetName: "Monthly Report",
+      title: "Monthly Report — Weekly Breakdown",
+      columns: [
+        { key: "week", header: "Week", width: 12 },
+        { key: "sales", header: "Sales", width: 18 },
+        { key: "purchases", header: "Purchases", width: 18 },
+        { key: "profit", header: "Profit", width: 18 },
+      ],
+    });
   };
 
-  // Export Yearly Report to CSV (weekly breakdown or yearly summary)
-  const exportYearlyReportToCSV = (yearlyData: any[]) => {
-    if (!yearlyData || yearlyData.length === 0) {
+  // Export Yearly Report as Excel table (matches Yearly Summary table)
+  const exportYearlyReportToExcel = (yearlyRows: any[]) => {
+    if (!yearlyRows || yearlyRows.length === 0) {
       toast({ title: "No yearly data", description: "There is no yearly report to export.", variant: "destructive" });
       return;
     }
 
-    const headers = ["Month/Week", "Sales (Rs)", "Purchases (Rs)", "Profit (Rs)", "Sales Count", "Purchases Count"];
+    const data = yearlyRows.map((row) => ({
+      month: row.month,
+      sales: formatRs(row.sales),
+      purchases: formatRs(row.purchases),
+      profit: formatRs(row.profit),
+      transactions: row.transactions ?? 0,
+    }));
 
-    const rows = yearlyData.map((item) => [
-      item.month || item.week,
-      item.sales,
-      item.purchases,
-      item.profit,
-      item.salesCount || 0,
-      item.purchasesCount || 0,
-    ]);
-
-    const csvContent = [headers, ...rows]
-      .map(row => row.map(v => `"${v}"`).join(","))
-      .join("\n");
-
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `yearly_report_${new Date().toISOString().split("T")[0]}.csv`;
-    link.click();
-    URL.revokeObjectURL(url);
+    exportTableToExcel(data, `yearly_report_${new Date().toISOString().split("T")[0]}`, {
+      sheetName: "Yearly Summary",
+      title: `Yearly Summary — ${currentNepaliYear}`,
+      columns: [
+        { key: "month", header: "Month", width: 14 },
+        { key: "sales", header: "Sales", width: 18 },
+        { key: "purchases", header: "Purchases", width: 18 },
+        { key: "profit", header: "Profit", width: 18 },
+        { key: "transactions", header: "Transactions", width: 14 },
+      ],
+    });
   };
 
 
@@ -174,44 +167,50 @@ export default function ReportsPage() {
 
     return nepaliMonths.map((monthName, index) => {
       const monthNumber = index + 1;
-      const monthSales = sales
-        .filter(
-          (s) =>
-            getNepaliYear(s.saleDate) === currentNepaliYear &&
-            getNepaliMonth(s.saleDate) === monthNumber
-        )
-        .reduce((sum, s) => {
-          return (
-            sum +
-            (s.items || []).reduce(
-              (itemSum, item) =>
-                itemSum +
-                (item.quantitySold || 0) *
-                (item.salePrice || 0),
-              0
-            )
-          )
-        }, 0)
+      const monthSalesList = sales.filter(
+        (s) =>
+          getNepaliYear(s.saleDate) === currentNepaliYear &&
+          getNepaliMonth(s.saleDate) === monthNumber
+      )
+      const monthPurchasesList = purchases.filter(
+        (p) =>
+          getNepaliYear(p.purchaseDate) === currentNepaliYear &&
+          getNepaliMonth(p.purchaseDate) === monthNumber
+      )
 
-      const monthPurchases = purchases
-        .filter(
-          (p) =>
-            getNepaliYear(p.purchaseDate) === currentNepaliYear &&
-            getNepaliMonth(p.purchaseDate) === monthNumber
-        )
-        .reduce((sum, p) => {
-          return (
-            sum +
-            (p.items || []).reduce(
-              (itemSum, item) =>
-                itemSum +
-                (item.quantityPurchased || 0) *
-                (item.purchasePrice || 0),
-              0
-            )
+      const monthSales = monthSalesList.reduce((sum, s) => {
+        return (
+          sum +
+          (s.items || []).reduce(
+            (itemSum, item) =>
+              itemSum +
+              (item.quantitySold || 0) *
+              (item.salePrice || 0),
+            0
           )
-        }, 0)
-      return { month: monthName, sales: monthSales, purchases: monthPurchases, profit: monthSales - monthPurchases };
+        )
+      }, 0)
+
+      const monthPurchases = monthPurchasesList.reduce((sum, p) => {
+        return (
+          sum +
+          (p.items || []).reduce(
+            (itemSum, item) =>
+              itemSum +
+              (item.quantityPurchased || 0) *
+              (item.purchasePrice || 0),
+            0
+          )
+        )
+      }, 0)
+
+      return {
+        month: monthName,
+        sales: monthSales,
+        purchases: monthPurchases,
+        profit: monthSales - monthPurchases,
+        transactions: monthSalesList.length + monthPurchasesList.length,
+      };
     });
   };
 
@@ -371,7 +370,7 @@ export default function ReportsPage() {
             </Card>
           </div>
 
-          <Button onClick={() => exportMonthlyReportToCSV(getMonthlyData())}>Export Monthly CSV</Button>
+          <Button onClick={() => exportMonthlyReportToExcel(weeklyData)}>Export Monthly Excel</Button>
 
           {/* Monthly Charts */}
           <div className="">
@@ -445,7 +444,7 @@ export default function ReportsPage() {
             </Card>
           </div>
 
-          <Button onClick={() => exportYearlyReportToCSV(getMonthlyData())}>Export Yearly CSV</Button>
+          <Button onClick={() => exportYearlyReportToExcel(getMonthlyData())}>Export Yearly Excel</Button>
 
           <Card className="dark:bg-gray-800 dark:border-gray-700">
             <CardHeader>
@@ -486,76 +485,15 @@ export default function ReportsPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {(() => {
-                      // Generate monthly data for the current Nepali year
-                      const currentNepaliYear = getCurrentNepaliYear()
-                      const nepaliMonths = [
-                        "Baisakh", "Jestha", "Asar", "Shrawan", "Bhadra", "Ashoj",
-                        "Kartik", "Mangsir", "Poush", "Magh", "Falgun", "Chaitra"
-                      ]
-                      const monthlyData = []
-
-                      for (let monthIndex = 0; monthIndex < 12; monthIndex++) {
-                        const monthName = nepaliMonths[monthIndex]
-                        const monthNumber = monthIndex + 1 // Convert to 1-based month number
-                        const monthSales = sales.filter(sale => {
-                          const saleNepaliYear = getNepaliYear(sale.saleDate)
-                          const saleNepaliMonth = getNepaliMonth(sale.saleDate)
-                          return saleNepaliYear === currentNepaliYear && saleNepaliMonth === monthNumber
-                        })
-                        const monthPurchases = purchases.filter(purchase => {
-                          const purchaseNepaliYear = getNepaliYear(purchase.purchaseDate)
-                          const purchaseNepaliMonth = getNepaliMonth(purchase.purchaseDate)
-                          return purchaseNepaliYear === currentNepaliYear && purchaseNepaliMonth === monthNumber
-                        })
-
-                        const totalSales = monthSales.reduce((sum, sale) => {
-                          return (
-                            sum +
-                            (sale.items || []).reduce(
-                              (itemSum, item) =>
-                                itemSum +
-                                (item.quantitySold || 0) *
-                                (item.salePrice || 0),
-                              0
-                            )
-                          )
-                        }, 0)
-
-                        const totalPurchases = monthPurchases.reduce((sum, purchase) => {
-                          return (
-                            sum +
-                            (purchase.items || []).reduce(
-                              (itemSum, item) =>
-                                itemSum +
-                                (item.quantityPurchased || 0) *
-                                (item.purchasePrice || 0),
-                              0
-                            )
-                          )
-                        }, 0)
-                        const profit = totalSales - totalPurchases
-                        const transactions = monthSales.length + monthPurchases.length
-
-                        monthlyData.push({
-                          month: monthName,
-                          sales: totalSales,
-                          purchases: totalPurchases,
-                          profit: profit,
-                          transactions: transactions
-                        })
-                      }
-
-                      return monthlyData.map((data, index) => (
-                        <TableRow key={index}>
-                          <TableCell className="font-medium">{data.month}</TableCell>
-                          <TableCell>Rs {data.sales.toLocaleString()}</TableCell>
-                          <TableCell>Rs {data.purchases.toLocaleString()}</TableCell>
-                          <TableCell>Rs {data.profit.toLocaleString()}</TableCell>
-                          <TableCell>{data.transactions}</TableCell>
-                        </TableRow>
-                      ))
-                    })()}
+                    {getMonthlyData().map((data, index) => (
+                      <TableRow key={index}>
+                        <TableCell className="font-medium">{data.month}</TableCell>
+                        <TableCell>{formatRs(data.sales)}</TableCell>
+                        <TableCell>{formatRs(data.purchases)}</TableCell>
+                        <TableCell>{formatRs(data.profit)}</TableCell>
+                        <TableCell>{data.transactions}</TableCell>
+                      </TableRow>
+                    ))}
                   </TableBody>
                 </Table>
               </div>
