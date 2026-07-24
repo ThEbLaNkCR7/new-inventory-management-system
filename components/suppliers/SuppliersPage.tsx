@@ -31,7 +31,7 @@ import { useApproval } from "@/contexts/ApprovalContext"
 import { useAuth } from "@/contexts/AuthContext"
 import { usePersistentForm } from "@/contexts/FormPersistenceContext"
 import { useInventory } from "@/contexts/InventoryContext"
-import { cn, formatNepaliDateForTable, getCurrentNepaliYear, getNepaliYear } from "@/lib/utils"
+import { cn, formatNepaliDateForTable, getCurrentNepaliYear, getNepaliYear, toTitleCase } from "@/lib/utils"
 import { Building, CheckCircle, Clock, Edit, Eye, Loader2, Mail, Phone, Plus, Search, Trash2 } from "lucide-react"
 import { useEffect, useState } from "react"
 import { validateSupplierFormData } from "./utils"
@@ -636,7 +636,7 @@ export default function SuppliersPage() {
                           className="text-gray-700 dark:text-gray-100 cursor-pointer hover:text-orange-600 dark:hover:text-orange-400 transition-colors"
                           onClick={() => handleSupplierClick(supplier)}
                         >
-                          {supplier.name}
+                          {toTitleCase(supplier.name)}
                         </p>
                         <p className="text-gray-700 dark:text-gray-400">
                           {getSupplierOrderCount(supplier.name)} orders
@@ -1232,7 +1232,7 @@ export default function SuppliersPage() {
                               </TableCell>
                               <TableCell className="font-medium text-gray-900 dark:text-gray-100">
                                 {purchase.items
-                                  ?.map((i) => i.productName || "")
+                                  ?.map((i) => toTitleCase(i.productName || ""))
                                   .filter(Boolean)
                                   .join(", ")}
                               </TableCell>

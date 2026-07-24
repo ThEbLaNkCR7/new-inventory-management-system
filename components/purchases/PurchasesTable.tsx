@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { Purchase } from "@/contexts/InventoryContext";
-import { formatNepaliDateForTable } from "@/lib/utils";
+import { formatNepaliDateForTable, toTitleCase } from "@/lib/utils";
 import { Building2, Edit, Eye, Trash2, TrendingUp, Users } from "lucide-react";
 import React from "react";
 import { formatPurchaseTotal } from "./utils";
@@ -108,7 +108,7 @@ export default function PurchasesTable({
                   className="text-gray-700 dark:text-gray-100 cursor-pointer hover:text-orange-600 dark:hover:text-orange-400 transition-colors"
                   onClick={() => onSupplierClick(purchase.supplier)}
                 >
-                  {purchase.supplier}
+                  {toTitleCase(purchase.supplier)}
                 </span>
               </TableCell>
               <TableCell className="font-medium">

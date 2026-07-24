@@ -9,7 +9,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { formatNepaliDateForTable } from "@/lib/utils";
+import { formatNepaliDateForTable, toTitleCase } from "@/lib/utils";
 import { Eye } from "lucide-react";
 
 interface ViewSaleDialogProps {
@@ -125,7 +125,7 @@ export default function ViewSaleDialog({
                       className="border-t dark:border-gray-700"
                     >
                       <td className="p-3 font-medium">
-                        {item.productName || "Unknown Product"}
+                        {toTitleCase(item.productName) || "Unknown Product"}
                       </td>
 
                       <td className="p-3">

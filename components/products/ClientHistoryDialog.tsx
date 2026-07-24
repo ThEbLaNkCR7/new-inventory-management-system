@@ -18,7 +18,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import type { Sale } from "@/contexts/InventoryContext"
-import { formatNepaliDateForTable } from "@/lib/utils"
+import { formatNepaliDateForTable, toTitleCase } from "@/lib/utils"
 import { filterSalesByClient, getCurrentYear } from "./productHistoryUtils"
 
 interface ClientHistoryDialogProps {
@@ -122,7 +122,7 @@ export default function ClientHistoryDialog({
                         <TableCell className="text-gray-700 dark:text-gray-300">
                           {formatNepaliDateForTable(item.date)}
                         </TableCell>
-                        <TableCell className="font-medium text-gray-900 dark:text-gray-100">{item.productId}</TableCell>
+                        <TableCell className="font-medium text-gray-900 dark:text-gray-100">{toTitleCase(item.productId)}</TableCell>
                         <TableCell className="text-gray-700 dark:text-gray-300">{item.quantity} units</TableCell>
                         <TableCell className="text-gray-700 dark:text-gray-300">Rs {item.unitPrice.toLocaleString()}</TableCell>
                         <TableCell className="font-semibold text-green-600 dark:text-green-400">Rs {item.total.toLocaleString()}</TableCell>

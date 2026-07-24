@@ -21,6 +21,7 @@ import {
   formatNepaliDateForTable,
   getCurrentNepaliYear,
   getNepaliYear,
+  toTitleCase,
 } from "@/lib/utils";
 import type { Sale } from "@/contexts/InventoryContext";
 import { Users } from "lucide-react";
@@ -167,7 +168,7 @@ export default function ClientHistoryDialog({
                           </TableCell>
 
                           <TableCell className="font-medium">
-                            {item.productName}
+                            {toTitleCase(item.productName)}
                           </TableCell>
 
                           <TableCell>

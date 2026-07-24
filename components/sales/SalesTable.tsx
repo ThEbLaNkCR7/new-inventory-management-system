@@ -18,7 +18,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { formatNepaliDateForTable } from "@/lib/utils";
+import { formatNepaliDateForTable, toTitleCase } from "@/lib/utils";
 import { Building2, Edit, Eye, Trash2, TrendingUp, Users } from "lucide-react";
 import React from "react";
 import { formatSaleTotal } from "./utils";
@@ -165,7 +165,7 @@ export default function SalesTable({
                             onClientClick(sale.client);
                           }}
                         >
-                          {sale.client}
+                          {toTitleCase(sale.client)}
                         </span>
                       </TableCell>
                       <TableCell className="font-medium">
@@ -265,7 +265,7 @@ export default function SalesTable({
                             onClientClick(sale.client);
                           }}
                         >
-                          {sale.client}
+                          {toTitleCase(sale.client)}
                         </span>
                       </TableCell>
                       <TableCell className="font-medium">
@@ -365,7 +365,7 @@ export default function SalesTable({
                             onClientClick(sale.client);
                           }}
                         >
-                          {sale.client}
+                          {toTitleCase(sale.client)}
                         </span>
                       </TableCell>
                       <TableCell className="font-medium">

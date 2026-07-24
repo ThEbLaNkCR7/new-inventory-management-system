@@ -29,7 +29,7 @@ import { useApproval } from "@/contexts/ApprovalContext"
 import { useAuth } from "@/contexts/AuthContext"
 import { usePersistentForm } from "@/contexts/FormPersistenceContext"
 import { useInventory } from "@/contexts/InventoryContext"
-import { cn, formatNepaliDateForTable, getCurrentNepaliYear, getNepaliYear } from "@/lib/utils"
+import { cn, formatNepaliDateForTable, getCurrentNepaliYear, getNepaliYear, toTitleCase } from "@/lib/utils"
 import { Building, CheckCircle, Clock, Edit, Eye, Loader2, Mail, Phone, Plus, Search, Trash2 } from "lucide-react"
 import { useState } from "react"
 import { Progress } from "../ui/progress"
@@ -1013,7 +1013,7 @@ export default function ClientsPage() {
                           className="text-gray-700 dark:text-gray-100 cursor-pointer hover:text-teal-600 dark:hover:text-teal-400 transition-colors"
                           onClick={() => handleClientClick(client)}
                         >
-                          {client.name}
+                          {toTitleCase(client.name)}
                         </p>
                         <p className="text-gray-700 dark:text-gray-400">
                           {getClientOrderCount(client.name)} orders
@@ -1218,7 +1218,7 @@ export default function ClientsPage() {
                               </TableCell>
                               <TableCell className="font-medium text-gray-900 dark:text-gray-100">
                                 {sale.items
-                                  ?.map((i) => i.productName || "")
+                                  ?.map((i) => toTitleCase(i.productName || ""))
                                   .filter(Boolean)
                                   .join(", ")}
                               </TableCell>

@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import type { Product } from "@/contexts/InventoryContext"
+import { toTitleCase } from "@/lib/utils"
 import { AlertTriangle, Edit, Eye, Package, Search, Trash2 } from "lucide-react"
 import { useState } from "react"
 import type { ProductGroup } from "./types"
@@ -108,7 +109,7 @@ export default function ProductsTable({
                           className="text-gray-900 dark:text-gray-300 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                           onClick={() => onProductClick(selectedVariant)}
                         >
-                          {group.name}
+                          {toTitleCase(group.name)}
                         </p>
                       </TableCell>
                       <TableCell>
@@ -116,7 +117,7 @@ export default function ProductsTable({
                           className="text-gray-900 dark:text-gray-100 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                           onClick={() => onProductClick(selectedVariant)}
                         >
-                          {group.category}
+                          {toTitleCase(group.category)}
                         </p>
                       </TableCell>
                       <TableCell>

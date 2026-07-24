@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useBatch } from "@/contexts/BatchContext"
 import { useInventory } from "@/contexts/InventoryContext"
 import { formatProductNetWeight } from "@/components/products/utils"
+import { toTitleCase } from "@/lib/utils"
 import { AlertTriangle, Clock, Package, Search } from "lucide-react"
 import { useState } from "react"
 
@@ -254,7 +255,7 @@ export default function StockViewPage() {
 
                       <TableCell>
                         <div>
-                          <p className="text-gray-700">{product.name}</p>
+                          <p className="text-gray-700">{toTitleCase(product.name)}</p>
                           <p className="text-gray-700">
                             {product.description}
                           </p>
@@ -263,7 +264,7 @@ export default function StockViewPage() {
 
                       <TableCell className="text-gray-700">
                         <Badge variant="secondary" className="text-gray-700">
-                          {product.category}
+                          {toTitleCase(product.category)}
                         </Badge>
                       </TableCell>
 
@@ -350,7 +351,7 @@ export default function StockViewPage() {
                       {/* Product */}
                       <TableCell className="text-gray-700">
                         <div>
-                          <p className="font-medium">{product.name}</p>
+                          <p className="font-medium">{toTitleCase(product.name)}</p>
                           <p className="text-sm text-gray-500">
                             {product.description}
                           </p>
@@ -358,7 +359,7 @@ export default function StockViewPage() {
                       </TableCell>
 
                       {/* Client */}
-                      <TableCell className="text-gray-700">{product.client}</TableCell>
+                      <TableCell className="text-gray-700">{toTitleCase(product.client)}</TableCell>
 
                       {/* Quantity */}
                       <TableCell className="text-gray-700">{product.soldQuantity}</TableCell>

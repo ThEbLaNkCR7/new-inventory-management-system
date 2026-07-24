@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import type { Purchase } from "@/contexts/InventoryContext";
-import { formatNepaliDateForTable } from "@/lib/utils";
+import { formatNepaliDateForTable, toTitleCase } from "@/lib/utils";
 import { Eye } from "lucide-react";
 
 interface ViewPurchaseDialogProps {
@@ -121,7 +121,7 @@ export default function ViewPurchaseDialog({
                 {purchase.items?.map((item: any, index: number) => (
                   <tr key={index} className="border-t dark:border-gray-700">
                     <td className="p-3 font-medium">
-                      {item.productName || "Unknown Product"}
+                      {toTitleCase(item.productName) || "Unknown Product"}
                     </td>
 
                     <td className="p-3">

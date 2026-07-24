@@ -6,6 +6,16 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
+/** Title-case each word for table display (product name, category, client, supplier). */
+export function toTitleCase(value: string | null | undefined): string {
+  if (!value) return ""
+  return value
+    .toLowerCase()
+    .split(/\s+/)
+    .map((word) => (word ? word.charAt(0).toUpperCase() + word.slice(1) : word))
+    .join(" ")
+}
+
 // Re-export Nepali date utilities for backward compatibility
 export {
   englishToNepali,

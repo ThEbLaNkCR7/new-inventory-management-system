@@ -22,6 +22,7 @@ import {
   formatNepaliDateForTable,
   getCurrentNepaliYear,
   getNepaliYear,
+  toTitleCase,
 } from "@/lib/utils";
 import { Building2 } from "lucide-react";
 
@@ -179,7 +180,7 @@ export default function SupplierHistoryDialog({
                             {formatNepaliDateForTable(item.purchaseDate)}
                           </TableCell>
                           <TableCell className="font-medium text-gray-900 dark:text-gray-100">
-                            {item.productName}
+                            {toTitleCase(item.productName)}
                           </TableCell>
                           <TableCell className="text-gray-700 dark:text-gray-300">
                             {item.quantityPurchased || 0} units

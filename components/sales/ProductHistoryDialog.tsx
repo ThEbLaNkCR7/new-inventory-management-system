@@ -21,6 +21,7 @@ import {
   formatNepaliDateForTable,
   getCurrentNepaliYear,
   getNepaliYear,
+  toTitleCase,
 } from "@/lib/utils";
 import { TrendingUp } from "lucide-react";
 import React from "react";
@@ -228,7 +229,7 @@ export default function ProductHistoryDialog({
                           {formatNepaliDateForTable(sale.saleDate)}
                         </TableCell>
                         <TableCell className="font-medium text-gray-900 dark:text-gray-100">
-                          {sale.client}
+                          {toTitleCase(sale.client)}
                         </TableCell>
                         <TableCell className="text-gray-700 dark:text-gray-300">
                           {sale.quantitySold} units
@@ -298,7 +299,7 @@ export default function ProductHistoryDialog({
                           {formatNepaliDateForTable(purchase.purchaseDate)}
                         </TableCell>
                         <TableCell className="font-medium text-gray-900 dark:text-gray-100">
-                          {purchase.supplier}
+                          {toTitleCase(purchase.supplier)}
                         </TableCell>
                         <TableCell className="text-gray-700 dark:text-gray-300">
                           {purchase.quantityPurchased} units

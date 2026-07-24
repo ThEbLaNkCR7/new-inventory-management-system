@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useToast } from "@/components/ui/use-toast"
 import { useInventory } from "@/contexts/InventoryContext"
-import { formatDateForReports, getCurrentNepaliYear, getNepaliMonth, getNepaliYear } from "@/lib/utils"
+import { formatDateForReports, getCurrentNepaliYear, getNepaliMonth, getNepaliYear, toTitleCase } from "@/lib/utils"
 import { AlertTriangle, BarChart, BarChart3, Calendar, DollarSign, Package, TrendingDown, TrendingUp } from "lucide-react"
 import { useState } from "react"
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts"
@@ -790,7 +790,7 @@ export default function ReportsPage() {
                       <TableCell className="font-medium dark:text-gray-200 text-gray-700">
                         {activity.items?.map((item, index) => (
                           <span key={index}>
-                            {item.productId}
+                            {toTitleCase(item.productId)}
                             {index < activity.items.length - 1 ? ", " : ""}
                           </span>
                         ))}

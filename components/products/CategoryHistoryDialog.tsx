@@ -19,7 +19,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import type { Product, Purchase, Sale } from "@/contexts/InventoryContext"
-import { formatNepaliDateForTable } from "@/lib/utils"
+import { formatNepaliDateForTable, toTitleCase } from "@/lib/utils"
 import {
   computeTransactionStats,
   filterPurchasesByProductNames,
@@ -143,7 +143,7 @@ export default function CategoryHistoryDialog({
                     const threshold = (product as Product & { lowStockThreshold?: number }).lowStockThreshold ?? 5
                     return (
                       <TableRow key={product.id} className="hover:bg-gray-100 dark:hover:bg-gray-700/50">
-                        <TableCell className="font-medium text-gray-900 dark:text-gray-100">{product.name}</TableCell>
+                        <TableCell className="font-medium text-gray-900 dark:text-gray-100">{toTitleCase(product.name)}</TableCell>
                         <TableCell className="text-gray-700 dark:text-gray-300">{product.stockQuantity} units</TableCell>
                         <TableCell className="text-gray-700 dark:text-gray-300">Rs {product.unitPrice.toLocaleString()}</TableCell>
                         <TableCell className="font-semibold text-purple-600 dark:text-purple-400">
@@ -223,10 +223,10 @@ function CategoryTransactionTable({
                 <TableCell className="text-gray-700 dark:text-gray-300">
                   {formatNepaliDateForTable(sale.saleDate)}
                 </TableCell>
-                <TableCell className="font-medium text-gray-900 dark:text-gray-100">{item.productId}</TableCell>
+                <TableCell className="font-medium text-gray-900 dark:text-gray-100">{toTitleCase(item.productId)}</TableCell>
                 <TableCell className="font-medium text-gray-900 dark:text-gray-100">
                   <span className="cursor-pointer hover:text-teal-600 dark:hover:text-teal-400 transition-colors" onClick={() => onClientClick(sale.client)}>
-                    {sale.client}
+                    {toTitleCase(sale.client)}
                   </span>
                 </TableCell>
                 <TableCell className="text-gray-700 dark:text-gray-300">{item.quantitySold} units</TableCell>
@@ -244,10 +244,10 @@ function CategoryTransactionTable({
                 <TableCell className="text-gray-700 dark:text-gray-300">
                   {formatNepaliDateForTable(purchase.purchaseDate)}
                 </TableCell>
-                <TableCell className="font-medium text-gray-900 dark:text-gray-100">{item.productId}</TableCell>
+                <TableCell className="font-medium text-gray-900 dark:text-gray-100">{toTitleCase(item.productId)}</TableCell>
                 <TableCell className="font-medium text-gray-900 dark:text-gray-100">
                   <span className="cursor-pointer hover:text-orange-600 dark:hover:text-orange-400 transition-colors" onClick={() => onSupplierClick(purchase.supplier)}>
-                    {purchase.supplier}
+                    {toTitleCase(purchase.supplier)}
                   </span>
                 </TableCell>
                 <TableCell className="text-gray-700 dark:text-gray-300">{item.quantityPurchased} units</TableCell>

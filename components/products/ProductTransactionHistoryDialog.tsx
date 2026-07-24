@@ -18,7 +18,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import type { Product, Purchase, Sale } from "@/contexts/InventoryContext"
-import { formatNepaliDateForTable } from "@/lib/utils"
+import { formatNepaliDateForTable, toTitleCase } from "@/lib/utils"
 import {
   computeTransactionStats,
   filterPurchasesByProductName,
@@ -244,7 +244,7 @@ function TransactionTable({
                       className="cursor-pointer hover:text-teal-600 dark:hover:text-teal-400 transition-colors"
                       onClick={() => onPartyClick(row.party, row.partyType)}
                     >
-                      {row.party}
+                      {toTitleCase(row.party)}
                     </span>
                   </TableCell>
                   <TableCell className="text-gray-700 dark:text-gray-300">{row.quantity} units</TableCell>
