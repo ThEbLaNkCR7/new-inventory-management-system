@@ -80,6 +80,7 @@ export default function LedgerAccountsPage() {
     type: "Sale" as (typeof TRANSACTION_TYPES)[number],
     billNo: "",
     account: "",
+    narration: "",
     debit: "",
     credit: "",
   })
@@ -134,6 +135,7 @@ export default function LedgerAccountsPage() {
       type: "Sale",
       billNo: "",
       account: "",
+      narration: "",
       debit: "",
       credit: "",
     })
@@ -220,6 +222,7 @@ export default function LedgerAccountsPage() {
         type: entryForm.type,
         voucherBillNo: entryForm.billNo.trim(),
         contraAccount: entryForm.account.trim(),
+        narration: entryForm.narration.trim(),
         debit: Number(entryForm.debit || 0),
         credit: Number(entryForm.credit || 0),
       })
@@ -462,8 +465,7 @@ export default function LedgerAccountsPage() {
                 value={entryForm.englishDateIso ? new Date(entryForm.englishDateIso) : undefined}
                 onChange={handleEnglishDateChange}
               />
-              {entryForm.
-              englishDateIso && (
+              {entryForm.englishDateIso && (
                 <p className="text-xs text-muted-foreground mt-1">
                   {formatEnglishDateDisplay(entryForm.englishDateIso)}
                 </p>
@@ -516,6 +518,20 @@ export default function LedgerAccountsPage() {
                 placeholder="Sales"
               />
               {renderFieldError("account")}
+            </div>
+
+            <div>
+              <Label htmlFor="narration">Narration / Remarks</Label>
+              <Textarea
+                id="narration"
+                className={inputClass}
+                value={entryForm.narration}
+                onChange={(e) =>
+                  setEntryForm((prev) => ({ ...prev, narration: e.target.value }))
+                }
+                placeholder="Waterproofing chemical supplied"
+                rows={2}
+              />
             </div>
 
             <div className="grid grid-cols-2 gap-4">

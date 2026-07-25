@@ -24,6 +24,7 @@ export interface LedgerEntry {
   type: "Sale" | "Rcpt" | "Payment" | "Journal"
   voucherBillNo: string
   contraAccount: string
+  narration: string
   debit: number
   credit: number
   isActive?: boolean
@@ -67,6 +68,7 @@ function normalizeEntry(raw: any): LedgerEntry {
         : new Date(raw.englishDate).toISOString(),
     debit: Number(raw.debit || 0),
     credit: Number(raw.credit || 0),
+    narration: raw.narration || "",
   }
 }
 

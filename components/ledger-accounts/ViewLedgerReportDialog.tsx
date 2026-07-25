@@ -45,6 +45,8 @@ export default function ViewLedgerReportDialog({
     ? `From ${dateRange.fromNepali} to ${dateRange.toNepali}`
     : "No transactions yet"
 
+  const columnCount = 9
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
@@ -65,9 +67,6 @@ export default function ViewLedgerReportDialog({
             </p>
             <p>{dateRangeLabel}</p>
           </div>
-          <p>
-            Opening Bal. = Rs. {formatRs(account.openingBalance)} {account.openingBalanceType}
-          </p>
 
           <div className="overflow-x-auto pt-2">
             <Table>
@@ -75,7 +74,7 @@ export default function ViewLedgerReportDialog({
               <TableBody>
                 {report?.rows.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center text-muted-foreground">
+                    <TableCell colSpan={columnCount} className="text-center text-muted-foreground">
                       No entries found.
                     </TableCell>
                   </TableRow>
@@ -87,6 +86,7 @@ export default function ViewLedgerReportDialog({
                     <TableCell>{row.type}</TableCell>
                     <TableCell>{row.voucherBillNo || "-"}</TableCell>
                     <TableCell>{row.contraAccount}</TableCell>
+                    <TableCell className="max-w-[200px]">{row.narration || "-"}</TableCell>
                     <TableCell className="text-right">
                       {row.debit > 0 ? formatRs(row.debit) : ""}
                     </TableCell>
@@ -100,7 +100,7 @@ export default function ViewLedgerReportDialog({
                 ))}
                 {report && report.rows.length > 0 && (
                   <TableRow className="font-bold border-t-2">
-                    <TableCell colSpan={5}>Grand Total</TableCell>
+                    <TableCell colSpan={6}>Grand Total</TableCell>
                     <TableCell className="text-right">{formatRs(report.totalDebit)}</TableCell>
                     <TableCell className="text-right">{formatRs(report.totalCredit)}</TableCell>
                     <TableCell />
@@ -110,11 +110,38 @@ export default function ViewLedgerReportDialog({
             </Table>
           </div>
 
-          {report && report.rows.length > 0 && (
-            <p className="font-semibold pt-2">
-              Closing Bal. = Rs. {formatRs(report.closingBalance)} {report.closingSide}
-            </p>
-          )}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-4 border-t">
+            <div className="rounded-lg border bg-muted/30 p-3">
+              <p className="text-xs text-muted-foreground mb-1">Opening Balance</p>
+              <p className="font-semibold">
+                Rs. {formatRs(account.openingBalance)} {account.openingBalanceType}
+              </p>
+            </div>
+            <div className="rounded-lg border bg-muted/30 p-3">
+              <p className="text-xs text-muted-foreground mb-1">Total Debit</p>
+              <p className="font-semibold text-green-700 dark:text-green-400">
+                Rs. {formatRs(report?.totalDebit ?? 0)}
+              </p>
+            </div>
+            <div className="rounded-lg border bg-muted/30 p-3">
+              <p className="text-xs text-muted-foreground mb-1">Total Credit</p>
+              <p className="font-semibold text-red-700 dark:text-red-400">
+                Rs. {formatRs(report?.totalCredit ?? 0)}
+              </p>
+            </div>
+            {report && report.rows.length > 0 && (
+              <div className="rounded-lg border bg-green-50 dark:bg-green-950/30 p-3">
+                <p className="text-xs text-muted-foreground mb-1">Closing Balance</p>
+                <p className="font-semibold text-green-700 dark:text-green-400">
+                  Rs. {formatRs(report.closingBalance)} {report.closingSide}
+                </p>
+              </div>
+            )}
+          </div>
+
+          <p className="text-xs text-muted-foreground pt-2">
+            Note: Dr = Debit Balance, Cr = Credit Balance
+          </p>
         </div>
 
         <div className="flex justify-end">

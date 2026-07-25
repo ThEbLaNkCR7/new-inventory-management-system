@@ -16,6 +16,7 @@ const ledgerEntrySchema = new mongoose.Schema(
     },
     voucherBillNo: { type: String, trim: true, default: "" },
     contraAccount: { type: String, required: true, trim: true },
+    narration: { type: String, trim: true, default: "" },
     debit: { type: Number, default: 0, min: 0 },
     credit: { type: Number, default: 0, min: 0 },
     isActive: { type: Boolean, default: true },
