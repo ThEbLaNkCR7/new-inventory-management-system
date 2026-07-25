@@ -153,6 +153,14 @@ export function buildLedgerReport(
   }
 }
 
+export function getAccountClosingBalance(
+  account: { openingBalance: number; openingBalanceType: BalanceSide },
+  entries: LedgerEntry[],
+): { value: number; side: BalanceSide } {
+  const report = buildLedgerReport(account.openingBalance, account.openingBalanceType, entries)
+  return { value: report.closingBalance, side: report.closingSide }
+}
+
 export function validateLedgerAccountForm(data: {
   name: string
   openingBalance: string

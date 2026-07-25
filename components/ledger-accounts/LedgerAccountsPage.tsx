@@ -6,6 +6,7 @@ import {
   formatEnglishDateDisplay,
   formatNepaliDateDisplay,
   formatRs,
+  getAccountClosingBalance,
   validateLedgerAccountForm,
   validateLedgerEntryForm,
 } from "@/components/ledger-accounts/utils"
@@ -70,6 +71,7 @@ export default function LedgerAccountsPage() {
   const [accountForm, setAccountForm] = useState({
     name: "",
     address: "",
+    existingAccountId: "none",
     openingBalance: "0",
     openingBalanceType: "Dr" as "Dr" | "Cr",
   })
@@ -99,6 +101,19 @@ export default function LedgerAccountsPage() {
     )
   }, [activeEntryAccount, entryForm.debit, entryForm.credit, getEntriesForAccount])
 
+  const carryForwardSource = useMemo(() => {
+    if (accountForm.existingAccountId === "none") return null
+    return ledgerAccounts.find((a) => a.id === accountForm.existingAccountId) ?? null
+  }, [accountForm.existingAccountId, ledgerAccounts])
+
+  const carryForwardClosing = useMemo(() => {
+    if (!carryForwardSource) return null
+    const entries = getEntriesForAccount(carryForwardSource.id)
+    return getAccountClosingBalance(carryForwardSource, entries)
+  }, [carryForwardSource, getEntriesForAccount])
+
+  const isCarryForward = accountForm.existingAccountId !== "none"
+
   const filteredAccounts = ledgerAccounts.filter((account) =>
     account.name.toLowerCase().includes(searchTerm.toLowerCase()),
   )
@@ -122,10 +137,38 @@ export default function LedgerAccountsPage() {
     setAccountForm({
       name: "",
       address: "",
+      existingAccountId: "none",
       openingBalance: "0",
       openingBalanceType: "Dr",
     })
     clearFieldErrors()
+  }
+
+  const handleExistingAccountChange = (accountId: string) => {
+    if (accountId === "none") {
+      setAccountForm((prev) => ({
+        ...prev,
+        existingAccountId: "none",
+        name: "",
+        address: "",
+        openingBalance: "0",
+        openingBalanceType: "Dr",
+      }))
+      return
+    }
+
+    const source = ledgerAccounts.find((a) => a.id === accountId)
+    if (!source) return
+
+    const closing = getAccountClosingBalance(source, getEntriesForAccount(source.id))
+    setAccountForm((prev) => ({
+      ...prev,
+      existingAccountId: accountId,
+      name: source.name,
+      address: source.address || "",
+      openingBalance: String(closing.value),
+      openingBalanceType: closing.side,
+    }))
   }
 
   const resetEntryForm = () => {
@@ -158,7 +201,14 @@ export default function LedgerAccountsPage() {
   }
 
   const handleAddAccount = async () => {
-    const errors = validateLedgerAccountForm(accountForm)
+    const name = isCarryForward && carryForwardSource ? carryForwardSource.name : accountForm.name
+    const address =
+      isCarryForward && carryForwardSource ? carryForwardSource.address || "" : accountForm.address
+
+    const errors = validateLedgerAccountForm({
+      name,
+      openingBalance: accountForm.openingBalance,
+    })
     if (Object.keys(errors).length > 0) {
       setFieldErrors(errors)
       toast({
@@ -172,8 +222,8 @@ export default function LedgerAccountsPage() {
     setIsLoading(true)
     try {
       await addLedgerAccount({
-        name: accountForm.name.trim(),
-        address: accountForm.address.trim(),
+        name: name.trim(),
+        address: address.trim(),
         openingBalance: Number(accountForm.openingBalance || 0),
         openingBalanceType: accountForm.openingBalanceType,
       })
@@ -288,70 +338,118 @@ export default function LedgerAccountsPage() {
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Add Ledger Account</DialogTitle>
-              <DialogDescription>Create a new account for manual ledger entries.</DialogDescription>
+              <DialogDescription>
+                {isCarryForward
+                  ? "Closing balance of the selected account becomes the new opening balance automatically."
+                  : "Create a new account for manual ledger entries."}
+              </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
               <div>
-                <Label htmlFor="accountName">Account Name *</Label>
-                <Input
-                  id="accountName"
-                  className={`${inputClass} ${fieldErrorClass("name")}`}
-                  value={accountForm.name}
-                  onChange={(e) => {
-                    clearFieldErrors("name")
-                    setAccountForm((prev) => ({ ...prev, name: e.target.value }))
-                  }}
-                  placeholder="Yuki Enterprises Pvt. Ltd."
-                />
-                {renderFieldError("name")}
+                <Label>Existing Account (optional)</Label>
+                <Select
+                  value={accountForm.existingAccountId}
+                  onValueChange={handleExistingAccountChange}
+                >
+                  <SelectTrigger className={inputClass}>
+                    <SelectValue placeholder="Select existing account (optional)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">select existing account</SelectItem>
+                    {ledgerAccounts.map((account) => (
+                      <SelectItem key={account.id} value={account.id}>
+                        {account.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-              <div>
-                <Label htmlFor="accountAddress">Address</Label>
-                <Textarea
-                  id="accountAddress"
-                  className={inputClass}
-                  value={accountForm.address}
-                  onChange={(e) =>
-                    setAccountForm((prev) => ({ ...prev, address: e.target.value }))
-                  }
-                  placeholder="Dhobighat, Lalitpur"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="openingBalance">Opening Balance (Rs.)</Label>
-                  <Input
-                    id="openingBalance"
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    className={`${inputClass} ${fieldErrorClass("openingBalance")}`}
-                    value={accountForm.openingBalance}
-                    onChange={(e) => {
-                      clearFieldErrors("openingBalance")
-                      setAccountForm((prev) => ({ ...prev, openingBalance: e.target.value }))
-                    }}
-                  />
-                  {renderFieldError("openingBalance")}
+
+              {isCarryForward && carryForwardSource ? (
+                <div className="rounded-lg border bg-muted/30 p-3 space-y-1">
+                  <p className="text-sm font-medium">{carryForwardSource.name}</p>
+                  {carryForwardSource.address && (
+                    <p className="text-sm text-muted-foreground">{carryForwardSource.address}</p>
+                  )}
+                  {carryForwardClosing && (
+                    <p className="text-sm font-semibold pt-2">
+                      Opening Balance: Rs. {formatRs(carryForwardClosing.value)}{" "}
+                      {carryForwardClosing.side}
+                    </p>
+                  )}
+                  <p className="text-xs text-muted-foreground">
+                    Auto-filled from the selected account&apos;s closing balance.
+                  </p>
                 </div>
-                <div>
-                  <Label>Balance Type</Label>
-                  <Select
-                    value={accountForm.openingBalanceType}
-                    onValueChange={(value: "Dr" | "Cr") =>
-                      setAccountForm((prev) => ({ ...prev, openingBalanceType: value }))
-                    }
-                  >
-                    <SelectTrigger className={inputClass}>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Dr">Dr (Debit)</SelectItem>
-                      <SelectItem value="Cr">Cr (Credit)</SelectItem>
-                    </SelectContent>
-                  </Select>
+              ) : (
+                <>
+                  <div>
+                    <Label htmlFor="accountName">Account Name *</Label>
+                    <Input
+                      id="accountName"
+                      className={`${inputClass} ${fieldErrorClass("name")}`}
+                      value={accountForm.name}
+                      onChange={(e) => {
+                        clearFieldErrors("name")
+                        setAccountForm((prev) => ({ ...prev, name: e.target.value }))
+                      }}
+                      placeholder="Yuki Enterprises Pvt. Ltd."
+                    />
+                    {renderFieldError("name")}
+                  </div>
+                  <div>
+                    <Label htmlFor="accountAddress">Address</Label>
+                    <Textarea
+                      id="accountAddress"
+                      className={inputClass}
+                      value={accountForm.address}
+                      onChange={(e) =>
+                        setAccountForm((prev) => ({ ...prev, address: e.target.value }))
+                      }
+                      placeholder="Dhobighat, Lalitpur"
+                    />
+                  </div>
+                </>
+              )}
+
+              {!isCarryForward && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="openingBalance">Opening Balance (Rs.)</Label>
+                    <Input
+                      id="openingBalance"
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      className={`${inputClass} ${fieldErrorClass("openingBalance")}`}
+                      value={accountForm.openingBalance}
+                      onChange={(e) => {
+                        clearFieldErrors("openingBalance")
+                        setAccountForm((prev) => ({ ...prev, openingBalance: e.target.value }))
+                      }}
+                      placeholder="0.00"
+                    />
+                    {renderFieldError("openingBalance")}
+                  </div>
+                  <div>
+                    <Label>Balance Type</Label>
+                    <Select
+                      value={accountForm.openingBalanceType}
+                      onValueChange={(value: "Dr" | "Cr") =>
+                        setAccountForm((prev) => ({ ...prev, openingBalanceType: value }))
+                      }
+                    >
+                      <SelectTrigger className={inputClass}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Dr">Dr (Debit)</SelectItem>
+                        <SelectItem value="Cr">Cr (Credit)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
-              </div>
+              )}
               <Button onClick={handleAddAccount} disabled={isLoading} className="w-full">
                 {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                 Create Account
