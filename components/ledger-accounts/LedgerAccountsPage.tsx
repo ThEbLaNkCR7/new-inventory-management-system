@@ -1,14 +1,11 @@
 "use client"
 
+import AddLedgerEntriesDialog from "@/components/ledger-accounts/AddLedgerEntriesDialog"
 import ViewLedgerReportDialog from "@/components/ledger-accounts/ViewLedgerReportDialog"
 import {
-  computePreviewBalance,
-  formatEnglishDateDisplay,
-  formatNepaliDateDisplay,
   formatRs,
   getAccountClosingBalance,
   validateLedgerAccountForm,
-  validateLedgerEntryForm,
 } from "@/components/ledger-accounts/utils"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -32,14 +29,9 @@ import {
 } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Textarea } from "@/components/ui/textarea"
-import { MaterialDatePicker } from "@/components/ui/MaterialDatePicker"
 import { useToast } from "@/components/ui/use-toast"
 import type { LedgerAccount } from "@/contexts/LedgerContext"
 import { useLedger } from "@/contexts/LedgerContext"
-import {
-  englishToNepali,
-  formatNepaliDate,
-} from "@/lib/nepaliDateUtils"
 import { BookOpen, Eye, Loader2, Plus, Search, Trash2 } from "lucide-react"
 import { useMemo, useState } from "react"
 
@@ -47,14 +39,11 @@ const inputClass =
   "border-2 focus:border-slate-500 transition-colors dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
 const errorTextClass = "text-sm text-red-600 dark:text-red-400"
 
-const TRANSACTION_TYPES = ["Sale", "Rcpt", "Payment", "Journal"] as const
-
 export default function LedgerAccountsPage() {
   const {
     ledgerAccounts,
     addLedgerAccount,
     deleteLedgerAccount,
-    addLedgerEntry,
     getEntriesForAccount,
     isRefreshing,
   } = useLedger()
@@ -75,31 +64,6 @@ export default function LedgerAccountsPage() {
     openingBalance: "0",
     openingBalanceType: "Dr" as "Dr" | "Cr",
   })
-
-  const [entryForm, setEntryForm] = useState({
-    nepaliDate: "",
-    englishDateIso: "",
-    type: "Sale" as (typeof TRANSACTION_TYPES)[number],
-    billNo: "",
-    account: "",
-    narration: "",
-    debit: "",
-    credit: "",
-  })
-
-  const activeEntryAccount = selectedAccount
-
-  const previewBalance = useMemo(() => {
-    if (!activeEntryAccount) return null
-    const entries = getEntriesForAccount(activeEntryAccount.id)
-    return computePreviewBalance(
-      activeEntryAccount.openingBalance,
-      activeEntryAccount.openingBalanceType,
-      entries,
-      Number(entryForm.debit || 0),
-      Number(entryForm.credit || 0),
-    )
-  }, [activeEntryAccount, entryForm.debit, entryForm.credit, getEntriesForAccount])
 
   const carryForwardSource = useMemo(() => {
     if (accountForm.existingAccountId === "none") return null
@@ -171,35 +135,6 @@ export default function LedgerAccountsPage() {
     }))
   }
 
-  const resetEntryForm = () => {
-    setEntryForm({
-      nepaliDate: "",
-      englishDateIso: "",
-      type: "Sale",
-      billNo: "",
-      account: "",
-      narration: "",
-      debit: "",
-      credit: "",
-    })
-    clearFieldErrors()
-  }
-
-  const handleEnglishDateChange = (date: Date | undefined) => {
-    clearFieldErrors("englishDate")
-    if (!date) {
-      setEntryForm((prev) => ({ ...prev, englishDateIso: "", nepaliDate: "" }))
-      return
-    }
-    const normalized = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 12, 0, 0)
-    const nepali = englishToNepali(normalized)
-    setEntryForm((prev) => ({
-      ...prev,
-      englishDateIso: normalized.toISOString(),
-      nepaliDate: formatNepaliDate(nepali, "YYYY/MM/DD"),
-    }))
-  }
-
   const handleAddAccount = async () => {
     const name = isCarryForward && carryForwardSource ? carryForwardSource.name : accountForm.name
     const address =
@@ -241,55 +176,6 @@ export default function LedgerAccountsPage() {
     }
   }
 
-  const handleAddEntry = async () => {
-    if (!selectedAccount) return
-
-    const englishIso = entryForm.englishDateIso
-
-    const errors = validateLedgerEntryForm({
-      englishDate: englishIso,
-      type: entryForm.type,
-      account: entryForm.account,
-      debit: entryForm.debit,
-      credit: entryForm.credit,
-    })
-    if (Object.keys(errors).length > 0) {
-      setFieldErrors(errors)
-      toast({
-        title: "Validation Error",
-        description: Object.values(errors)[0],
-        variant: "destructive",
-      })
-      return
-    }
-
-    setIsLoading(true)
-    try {
-      await addLedgerEntry({
-        ledgerAccountId: selectedAccount.id,
-        nepaliDate: formatNepaliDateDisplay(entryForm.nepaliDate),
-        englishDate: englishIso,
-        type: entryForm.type,
-        voucherBillNo: entryForm.billNo.trim(),
-        contraAccount: entryForm.account.trim(),
-        narration: entryForm.narration.trim(),
-        debit: Number(entryForm.debit || 0),
-        credit: Number(entryForm.credit || 0),
-      })
-      toast({ title: "Success", description: "Ledger entry added successfully" })
-      resetEntryForm()
-      setIsAddEntryOpen(false)
-    } catch {
-      toast({
-        title: "Error",
-        description: "Failed to add ledger entry",
-        variant: "destructive",
-      })
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
   const handleDeleteAccount = async (account: LedgerAccount) => {
     if (!confirm(`Delete ledger account "${account.name}"?`)) return
     try {
@@ -311,7 +197,6 @@ export default function LedgerAccountsPage() {
 
   const openAddEntry = (account: LedgerAccount) => {
     setSelectedAccount(account)
-    resetEntryForm()
     setIsAddEntryOpen(true)
   }
 
@@ -546,152 +431,11 @@ export default function LedgerAccountsPage() {
         </CardContent>
       </Card>
 
-      {/* Add Entry Dialog */}
-      <Dialog open={isAddEntryOpen} onOpenChange={setIsAddEntryOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Add Ledger Entry</DialogTitle>
-            <DialogDescription>
-              {selectedAccount ? `Entry for ${selectedAccount.name}` : "Add a manual ledger entry"}
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="englishDate">English Date *</Label>
-              <MaterialDatePicker
-                value={entryForm.englishDateIso ? new Date(entryForm.englishDateIso) : undefined}
-                onChange={handleEnglishDateChange}
-              />
-              {entryForm.englishDateIso && (
-                <p className="text-xs text-muted-foreground mt-1">
-                  {formatEnglishDateDisplay(entryForm.englishDateIso)}
-                </p>
-              )}
-              {renderFieldError("englishDate")}
-            </div>
-
-            <div>
-              <Label>Type *</Label>
-              <Select
-                value={entryForm.type}
-                onValueChange={(value: (typeof TRANSACTION_TYPES)[number]) =>
-                  setEntryForm((prev) => ({ ...prev, type: value }))
-                }
-              >
-                <SelectTrigger className={inputClass}>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {TRANSACTION_TYPES.map((type) => (
-                    <SelectItem key={type} value={type}>
-                      {type}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label htmlFor="billNo">Bill No.</Label>
-              <Input
-                id="billNo"
-                className={inputClass}
-                value={entryForm.billNo}
-                onChange={(e) => setEntryForm((prev) => ({ ...prev, billNo: e.target.value }))}
-                placeholder="ATAS-1/82-83"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="account">Account *</Label>
-              <Input
-                id="account"
-                className={`${inputClass} ${fieldErrorClass("account")}`}
-                value={entryForm.account}
-                onChange={(e) => {
-                  clearFieldErrors("account")
-                  setEntryForm((prev) => ({ ...prev, account: e.target.value }))
-                }}
-                placeholder="Sales"
-              />
-              {renderFieldError("account")}
-            </div>
-
-            <div>
-              <Label htmlFor="narration">Narration / Remarks</Label>
-              <Textarea
-                id="narration"
-                className={inputClass}
-                value={entryForm.narration}
-                onChange={(e) =>
-                  setEntryForm((prev) => ({ ...prev, narration: e.target.value }))
-                }
-                placeholder="Waterproofing chemical supplied"
-                rows={2}
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="debit">Debit</Label>
-                <Input
-                  id="debit"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  className={`${inputClass} ${fieldErrorClass("amount")}`}
-                  value={entryForm.debit}
-                  onChange={(e) => {
-                    clearFieldErrors("amount")
-                    setEntryForm((prev) => ({
-                      ...prev,
-                      debit: e.target.value,
-                      credit: e.target.value ? "" : prev.credit,
-                    }))
-                  }}
-                  placeholder="0.00"
-                />
-              </div>
-              <div>
-                <Label htmlFor="credit">Credit</Label>
-                <Input
-                  id="credit"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  className={`${inputClass} ${fieldErrorClass("amount")}`}
-                  value={entryForm.credit}
-                  onChange={(e) => {
-                    clearFieldErrors("amount")
-                    setEntryForm((prev) => ({
-                      ...prev,
-                      credit: e.target.value,
-                      debit: e.target.value ? "" : prev.debit,
-                    }))
-                  }}
-                  placeholder="0.00"
-                />
-              </div>
-            </div>
-            {renderFieldError("amount")}
-
-            <div>
-              <Label>Balance</Label>
-              <div className="h-10 flex items-center px-3 rounded-md border-2 bg-muted/50 font-medium">
-                {previewBalance
-                  ? `${formatRs(previewBalance.value)} ${previewBalance.side}`
-                  : "-"}
-              </div>
-            </div>
-
-            <Button onClick={handleAddEntry} disabled={isLoading || !selectedAccount} className="w-full">
-              {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-              Add Entry
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <AddLedgerEntriesDialog
+        open={isAddEntryOpen}
+        onOpenChange={setIsAddEntryOpen}
+        account={selectedAccount}
+      />
 
       <ViewLedgerReportDialog
         open={isViewOpen}

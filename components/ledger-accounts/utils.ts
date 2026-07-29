@@ -193,3 +193,60 @@ export function validateLedgerEntryForm(data: {
 
   return errors
 }
+
+export type EntryDraft = {
+  id: string
+  englishDateIso: string
+  nepaliDate: string
+  type: "Sale" | "Rcpt" | "Payment" | "Journal"
+  billNo: string
+  account: string
+  narration: string
+  debit: string
+  credit: string
+}
+
+export function createEmptyEntryDraft(): EntryDraft {
+  return {
+    id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+    englishDateIso: "",
+    nepaliDate: "",
+    type: "Sale",
+    billNo: "",
+    account: "",
+    narration: "",
+    debit: "",
+    credit: "",
+  }
+}
+
+export function isEntryDraftEmpty(draft: EntryDraft): boolean {
+  return (
+    !draft.englishDateIso &&
+    !draft.account.trim() &&
+    !draft.debit &&
+    !draft.credit &&
+    !draft.billNo.trim() &&
+    !draft.narration.trim()
+  )
+}
+
+export function computeDraftRowBalances(
+  openingBalance: number,
+  openingType: BalanceSide,
+  existingEntries: LedgerEntry[],
+  drafts: EntryDraft[],
+): Array<{ value: number; side: BalanceSide } | null> {
+  let running = signedOpening(openingBalance, openingType)
+  for (const entry of existingEntries) {
+    running += entry.debit - entry.credit
+  }
+
+  return drafts.map((draft) => {
+    const debit = Number(draft.debit || 0)
+    const credit = Number(draft.credit || 0)
+    if (isEntryDraftEmpty(draft)) return null
+    running += debit - credit
+    return formatBalance(running)
+  })
+}
