@@ -3,7 +3,6 @@
 import {
   computeDraftRowBalances,
   createEmptyEntryDraft,
-  formatEnglishDateDisplay,
   formatNepaliDateDisplay,
   formatRs,
   isEntryDraftEmpty,
@@ -36,8 +35,20 @@ import { useMemo, useState } from "react"
 import { MaterialDatePicker } from "@/components/ui/MaterialDatePicker"
 
 const inputClass =
-  "border-2 focus:border-slate-500 transition-colors dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 h-9 text-sm"
-const errorTextClass = "text-xs text-red-600 dark:text-red-400"
+  "h-8 px-2 py-1 text-xs border focus:border-slate-500 transition-colors dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
+const selectClass = `${inputClass} min-h-8`
+const errorTextClass = "text-[11px] leading-tight text-red-600 dark:text-red-400 mt-0.5"
+const columns = [
+  { label: "Date", width: "10%" },
+  { label: "Type", width: "7%" },
+  { label: "Bill No.", width: "10%" },
+  { label: "Account", width: "12%" },
+  { label: "Narration", width: "24%" },
+  { label: "Debit", width: "9%" },
+  { label: "Credit", width: "9%" },
+  { label: "Bal.", width: "12%" },
+  { label: "", width: "7%" },
+] as const
 
 const TRANSACTION_TYPES = ["Sale", "Rcpt", "Payment", "Journal"] as const
 
@@ -199,7 +210,7 @@ export default function AddLedgerEntriesDialog({
         onOpenChange(value)
       }}
     >
-      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-[98vw] w-[98vw] max-h-[90vh] overflow-y-auto p-4 sm:p-5">
         <DialogHeader>
           <DialogTitle>Add Ledger Entries</DialogTitle>
           <DialogDescription>
@@ -209,26 +220,21 @@ export default function AddLedgerEntriesDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="overflow-x-auto border rounded-lg">
-          <Table>
+        <div className="border rounded-lg overflow-hidden">
+          <Table className="table-fixed w-full text-xs [&>div]:overflow-visible">
+            <colgroup>
+              {columns.map(({ label, width }) => (
+                <col key={label || "action"} style={{ width }} />
+              ))}
+            </colgroup>
             <TableHeader>
-              <TableRow>
-                {[
-                  "English Date",
-                  "Type",
-                  "Bill No.",
-                  "Account",
-                  "Narration / Remarks",
-                  "Debit",
-                  "Credit",
-                  "Balance",
-                  "",
-                ].map((header, index) => (
+              <TableRow className="text-xs">
+                {columns.map(({ label }) => (
                   <TableHead
-                    key={header || "action"}
-                    className={index >= 5 && index <= 7 ? "text-right whitespace-nowrap" : "whitespace-nowrap"}
+                    key={label || "action"}
+                    className="h-auto px-1.5 py-1.5 text-left align-bottom font-medium"
                   >
-                    {header}
+                    {label}
                   </TableHead>
                 ))}
               </TableRow>
@@ -236,59 +242,57 @@ export default function AddLedgerEntriesDialog({
             <TableBody>
               {drafts.map((draft, index) => (
                 <TableRow key={draft.id}>
-                  <TableCell className="align-top min-w-[150px]">
+                  <TableCell className="align-top px-1.5 py-1.5">
                     <MaterialDatePicker
+                      className="h-8 px-2 py-1 text-xs truncate"
+                      dateFormat="dd/MM/yyyy"
+                      placeholder="Date"
                       value={draft.englishDateIso ? new Date(draft.englishDateIso) : undefined}
                       onChange={(date) => handleDraftDateChange(draft.id, date)}
                     />
-                    {draft.englishDateIso && (
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {formatEnglishDateDisplay(draft.englishDateIso)}
-                      </p>
-                    )}
                     {getRowError(draft.id, "englishDate") && (
                       <p className={errorTextClass}>{getRowError(draft.id, "englishDate")}</p>
                     )}
                   </TableCell>
-                  <TableCell className="align-top min-w-[110px]">
+                  <TableCell className="align-top px-1.5 py-1.5">
                     <Select
                       value={draft.type}
                       onValueChange={(value: EntryDraft["type"]) =>
                         updateDraft(draft.id, { type: value })
                       }
                     >
-                      <SelectTrigger className={inputClass}>
+                      <SelectTrigger className={selectClass}>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
                         {TRANSACTION_TYPES.map((type) => (
-                          <SelectItem key={type} value={type}>
+                          <SelectItem key={type} value={type} className="text-xs">
                             {type}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   </TableCell>
-                  <TableCell className="align-top min-w-[120px]">
+                  <TableCell className="align-top px-1.5 py-1.5">
                     <Input
                       className={inputClass}
                       value={draft.billNo}
                       onChange={(e) => updateDraft(draft.id, { billNo: e.target.value })}
-                      placeholder="ATAS-1/82-83"
+                      placeholder="Bill"
                     />
                   </TableCell>
-                  <TableCell className="align-top min-w-[120px]">
+                  <TableCell className="align-top px-1.5 py-1.5">
                     <Input
                       className={inputClass}
                       value={draft.account}
                       onChange={(e) => updateDraft(draft.id, { account: e.target.value })}
-                      placeholder="Sales"
+                      placeholder="Account"
                     />
                     {getRowError(draft.id, "account") && (
                       <p className={errorTextClass}>{getRowError(draft.id, "account")}</p>
                     )}
                   </TableCell>
-                  <TableCell className="align-top min-w-[160px]">
+                  <TableCell className="align-top px-1.5 py-1.5">
                     <Input
                       className={inputClass}
                       value={draft.narration}
@@ -296,7 +300,7 @@ export default function AddLedgerEntriesDialog({
                       placeholder="Remarks"
                     />
                   </TableCell>
-                  <TableCell className="align-top min-w-[100px]">
+                  <TableCell className="align-top px-1.5 py-1.5">
                     <Input
                       type="number"
                       min="0"
@@ -311,7 +315,7 @@ export default function AddLedgerEntriesDialog({
                       }
                     />
                   </TableCell>
-                  <TableCell className="align-top min-w-[100px]">
+                  <TableCell className="align-top px-1.5 py-1.5">
                     <Input
                       type="number"
                       min="0"
@@ -329,23 +333,24 @@ export default function AddLedgerEntriesDialog({
                       <p className={errorTextClass}>{getRowError(draft.id, "amount")}</p>
                     )}
                   </TableCell>
-                  <TableCell className="align-top min-w-[110px] text-right">
-                    <div className="h-9 flex items-center justify-end px-2 rounded-md border bg-muted/50 text-sm font-medium whitespace-nowrap">
+                  <TableCell className="align-top px-1.5 py-1.5">
+                    <div className="h-8 flex items-center justify-end px-1.5 rounded-md border bg-muted/50 text-[11px] font-medium truncate">
                       {rowBalances[index]
                         ? `${formatRs(rowBalances[index]!.value)} ${rowBalances[index]!.side}`
                         : "-"}
                     </div>
                   </TableCell>
-                  <TableCell className="align-top">
+                  <TableCell className="align-top px-1 py-1.5">
                     <Button
                       type="button"
                       variant="outline"
                       size="icon"
+                      className="h-8 w-8"
                       onClick={() => removeRow(draft.id)}
                       disabled={drafts.length === 1}
                       title="Remove row"
                     >
-                      <Trash2 className="h-4 w-4 text-red-500" />
+                      <Trash2 className="h-3.5 w-3.5 text-red-500" />
                     </Button>
                   </TableCell>
                 </TableRow>

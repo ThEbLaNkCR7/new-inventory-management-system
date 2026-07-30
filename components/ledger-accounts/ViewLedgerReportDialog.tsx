@@ -87,7 +87,7 @@ export default function ViewLedgerReportDialog({
               <DialogTitle>Account Ledger</DialogTitle>
               <DialogDescription>Ledger report for {account.name}</DialogDescription>
             </div>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2 mr-4">
               <Button type="button" variant="outline" size="sm" onClick={handlePrint}>
                 <Printer className="h-4 w-4 mr-2" />
                 Print

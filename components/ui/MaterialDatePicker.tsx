@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, startOfWeek, endOfWeek, isSameMonth, isSameDay, addDays } from "date-fns";
 import { Pencil, ChevronLeft, ChevronRight } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const PRIMARY = undefined; // not used anymore
 const WEEKDAYS = ["S", "M", "T", "W", "T", "F", "S"];
@@ -9,9 +10,19 @@ export interface MaterialDatePickerProps {
   value?: Date;
   onChange: (date: Date | undefined) => void;
   onCancel?: () => void;
+  className?: string;
+  dateFormat?: string;
+  placeholder?: string;
 }
 
-export function MaterialDatePicker({ value, onChange, onCancel }: MaterialDatePickerProps) {
+export function MaterialDatePicker({
+  value,
+  onChange,
+  onCancel,
+  className,
+  dateFormat = "PPP",
+  placeholder = "Select date",
+}: MaterialDatePickerProps) {
   const [open, setOpen] = useState(false);
   const [tempDate, setTempDate] = useState<Date | undefined>(value);
   const [month, setMonth] = useState<Date>(value ? startOfMonth(value) : startOfMonth(new Date()));
@@ -93,11 +104,11 @@ export function MaterialDatePicker({ value, onChange, onCancel }: MaterialDatePi
       <div className="material-picker">
         <button
           type="button"
-          className="w-full border rounded px-3 py-2 text-left"
+          className={cn("w-full border rounded px-3 py-2 text-left", className)}
           style={{ color: tempDate ? PRIMARY : undefined }}
           onClick={() => setOpen(true)}
         >
-          {tempDate ? format(tempDate, "PPP") : "Select date"}
+          {tempDate ? format(tempDate, dateFormat) : placeholder}
         </button>
         {open && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20">
