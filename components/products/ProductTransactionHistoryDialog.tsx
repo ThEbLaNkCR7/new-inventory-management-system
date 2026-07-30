@@ -21,9 +21,9 @@ import type { Product, Purchase, Sale } from "@/contexts/InventoryContext"
 import { formatNepaliDateForTable, toTitleCase } from "@/lib/utils"
 import {
   computeTransactionStats,
-  filterPurchasesByProductName,
-  filterSalesByProductName,
-  getCurrentYear,
+  filterPurchasesByProducts,
+  filterSalesByProducts,
+  itemMatchesAnyProduct,
 } from "./productHistoryUtils"
 import TransactionStatsGrid from "./TransactionStatsGrid"
 
@@ -31,6 +31,7 @@ interface ProductTransactionHistoryDialogProps {
   isOpen: boolean
   onOpenChange: (open: boolean) => void
   product: Product | null
+  products: Product[]
   sales: Sale[]
   purchases: Purchase[]
   onClientClick: (client: string) => void
@@ -42,6 +43,7 @@ export default function ProductTransactionHistoryDialog({
   isOpen,
   onOpenChange,
   product,
+  products,
   sales,
   purchases,
   onClientClick,
@@ -50,14 +52,23 @@ export default function ProductTransactionHistoryDialog({
 }: ProductTransactionHistoryDialogProps) {
   if (!product) return null
 
-  const currentYear = getCurrentYear()
-  const productSales = filterSalesByProductName(sales, product.name, currentYear)
-  const productPurchases = filterPurchasesByProductName(purchases, product.name, currentYear)
+  // Match all weight variants with the same product name (sales store productId/productName, not category).
+  const relatedProducts = products
+    .filter((p) => p.name.trim().toLowerCase() === product.name.trim().toLowerCase())
+    .map((p) => ({ id: p.id, name: p.name }))
+  const productRefs =
+    relatedProducts.length > 0 ? relatedProducts : [{ id: product.id, name: product.name }]
+
+  const productSales = filterSalesByProducts(sales, productRefs, null)
+  const productPurchases = filterPurchasesByProducts(purchases, productRefs, null)
+  const matchesProduct = (item: { productId?: string; productName?: string }) =>
+    itemMatchesAnyProduct(item, productRefs)
+
   const stats = computeTransactionStats(
     productSales,
     productPurchases,
-    (item) => item.productId === product.name,
-    (item) => item.productId === product.name,
+    matchesProduct,
+    matchesProduct,
   )
 
   const sortedSales = [...productSales].sort(
@@ -69,7 +80,7 @@ export default function ProductTransactionHistoryDialog({
 
   const saleRows = sortedSales.flatMap((sale) =>
     (sale.items || [])
-      .filter((item) => item.productId === product.name)
+      .filter(matchesProduct)
       .map((item, index) => ({
         key: `${sale.id}-${index}`,
         date: sale.saleDate,
@@ -83,7 +94,7 @@ export default function ProductTransactionHistoryDialog({
 
   const purchaseRows = sortedPurchases.flatMap((purchase) =>
     (purchase.items || [])
-      .filter((item) => item.productId === product.name)
+      .filter(matchesProduct)
       .map((item, index) => ({
         key: `${purchase.id}-${index}`,
         date: purchase.purchaseDate,
@@ -109,7 +120,7 @@ export default function ProductTransactionHistoryDialog({
           </DialogTitle>
           <DialogDescription className="text-gray-600 dark:text-gray-400">
             Sales and purchases for{" "}
-            <span className="font-semibold text-gray-800 dark:text-gray-200">{product.name}</span> in {new Date().getFullYear()}
+            <span className="font-semibold text-gray-800 dark:text-gray-200">{product.name}</span>
           </DialogDescription>
         </DialogHeader>
 
@@ -141,13 +152,13 @@ export default function ProductTransactionHistoryDialog({
             </div>
           </div>
 
-          <TransactionStatsGrid stats={stats} year={new Date().getFullYear()} />
+          <TransactionStatsGrid stats={stats} yearLabel="All Time" />
 
           <TransactionTable
-            title={`Sales Transactions (${productSales.length})`}
+            title={`Sales Transactions (${saleRows.length})`}
             dotColor="bg-green-500"
             partyLabel="Client"
-            emptyMessage={`No sales transactions found for this product in ${currentYear}`}
+            emptyMessage="No sales transactions found for this product"
             rows={saleRows}
             onPartyClick={(party, type) => {
               if (type === "client") onClientClick(party)
@@ -156,10 +167,10 @@ export default function ProductTransactionHistoryDialog({
           />
 
           <TransactionTable
-            title={`Purchase Transactions (${productPurchases.length})`}
+            title={`Purchase Transactions (${purchaseRows.length})`}
             dotColor="bg-blue-500"
             partyLabel="Supplier"
-            emptyMessage={`No purchase transactions found for this product in ${currentYear}`}
+            emptyMessage="No purchase transactions found for this product"
             rows={purchaseRows}
             onPartyClick={(party, type) => {
               if (type === "supplier") onSupplierClick(party)

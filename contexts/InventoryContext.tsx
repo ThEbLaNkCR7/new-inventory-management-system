@@ -197,7 +197,15 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
         batchNumber: p.batchNumber || undefined,
         weightUnit: p.weightUnit === "liter" ? "liter" : "kg",
       })).filter((p: any) => p.isActive !== false))
-      setPurchases((purchasesData.purchases || []).map((p: any) => ({ ...p, id: p._id || p.id })).filter((p: any) => p.isActive !== false))
+      setPurchases((purchasesData.purchases || []).map((p: any) => ({
+        ...p,
+        id: String(p._id || p.id),
+        items: (p.items || []).map((item: any) => ({
+          ...item,
+          productId: String(item.productId?._id || item.productId),
+          productName: item.productName || "",
+        })),
+      })).filter((p: any) => p.isActive !== false))
       setSales((salesData.sales || []).map((s: any) => ({
         ...s,
         id: String(s._id || s.id),
@@ -206,6 +214,7 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
         items: (s.items || []).map((item: any) => ({
           ...item,
           productId: String(item.productId?._id || item.productId),
+          productName: item.productName || "",
         })),
       })).filter((s: any) => s.isActive !== false))
       setClients((clientsData.clients || []).map((c: any) => ({ ...c, id: c._id || c.id })).filter((c: any) => c.isActive !== false))

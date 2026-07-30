@@ -22,10 +22,10 @@ import type { Product, Purchase, Sale } from "@/contexts/InventoryContext"
 import { formatNepaliDateForTable, toTitleCase } from "@/lib/utils"
 import {
   computeTransactionStats,
-  filterPurchasesByProductNames,
-  filterSalesByProductNames,
+  filterPurchasesByProducts,
+  filterSalesByProducts,
   getCategoryProducts,
-  getCurrentYear,
+  itemMatchesAnyProduct,
 } from "./productHistoryUtils"
 import TransactionStatsGrid from "./TransactionStatsGrid"
 
@@ -52,17 +52,19 @@ export default function CategoryHistoryDialog({
 }: CategoryHistoryDialogProps) {
   if (!category) return null
 
-  const currentYear = getCurrentYear()
+  // Sales/purchases have no category field — resolve via products in this category.
   const categoryProducts = getCategoryProducts(products, category)
-  const categoryProductNames = categoryProducts.map((p) => p.name)
-  const categorySales = filterSalesByProductNames(sales, categoryProductNames, currentYear)
-  const categoryPurchases = filterPurchasesByProductNames(purchases, categoryProductNames, currentYear)
+  const categoryProductRefs = categoryProducts.map((p) => ({ id: p.id, name: p.name }))
+  const categorySales = filterSalesByProducts(sales, categoryProductRefs, null)
+  const categoryPurchases = filterPurchasesByProducts(purchases, categoryProductRefs, null)
+  const matchesCategoryItem = (item: { productId?: string; productName?: string }) =>
+    itemMatchesAnyProduct(item, categoryProductRefs)
 
   const stats = computeTransactionStats(
     categorySales,
     categoryPurchases,
-    () => true,
-    () => true,
+    matchesCategoryItem,
+    matchesCategoryItem,
   )
 
   const sortedSales = [...categorySales].sort(
@@ -86,7 +88,7 @@ export default function CategoryHistoryDialog({
           </DialogTitle>
           <DialogDescription className="text-gray-600 dark:text-gray-400">
             Sales and purchases for{" "}
-            <span className="font-semibold text-gray-800 dark:text-gray-200">{category}</span> category in {new Date().getFullYear()}
+            <span className="font-semibold text-gray-800 dark:text-gray-200">{category}</span> category
           </DialogDescription>
         </DialogHeader>
 
@@ -120,7 +122,7 @@ export default function CategoryHistoryDialog({
             </div>
           </div>
 
-          <TransactionStatsGrid stats={stats} year={new Date().getFullYear()} />
+          <TransactionStatsGrid stats={stats} yearLabel="All Time" />
 
           <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-6">
             <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center space-x-2">
@@ -170,9 +172,10 @@ export default function CategoryHistoryDialog({
             dotColor="bg-green-500"
             type="sales"
             transactions={sortedSales}
+            categoryProducts={categoryProductRefs}
             onClientClick={onClientClick}
             onSupplierClick={onSupplierClick}
-            emptyMessage={`No sales transactions found for this category in ${currentYear}`}
+            emptyMessage="No sales transactions found for this category"
           />
 
           <CategoryTransactionTable
@@ -180,9 +183,10 @@ export default function CategoryHistoryDialog({
             dotColor="bg-blue-500"
             type="purchases"
             transactions={sortedPurchases}
+            categoryProducts={categoryProductRefs}
             onClientClick={onClientClick}
             onSupplierClick={onSupplierClick}
-            emptyMessage={`No purchase transactions found for this category in ${currentYear}`}
+            emptyMessage="No purchase transactions found for this category"
           />
         </div>
 
@@ -201,6 +205,7 @@ function CategoryTransactionTable({
   dotColor,
   type,
   transactions,
+  categoryProducts,
   onClientClick,
   onSupplierClick,
   emptyMessage,
@@ -209,6 +214,7 @@ function CategoryTransactionTable({
   dotColor: string
   type: "sales" | "purchases"
   transactions: Sale[] | Purchase[]
+  categoryProducts: Array<Pick<Product, "id" | "name">>
   onClientClick: (client: string) => void
   onSupplierClick: (supplier: string) => void
   emptyMessage: string
@@ -216,14 +222,17 @@ function CategoryTransactionTable({
   const rows =
     type === "sales"
       ? (transactions as Sale[]).flatMap((sale) =>
-          (sale.items || []).map((item, index) => {
+          (sale.items || [])
+            .filter((item) => itemMatchesAnyProduct(item, categoryProducts))
+            .map((item, index) => {
             const total = (item.quantitySold || 0) * (item.salePrice || 0)
+            const productLabel = item.productName || item.productId
             return (
               <TableRow key={`${sale.id}-${index}`} className="hover:bg-gray-100 dark:hover:bg-gray-700/50">
                 <TableCell className="text-gray-700 dark:text-gray-300">
                   {formatNepaliDateForTable(sale.saleDate)}
                 </TableCell>
-                <TableCell className="font-medium text-gray-900 dark:text-gray-100">{toTitleCase(item.productId)}</TableCell>
+                <TableCell className="font-medium text-gray-900 dark:text-gray-100">{toTitleCase(productLabel)}</TableCell>
                 <TableCell className="font-medium text-gray-900 dark:text-gray-100">
                   <span className="cursor-pointer hover:text-teal-600 dark:hover:text-teal-400 transition-colors" onClick={() => onClientClick(sale.client)}>
                     {toTitleCase(sale.client)}
@@ -237,14 +246,17 @@ function CategoryTransactionTable({
           }),
         )
       : (transactions as Purchase[]).flatMap((purchase) =>
-          (purchase.items || []).map((item, index) => {
+          (purchase.items || [])
+            .filter((item) => itemMatchesAnyProduct(item, categoryProducts))
+            .map((item, index) => {
             const total = (item.quantityPurchased || 0) * (item.purchasePrice || 0)
+            const productLabel = item.productName || item.productId
             return (
               <TableRow key={`${purchase.id}-${index}`} className="hover:bg-gray-100 dark:hover:bg-gray-700/50">
                 <TableCell className="text-gray-700 dark:text-gray-300">
                   {formatNepaliDateForTable(purchase.purchaseDate)}
                 </TableCell>
-                <TableCell className="font-medium text-gray-900 dark:text-gray-100">{toTitleCase(item.productId)}</TableCell>
+                <TableCell className="font-medium text-gray-900 dark:text-gray-100">{toTitleCase(productLabel)}</TableCell>
                 <TableCell className="font-medium text-gray-900 dark:text-gray-100">
                   <span className="cursor-pointer hover:text-orange-600 dark:hover:text-orange-400 transition-colors" onClick={() => onSupplierClick(purchase.supplier)}>
                     {toTitleCase(purchase.supplier)}

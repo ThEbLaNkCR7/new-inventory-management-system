@@ -20,6 +20,7 @@ interface ProductsTableProps {
   categoryFilter: string
   onCategoryFilterChange: (value: string) => void
   onProductClick: (product: Product) => void
+  onCategoryClick: (category: string) => void
   onView: (product: Product) => void
   onEdit: (product: Product) => void
   onDelete: (product: Product) => void
@@ -33,6 +34,7 @@ export default function ProductsTable({
   categoryFilter,
   onCategoryFilterChange,
   onProductClick,
+  onCategoryClick,
   onView,
   onEdit,
   onDelete,
@@ -115,7 +117,7 @@ export default function ProductsTable({
                       <TableCell>
                         <p
                           className="text-gray-900 dark:text-gray-100 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-                          onClick={() => onProductClick(selectedVariant)}
+                          onClick={() => onCategoryClick(group.category)}
                         >
                           {toTitleCase(group.category)}
                         </p>

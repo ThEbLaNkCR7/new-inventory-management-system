@@ -1,41 +1,115 @@
-import type { Product, Purchase, Sale } from "@/contexts/InventoryContext"
+import type { Product, Purchase, PurchaseItem, Sale, SaleItem } from "@/contexts/InventoryContext"
 import { getCurrentNepaliYear, getNepaliYear } from "@/lib/utils"
 
 export function getCurrentYear() {
   return getCurrentNepaliYear()
 }
 
-export function filterSalesByProductName(sales: Sale[], productName: string, year = getCurrentNepaliYear()) {
-  return sales.filter((sale) => {
-    const itemNames = sale.items?.map((i) => i.productId) || []
-    return itemNames.includes(productName) && getNepaliYear(sale.saleDate) === year
-  })
+type ProductRef = Pick<Product, "id" | "name">
+type LineItem = {
+  productId?: string | { _id?: string } | null
+  productName?: string | null
 }
 
-export function filterPurchasesByProductName(purchases: Purchase[], productName: string, year = getCurrentNepaliYear()) {
-  return purchases.filter((purchase) => {
-    const itemNames = purchase.items?.map((i) => i.productId) || []
-    return itemNames.includes(productName) && getNepaliYear(purchase.purchaseDate) === year
-  })
+function normalizeId(value: LineItem["productId"]): string {
+  if (value == null) return ""
+  if (typeof value === "object") return String(value._id || "")
+  return String(value)
 }
 
-export function filterSalesByProductNames(sales: Sale[], productNames: string[], year = getCurrentNepaliYear()) {
-  return sales.filter((sale) => {
-    const itemNames = sale.items?.map((i) => i.productId) || []
-    return itemNames.some((name) => productNames.includes(name)) && getNepaliYear(sale.saleDate) === year
-  })
+function normalizeName(value: string | null | undefined): string {
+  return (value || "").trim().toLowerCase()
 }
 
-export function filterPurchasesByProductNames(purchases: Purchase[], productNames: string[], year = getCurrentNepaliYear()) {
-  return purchases.filter((purchase) => {
-    const itemNames = purchase.items?.map((i) => i.productId) || []
-    return itemNames.some((name) => productNames.includes(name)) && getNepaliYear(purchase.purchaseDate) === year
-  })
+/** Sales/purchases have no category — match via product id or name on line items. */
+export function itemMatchesProduct(item: LineItem, product: ProductRef) {
+  const itemProductId = normalizeId(item.productId)
+  const itemName = normalizeName(item.productName)
+  const productId = normalizeId(product.id)
+  const productName = normalizeName(product.name)
+
+  return (
+    (itemProductId !== "" && (itemProductId === productId || itemProductId === product.name)) ||
+    (itemName !== "" && itemName === productName) ||
+    (itemProductId !== "" && normalizeName(itemProductId) === productName)
+  )
 }
 
-export function filterSalesByClient(sales: Sale[], clientName: string, year = getCurrentNepaliYear()) {
+export function itemMatchesAnyProduct(item: LineItem, products: ProductRef[]) {
+  return products.some((product) => itemMatchesProduct(item, product))
+}
+
+export function filterSalesByProductName(sales: Sale[], productName: string, year?: number | null) {
+  return filterSalesByProduct(sales, { id: "", name: productName }, year)
+}
+
+export function filterPurchasesByProductName(purchases: Purchase[], productName: string, year?: number | null) {
+  return filterPurchasesByProduct(purchases, { id: "", name: productName }, year)
+}
+
+function matchesYear(date: string | Date | undefined, year?: number | null) {
+  if (year == null) return true
+  if (!date) return false
+  try {
+    return getNepaliYear(date) === year
+  } catch {
+    return false
+  }
+}
+
+export function filterSalesByProduct(sales: Sale[], product: ProductRef, year?: number | null) {
   return sales.filter(
-    (sale) => sale.client === clientName && getNepaliYear(sale.saleDate) === year,
+    (sale) =>
+      (sale.items || []).some((item) => itemMatchesProduct(item, product)) &&
+      matchesYear(sale.saleDate, year),
+  )
+}
+
+export function filterPurchasesByProduct(purchases: Purchase[], product: ProductRef, year?: number | null) {
+  return purchases.filter(
+    (purchase) =>
+      (purchase.items || []).some((item) => itemMatchesProduct(item, product)) &&
+      matchesYear(purchase.purchaseDate, year),
+  )
+}
+
+export function filterSalesByProductNames(sales: Sale[], productNames: string[], year?: number | null) {
+  const products = productNames.map((name) => ({ id: "", name }))
+  return filterSalesByProducts(sales, products, year)
+}
+
+export function filterPurchasesByProductNames(
+  purchases: Purchase[],
+  productNames: string[],
+  year?: number | null,
+) {
+  const products = productNames.map((name) => ({ id: "", name }))
+  return filterPurchasesByProducts(purchases, products, year)
+}
+
+export function filterSalesByProducts(sales: Sale[], products: ProductRef[], year?: number | null) {
+  return sales.filter(
+    (sale) =>
+      (sale.items || []).some((item) => itemMatchesAnyProduct(item, products)) &&
+      matchesYear(sale.saleDate, year),
+  )
+}
+
+export function filterPurchasesByProducts(
+  purchases: Purchase[],
+  products: ProductRef[],
+  year?: number | null,
+) {
+  return purchases.filter(
+    (purchase) =>
+      (purchase.items || []).some((item) => itemMatchesAnyProduct(item, products)) &&
+      matchesYear(purchase.purchaseDate, year),
+  )
+}
+
+export function filterSalesByClient(sales: Sale[], clientName: string, year?: number | null) {
+  return sales.filter(
+    (sale) => sale.client === clientName && matchesYear(sale.saleDate, year),
   )
 }
 
@@ -114,5 +188,22 @@ export function computeTransactionStats(
 }
 
 export function getCategoryProducts(products: Product[], category: string) {
-  return products.filter((p) => p.category === category)
+  const target = normalizeName(category)
+  return products.filter((p) => normalizeName(p.category) === target)
+}
+
+export function normalizeSaleItems(items: SaleItem[] = []): SaleItem[] {
+  return items.map((item: any) => ({
+    ...item,
+    productId: normalizeId(item.productId),
+    productName: item.productName || "",
+  }))
+}
+
+export function normalizePurchaseItems(items: PurchaseItem[] = []): PurchaseItem[] {
+  return items.map((item: any) => ({
+    ...item,
+    productId: normalizeId(item.productId),
+    productName: item.productName || "",
+  }))
 }

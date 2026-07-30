@@ -427,6 +427,11 @@ export default function ProductsPage() {
     setIsTransactionHistoryOpen(true)
   }
 
+  const handleCategoryClick = (category: string) => {
+    setSelectedCategoryForHistory(category)
+    setIsCategoryHistoryOpen(true)
+  }
+
   const handleDeleteConfirm = async () => {
     if (!deletingProduct) return
 
@@ -603,6 +608,7 @@ export default function ProductsPage() {
         categoryFilter={categoryFilter}
         onCategoryFilterChange={setCategoryFilter}
         onProductClick={handleProductClick}
+        onCategoryClick={handleCategoryClick}
         onView={handleView}
         onEdit={handleEdit}
         onDelete={handleDelete}
@@ -631,6 +637,7 @@ export default function ProductsPage() {
         isOpen={isTransactionHistoryOpen}
         onOpenChange={setIsTransactionHistoryOpen}
         product={selectedProductForHistory}
+        products={products}
         sales={sales}
         purchases={purchases}
         onClientClick={handleClientClick}
