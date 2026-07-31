@@ -1,8 +1,9 @@
 "use client"
 
+import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { useInventory } from "@/contexts/InventoryContext"
-import { DollarSign, Info, Package, ShoppingCart, TrendingDown, TrendingUp } from "lucide-react"
+import { DollarSign, Info, Package, Printer, ShoppingCart, TrendingDown, TrendingUp } from "lucide-react"
 import {
   Bar,
   CartesianGrid,
@@ -120,12 +121,23 @@ export default function VisualReports() {
     .slice(0, 5)
 
   return (
-    <div className="space-y-6 p-6 min-h-screen transition-colors duration-300">
-      <div className="space-y-2">
-        <h1 className="section-title">
-          Visual Reports
-        </h1>
-        <p className="text-gray-600 dark:text-gray-300 text-lg">Easy-to-understand charts and insights</p>
+    <div className="report-print-root space-y-6 p-6 min-h-screen transition-colors duration-300">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+        <div className="space-y-2">
+          <h1 className="section-title">
+            Visual Reports
+          </h1>
+          <p className="text-gray-600 dark:text-gray-300 text-lg">Easy-to-understand charts and insights</p>
+        </div>
+        <Button
+          type="button"
+          variant="outline"
+          className="print:hidden shrink-0"
+          onClick={() => window.print()}
+        >
+          <Printer className="h-4 w-4 mr-2" />
+          Print
+        </Button>
       </div>
 
       {/* Key Numbers */}

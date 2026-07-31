@@ -1,6 +1,7 @@
 "use client"
 
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -15,6 +16,7 @@ import {
   DollarSign,
   Info,
   PieChart,
+  Printer,
   TrendingDown,
   TrendingUp
 } from "lucide-react"
@@ -199,12 +201,23 @@ export default function MonthlyYearlyReports() {
   }
 
   return (
-    <div className="space-y-6 p-6 min-h-screen transition-colors duration-300">
-      <div className="space-y-2">
-        <h1 className="section-title">
-          Monthly & Yearly Reports
-        </h1>
-        <p className="text-gray-600 dark:text-gray-300 text-lg">Simple period-based reporting</p>
+    <div className="report-print-root space-y-6 p-6 min-h-screen transition-colors duration-300">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+        <div className="space-y-2">
+          <h1 className="section-title">
+            Monthly & Yearly Reports
+          </h1>
+          <p className="text-gray-600 dark:text-gray-300 text-lg">Simple period-based reporting</p>
+        </div>
+        <Button
+          type="button"
+          variant="outline"
+          className="print:hidden shrink-0"
+          onClick={() => window.print()}
+        >
+          <Printer className="h-4 w-4 mr-2" />
+          Print
+        </Button>
       </div>
 
       <Tabs defaultValue="monthly" className="space-y-6">

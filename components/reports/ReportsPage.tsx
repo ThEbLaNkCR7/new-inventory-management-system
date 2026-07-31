@@ -9,7 +9,7 @@ import { useToast } from "@/components/ui/use-toast"
 import { useInventory } from "@/contexts/InventoryContext"
 import { formatDateForReports, getCurrentNepaliYear, getNepaliMonth, getNepaliYear, toTitleCase } from "@/lib/utils"
 import { exportTableToExcel } from "@/utils/exportUtils"
-import { AlertTriangle, BarChart, BarChart3, Calendar, DollarSign, Package, TrendingDown, TrendingUp } from "lucide-react"
+import { AlertTriangle, BarChart, BarChart3, Calendar, DollarSign, Package, Printer, TrendingDown, TrendingUp } from "lucide-react"
 import { useState } from "react"
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts"
 
@@ -296,17 +296,23 @@ export default function ReportsPage() {
     .slice(0, 5)
 
   return (
-    <div className="space-y-8 p-6 bg-white dark:bg-gray-900 min-h-screen transition-colors duration-300">
-      <div className="relative">
+    <div className="report-print-root space-y-8 p-6 bg-white dark:bg-gray-900 min-h-screen transition-colors duration-300">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div className="space-y-2">
           <h1 className="section-title">
             Reports
           </h1>
           <p className="text-gray-600 dark:text-gray-300 text-lg">Generate comprehensive reports and analytics</p>
         </div>
-        <div className="absolute top-6 right-0 flex space-x-3">
-          {/* Export functionality removed */}
-        </div>
+        <Button
+          type="button"
+          variant="outline"
+          className="print:hidden shrink-0"
+          onClick={() => window.print()}
+        >
+          <Printer className="h-4 w-4 mr-2" />
+          Print
+        </Button>
       </div>
 
       {/* Report Type Toggle */}
@@ -370,7 +376,7 @@ export default function ReportsPage() {
             </Card>
           </div>
 
-          <Button onClick={() => exportMonthlyReportToExcel(weeklyData)}>Export Monthly Excel</Button>
+          <Button className="print:hidden" onClick={() => exportMonthlyReportToExcel(weeklyData)}>Export Monthly Excel</Button>
 
           {/* Monthly Charts */}
           <div className="">
@@ -444,7 +450,7 @@ export default function ReportsPage() {
             </Card>
           </div>
 
-          <Button onClick={() => exportYearlyReportToExcel(getMonthlyData())}>Export Yearly Excel</Button>
+          <Button className="print:hidden" onClick={() => exportYearlyReportToExcel(getMonthlyData())}>Export Yearly Excel</Button>
 
           <Card className="dark:bg-gray-800 dark:border-gray-700">
             <CardHeader>

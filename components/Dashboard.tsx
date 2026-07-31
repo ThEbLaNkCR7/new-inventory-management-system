@@ -113,22 +113,24 @@ useEffect(() => {
   }
 
   return (
-    <div className="flex h-screen bg-white dark:bg-gray-900 transition-colors duration-300">
-      <Sidebar 
-        activeTab={activeTab} 
-        setActiveTab={setActiveTab} 
-        isOpen={sidebarOpen} 
-        setIsOpen={setSidebarOpen} 
-        isMobile={isMobile}
-      />
+    <div className="flex h-screen bg-white dark:bg-gray-900 transition-colors duration-300 print:h-auto print:block print:overflow-visible">
+      <div className="print:hidden">
+        <Sidebar 
+          activeTab={activeTab} 
+          setActiveTab={setActiveTab} 
+          isOpen={sidebarOpen} 
+          setIsOpen={setSidebarOpen} 
+          isMobile={isMobile}
+        />
+      </div>
       
-      <div className={`flex-1 flex flex-col overflow-hidden relative transition-all duration-300 ${
+      <div className={`flex-1 flex flex-col overflow-hidden relative transition-all duration-300 print:ml-0 print:overflow-visible print:w-full ${
         !isMobile && sidebarOpen ? 'ml-64' : 'ml-0'
       }`}>
         {/* Sidebar toggle button - only show on desktop when sidebar is closed */}
         {!isMobile && !sidebarOpen && (
           <button
-            className="fixed top-4 left-4 z-50 flex items-center justify-center bg-gray-800 text-white rounded-full shadow-lg hover:shadow-xl p-2 hover:bg-gray-700 transition-all duration-300 hover:scale-110 transform"
+            className="fixed top-4 left-4 z-50 flex items-center justify-center bg-gray-800 text-white rounded-full shadow-lg hover:shadow-xl p-2 hover:bg-gray-700 transition-all duration-300 hover:scale-110 transform print:hidden"
             onClick={() => setSidebarOpen(true)}
             aria-label="Open sidebar"
           >
@@ -136,18 +138,20 @@ useEffect(() => {
           </button>
         )}
         
-        <Header 
-          onMenuClick={() => {
-            console.log('Header menu clicked!', { currentSidebarOpen: sidebarOpen, isMobile })
-            setSidebarOpen(!sidebarOpen)
-          }} 
-          sidebarOpen={sidebarOpen}
-          isMobile={isMobile}
-        />
+        <div className="print:hidden">
+          <Header 
+            onMenuClick={() => {
+              console.log('Header menu clicked!', { currentSidebarOpen: sidebarOpen, isMobile })
+              setSidebarOpen(!sidebarOpen)
+            }} 
+            sidebarOpen={sidebarOpen}
+            isMobile={isMobile}
+          />
+        </div>
         
         <main 
           ref={mainContentRef}
-          className="flex-1 overflow-x-hidden overflow-y-auto p-4 lg:p-6 transition-colors duration-300"
+          className="flex-1 overflow-x-hidden overflow-y-auto p-4 lg:p-6 transition-colors duration-300 print:overflow-visible print:p-0"
         >
           {renderContent()}
         </main>

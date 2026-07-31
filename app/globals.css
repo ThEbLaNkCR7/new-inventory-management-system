@@ -1315,3 +1315,41 @@ html {
   background: rgba(0, 0, 0, 0.2);
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
+
+/* Report page print — content only */
+@media print {
+  @page {
+    margin: 12mm;
+  }
+
+  html,
+  body {
+    background: white !important;
+    color: black !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  .report-print-root {
+    min-height: auto !important;
+    background: white !important;
+    color: black !important;
+    padding: 0 !important;
+  }
+
+  .report-print-root .recharts-responsive-container,
+  .report-print-root .recharts-wrapper,
+  .report-print-root svg {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .report-print-root table {
+    break-inside: auto;
+  }
+
+  .report-print-root tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+}
