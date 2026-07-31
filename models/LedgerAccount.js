@@ -10,6 +10,11 @@ const ledgerAccountSchema = new mongoose.Schema(
       enum: ["Dr", "Cr"],
       default: "Dr",
     },
+    accountType: {
+      type: String,
+      enum: ["customer", "supplier"],
+      default: "customer",
+    },
     isActive: { type: Boolean, default: true },
   },
   { timestamps: true },

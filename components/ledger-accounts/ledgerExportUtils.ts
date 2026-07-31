@@ -2,6 +2,7 @@ import type { LedgerAccount } from "@/contexts/LedgerContext"
 import {
   LEDGER_TABLE_HEADERS,
   formatRs,
+  getAccountTypeLabel,
   type LedgerReport,
 } from "@/components/ledger-accounts/utils"
 import * as XLSX from "xlsx"
@@ -24,6 +25,7 @@ export function exportLedgerReportToExcel(
   aoa.push([])
   aoa.push(["Account Ledger"])
   aoa.push([`Account : ${account.name}`, dateRangeLabel])
+  aoa.push([`Account Type : ${getAccountTypeLabel(account.accountType)}`])
   aoa.push([])
   aoa.push([...LEDGER_TABLE_HEADERS])
 
@@ -215,7 +217,10 @@ export function buildLedgerPrintHtml(
     </div>
     <div class="text-center font-semibold pt-2" style="font-size:16px;">Account Ledger</div>
     <div class="flex-wrap pt-2">
-      <p><span class="font-medium">Account :</span> ${account.name}</p>
+      <div>
+        <p><span class="font-medium">Account :</span> ${account.name}</p>
+        <p><span class="font-medium">Account Type :</span> ${getAccountTypeLabel(account.accountType)}</p>
+      </div>
       <p>${dateRangeLabel}</p>
     </div>
     <table>

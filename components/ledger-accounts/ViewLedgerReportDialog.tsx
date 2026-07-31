@@ -38,7 +38,14 @@ export default function ViewLedgerReportDialog({
   const report = useMemo(() => {
     if (!account) return null
     const entries = getEntriesForAccount(account.id)
-    return buildLedgerReport(account.openingBalance, account.openingBalanceType, entries)
+    return buildLedgerReport(
+      account.openingBalance,
+      account.openingBalanceType,
+      entries,
+      undefined,
+      undefined,
+      account.accountType,
+    )
   }, [account, getEntriesForAccount])
 
   const dateRange = useMemo(() => {

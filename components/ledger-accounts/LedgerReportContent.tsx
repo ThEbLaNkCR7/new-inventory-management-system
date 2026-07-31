@@ -1,5 +1,5 @@
 import LedgerEntryTableHeader from "@/components/ledger-accounts/LedgerEntryTableHeader"
-import { formatRs, type LedgerReport } from "@/components/ledger-accounts/utils"
+import { formatRs, getAccountTypeLabel, type LedgerReport } from "@/components/ledger-accounts/utils"
 import type { LedgerAccount } from "@/contexts/LedgerContext"
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table"
 
@@ -24,9 +24,15 @@ export default function LedgerReportContent({
       </div>
       <div className="text-center font-semibold text-base pt-2">Account Ledger</div>
       <div className="flex flex-wrap justify-between gap-2 pt-2">
-        <p>
-          <span className="font-medium">Account :</span> {account.name}
-        </p>
+        <div className="space-y-1">
+          <p>
+            <span className="font-medium">Account :</span> {account.name}
+          </p>
+          <p>
+            <span className="font-medium">Account Type :</span>{" "}
+            {getAccountTypeLabel(account.accountType)}
+          </p>
+        </div>
         <p>{dateRangeLabel}</p>
       </div>
 

@@ -5,6 +5,8 @@ import ViewLedgerReportDialog from "@/components/ledger-accounts/ViewLedgerRepor
 import {
   formatRs,
   getAccountClosingBalance,
+  getAccountTypeLabel,
+  getAccountTypeShortLabel,
   validateLedgerAccountForm,
 } from "@/components/ledger-accounts/utils"
 import { Badge } from "@/components/ui/badge"
@@ -30,7 +32,7 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/components/ui/use-toast"
-import type { LedgerAccount } from "@/contexts/LedgerContext"
+import type { LedgerAccount, LedgerAccountType } from "@/contexts/LedgerContext"
 import { useLedger } from "@/contexts/LedgerContext"
 import { BookOpen, Eye, Loader2, Plus, Search, Trash2 } from "lucide-react"
 import { useMemo, useState } from "react"
@@ -50,6 +52,7 @@ export default function LedgerAccountsPage() {
   const { toast } = useToast()
 
   const [searchTerm, setSearchTerm] = useState("")
+  const [typeFilter, setTypeFilter] = useState<"all" | LedgerAccountType>("all")
   const [isAddAccountOpen, setIsAddAccountOpen] = useState(false)
   const [isAddEntryOpen, setIsAddEntryOpen] = useState(false)
   const [isViewOpen, setIsViewOpen] = useState(false)
@@ -61,6 +64,7 @@ export default function LedgerAccountsPage() {
     name: "",
     address: "",
     existingAccountId: "none",
+    accountType: "customer" as LedgerAccountType,
     openingBalance: "0",
     openingBalanceType: "Dr" as "Dr" | "Cr",
   })
@@ -78,9 +82,11 @@ export default function LedgerAccountsPage() {
 
   const isCarryForward = accountForm.existingAccountId !== "none"
 
-  const filteredAccounts = ledgerAccounts.filter((account) =>
-    account.name.toLowerCase().includes(searchTerm.toLowerCase()),
-  )
+  const filteredAccounts = ledgerAccounts.filter((account) => {
+    const matchesSearch = account.name.toLowerCase().includes(searchTerm.toLowerCase())
+    const matchesType = typeFilter === "all" || account.accountType === typeFilter
+    return matchesSearch && matchesType
+  })
 
   const clearFieldErrors = (...fields: string[]) => {
     setFieldErrors((prev) => {
@@ -102,6 +108,7 @@ export default function LedgerAccountsPage() {
       name: "",
       address: "",
       existingAccountId: "none",
+      accountType: "customer",
       openingBalance: "0",
       openingBalanceType: "Dr",
     })
@@ -115,6 +122,7 @@ export default function LedgerAccountsPage() {
         existingAccountId: "none",
         name: "",
         address: "",
+        accountType: "customer",
         openingBalance: "0",
         openingBalanceType: "Dr",
       }))
@@ -130,6 +138,7 @@ export default function LedgerAccountsPage() {
       existingAccountId: accountId,
       name: source.name,
       address: source.address || "",
+      accountType: source.accountType,
       openingBalance: String(closing.value),
       openingBalanceType: closing.side,
     }))
@@ -159,6 +168,7 @@ export default function LedgerAccountsPage() {
       await addLedgerAccount({
         name: name.trim(),
         address: address.trim(),
+        accountType: accountForm.accountType,
         openingBalance: Number(accountForm.openingBalance || 0),
         openingBalanceType: accountForm.openingBalanceType,
       })
@@ -230,6 +240,27 @@ export default function LedgerAccountsPage() {
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
+              <div>
+                <Label>Account Type *</Label>
+                <Select
+                  value={accountForm.accountType}
+                  onValueChange={(value: LedgerAccountType) =>
+                    setAccountForm((prev) => ({ ...prev, accountType: value }))
+                  }
+                >
+                  <SelectTrigger className={inputClass}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="customer">Customer Ledger Account</SelectItem>
+                    <SelectItem value="supplier">Supplier Ledger Account</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Customer: balance = prev + (debit − credit). Supplier: balance = prev + (credit − debit).
+                </p>
+              </div>
+
               <div>
                 <Label>Existing Account (optional)</Label>
                 <Select
@@ -350,14 +381,29 @@ export default function LedgerAccountsPage() {
           <CardDescription>
             Manage accounts and record manual ledger transactions.
           </CardDescription>
-          <div className="relative mt-2">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search accounts..."
-              className={`pl-10 ${inputClass}`}
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
+          <div className="flex flex-col sm:flex-row gap-2 mt-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search accounts..."
+                className={`pl-10 ${inputClass}`}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+            <Select
+              value={typeFilter}
+              onValueChange={(value: "all" | LedgerAccountType) => setTypeFilter(value)}
+            >
+              <SelectTrigger className={`w-full sm:w-[220px] ${inputClass}`}>
+                <SelectValue placeholder="Filter by type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Account Types</SelectItem>
+                <SelectItem value="customer">Customer</SelectItem>
+                <SelectItem value="supplier">Supplier</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </CardHeader>
         <CardContent>
@@ -372,6 +418,7 @@ export default function LedgerAccountsPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Account Name</TableHead>
+                  <TableHead>Account Type</TableHead>
                   <TableHead>Address</TableHead>
                   <TableHead>Opening Balance</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
@@ -380,14 +427,21 @@ export default function LedgerAccountsPage() {
               <TableBody>
                 {filteredAccounts.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
-                      No ledger accounts yet. Click &quot;Add Ledger Account&quot; to get started.
+                    <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                      {ledgerAccounts.length === 0
+                        ? 'No ledger accounts yet. Click "Add Ledger Account" to get started.'
+                        : "No accounts match your search or filter."}
                     </TableCell>
                   </TableRow>
                 )}
                 {filteredAccounts.map((account) => (
                   <TableRow key={account.id}>
                     <TableCell className="font-medium">{account.name}</TableCell>
+                    <TableCell>
+                      <Badge variant={account.accountType === "supplier" ? "secondary" : "default"}>
+                        {getAccountTypeShortLabel(account.accountType)}
+                      </Badge>
+                    </TableCell>
                     <TableCell>{account.address || "-"}</TableCell>
                     <TableCell>
                       <Badge variant="outline">

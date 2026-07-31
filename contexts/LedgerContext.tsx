@@ -4,6 +4,7 @@ import type React from "react"
 import { createContext, useCallback, useContext, useEffect, useState } from "react"
 
 export type BalanceSide = "Dr" | "Cr"
+export type LedgerAccountType = "customer" | "supplier"
 
 export interface LedgerAccount {
   id: string
@@ -11,6 +12,7 @@ export interface LedgerAccount {
   address?: string
   openingBalance: number
   openingBalanceType: BalanceSide
+  accountType: LedgerAccountType
   isActive?: boolean
   createdAt?: string
   updatedAt?: string
@@ -54,6 +56,7 @@ function normalizeAccount(raw: any): LedgerAccount {
     id: String(raw._id || raw.id),
     openingBalance: Number(raw.openingBalance || 0),
     openingBalanceType: raw.openingBalanceType === "Cr" ? "Cr" : "Dr",
+    accountType: raw.accountType === "supplier" ? "supplier" : "customer",
   }
 }
 

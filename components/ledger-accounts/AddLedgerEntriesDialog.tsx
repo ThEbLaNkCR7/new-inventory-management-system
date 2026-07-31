@@ -81,6 +81,7 @@ export default function AddLedgerEntriesDialog({
       account.openingBalanceType,
       existingEntries,
       drafts,
+      account.accountType,
     )
   }, [account, existingEntries, drafts])
 
