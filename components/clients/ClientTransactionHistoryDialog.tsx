@@ -13,7 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import DataPagination from "@/components/ui/data-pagination"
 import type { Sale } from "@/contexts/InventoryContext"
 import { usePagination } from "@/hooks/usePagination"
-import { formatNepaliDateForTable, getCurrentNepaliYear, getNepaliYear, toTitleCase } from "@/lib/utils"
+import { formatNepaliDateForTable, toTitleCase } from "@/lib/utils"
 import { useMemo } from "react"
 
 interface ClientTransactionHistoryDialogProps {
@@ -29,16 +29,17 @@ export default function ClientTransactionHistoryDialog({
   clientName,
   sales,
 }: ClientTransactionHistoryDialogProps) {
-  const currentYear = getCurrentNepaliYear()
+  // Match main table order count: all active sales for this client (all years)
   const clientSales = useMemo(
     () =>
       sales
         .filter(
           (sale) =>
-            sale.client === clientName && getNepaliYear(sale.saleDate) === currentYear,
+            sale.client === clientName &&
+            sale.isActive !== false,
         )
         .sort((a, b) => new Date(b.saleDate).getTime() - new Date(a.saleDate).getTime()),
-    [sales, clientName, currentYear],
+    [sales, clientName],
   )
 
   const {
@@ -55,6 +56,11 @@ export default function ClientTransactionHistoryDialog({
     resetKey: `${clientName}|${clientSales.length}`,
   })
 
+  const totalQuantity = clientSales.reduce(
+    (sum, sale) =>
+      sum + (sale.items?.reduce((itemSum, i) => itemSum + (i.quantitySold || 0), 0) || 0),
+    0,
+  )
   const totalSpent = clientSales.reduce(
     (sum, sale) =>
       sum +
@@ -78,7 +84,7 @@ export default function ClientTransactionHistoryDialog({
             <span>Client Transaction History</span>
           </DialogTitle>
           <DialogDescription className="text-gray-600 dark:text-gray-400">
-            All transactions with <span className="font-semibold text-gray-800 dark:text-gray-200">{clientName}</span> in {currentYear}
+            All transactions with <span className="font-semibold text-gray-800 dark:text-gray-200">{toTitleCase(clientName)}</span>
           </DialogDescription>
         </DialogHeader>
 
@@ -90,23 +96,25 @@ export default function ClientTransactionHistoryDialog({
                 <span>Client Summary</span>
               </h3>
               <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
-                <div>
+                <div className="space-y-1">
                   <Label className="text-sm font-medium text-gray-600 dark:text-gray-400">Client Name</Label>
-                  <p className="text-gray-900 dark:text-gray-100 font-semibold text-lg">{toTitleCase(clientName)}</p>
+                  <p className="text-gray-900 dark:text-gray-100 font-medium">{toTitleCase(clientName)}</p>
                 </div>
-                <div>
-                  <Label className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Transactions</Label>
-                  <p className="text-gray-900 dark:text-gray-100 font-semibold text-lg">{clientSales.length} transactions</p>
-                </div>
-                <div>
-                  <Label className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Spent</Label>
-                  <p className="text-green-600 dark:text-green-400 font-semibold text-lg">
-                    Rs {totalSpent.toLocaleString()}
+                <div className="space-y-1">
+                  <Label className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Sales</Label>
+                  <p className="text-gray-900 dark:text-gray-100 font-semibold text-lg">
+                    {clientSales.length} transactions
                   </p>
                 </div>
-                <div>
-                  <Label className="text-sm font-medium text-gray-600 dark:text-gray-400">Year</Label>
-                  <p className="text-gray-900 dark:text-gray-100 font-semibold text-lg">{currentYear}</p>
+                <div className="space-y-1">
+                  <Label className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Quantity</Label>
+                  <p className="text-gray-900 dark:text-gray-100 font-semibold text-lg">{totalQuantity} units</p>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Value</Label>
+                  <p className="text-gray-900 dark:text-gray-100 font-semibold text-lg">
+                    Rs {totalSpent.toLocaleString()}
+                  </p>
                 </div>
               </div>
             </div>
@@ -121,49 +129,39 @@ export default function ClientTransactionHistoryDialog({
                   <TableHeader>
                     <TableRow className="bg-gray-100 dark:bg-gray-700">
                       <TableHead className="font-semibold text-gray-700 dark:text-gray-300">Date</TableHead>
-                      <TableHead className="font-semibold text-gray-700 dark:text-gray-300">Product</TableHead>
-                      <TableHead className="font-semibold text-gray-700 dark:text-gray-300">Quantity</TableHead>
-                      <TableHead className="font-semibold text-gray-700 dark:text-gray-300">Unit Price</TableHead>
-                      <TableHead className="font-semibold text-gray-700 dark:text-gray-300">Total</TableHead>
+                      <TableHead className="font-semibold text-gray-700 dark:text-gray-300">Item No.</TableHead>
+                      <TableHead className="font-semibold text-gray-700 dark:text-gray-300">Total Value</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {paginatedItems.length > 0 ? (
-                      paginatedItems.map((sale) => (
-                        <TableRow key={sale.id} className="hover:bg-gray-100 dark:hover:bg-gray-700/50">
-                          <TableCell className="text-gray-700 dark:text-gray-300">
-                            {formatNepaliDateForTable(sale.saleDate)}
-                          </TableCell>
-                          <TableCell className="font-medium text-gray-900 dark:text-gray-100">
-                            {sale.items
-                              ?.map((i) => toTitleCase(i.productName || ""))
-                              .filter(Boolean)
-                              .join(", ")}
-                          </TableCell>
-                          <TableCell className="text-gray-700 dark:text-gray-300">
-                            {sale.items?.reduce((sum, i) => sum + (i.quantitySold || 0), 0)} units
-                          </TableCell>
-                          <TableCell className="text-gray-700 dark:text-gray-300">
-                            Rs{" "}
-                            {(
-                              sale.items?.reduce((sum, i) => sum + (i.salePrice || 0), 0) || 0
-                            ).toLocaleString()}
-                          </TableCell>
-                          <TableCell className="font-semibold text-green-600 dark:text-green-400">
-                            Rs{" "}
-                            {(
-                              sale.items?.reduce(
-                                (sum, i) => sum + (i.quantitySold || 0) * (i.salePrice || 0),
-                                0,
-                              ) || 0
-                            ).toLocaleString()}
-                          </TableCell>
-                        </TableRow>
-                      ))
+                      paginatedItems.map((sale) => {
+                        const itemNo =
+                          sale.items?.reduce((sum, i) => sum + (i.quantitySold || 0), 0) || 0
+                        const saleTotal =
+                          sale.items?.reduce(
+                            (sum, i) => sum + (i.quantitySold || 0) * (i.salePrice || 0),
+                            0,
+                          ) || 0
+
+                        return (
+                          <TableRow key={sale.id} className="hover:bg-gray-100 dark:hover:bg-gray-700/50">
+                            <TableCell className="text-gray-700 dark:text-gray-300">
+                              {formatNepaliDateForTable(sale.saleDate)}
+                            </TableCell>
+                            <TableCell className="font-medium text-gray-900 dark:text-gray-100">
+                              {itemNo}
+                            </TableCell>
+                            <TableCell className="font-semibold text-green-600 dark:text-green-400">
+                              Rs {saleTotal.toLocaleString()}
+                            </TableCell>
+                          </TableRow>
+                        )
+                      })
                     ) : (
                       <TableRow>
-                        <TableCell colSpan={5} className="text-center py-8 text-gray-500 dark:text-gray-400">
-                          No sales transactions found for this client in {currentYear}
+                        <TableCell colSpan={3} className="text-center py-8 text-gray-500 dark:text-gray-400">
+                          No sales transactions found for this client
                         </TableCell>
                       </TableRow>
                     )}

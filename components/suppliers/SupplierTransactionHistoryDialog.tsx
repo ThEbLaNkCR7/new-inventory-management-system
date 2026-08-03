@@ -13,7 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import DataPagination from "@/components/ui/data-pagination"
 import type { Purchase } from "@/contexts/InventoryContext"
 import { usePagination } from "@/hooks/usePagination"
-import { formatNepaliDateForTable, getCurrentNepaliYear, getNepaliYear, toTitleCase } from "@/lib/utils"
+import { formatNepaliDateForTable, toTitleCase } from "@/lib/utils"
 import { useMemo } from "react"
 
 interface SupplierTransactionHistoryDialogProps {
@@ -29,20 +29,20 @@ export default function SupplierTransactionHistoryDialog({
   supplierName,
   purchases,
 }: SupplierTransactionHistoryDialogProps) {
-  const currentYear = getCurrentNepaliYear()
+  // Match main table order count: all active purchases for this supplier (all years)
   const supplierPurchases = useMemo(
     () =>
       purchases
         .filter(
           (purchase) =>
             purchase.supplier === supplierName &&
-            getNepaliYear(purchase.purchaseDate) === currentYear,
+            purchase.isActive !== false,
         )
         .sort(
           (a, b) =>
             new Date(b.purchaseDate).getTime() - new Date(a.purchaseDate).getTime(),
         ),
-    [purchases, supplierName, currentYear],
+    [purchases, supplierName],
   )
 
   const {
@@ -88,7 +88,7 @@ export default function SupplierTransactionHistoryDialog({
             <span>Supplier Transaction History</span>
           </DialogTitle>
           <DialogDescription className="text-gray-600 dark:text-gray-400">
-            All transactions with <span className="font-semibold text-gray-800 dark:text-gray-200">{supplierName}</span> in {currentYear}
+            All transactions with <span className="font-semibold text-gray-800 dark:text-gray-200">{toTitleCase(supplierName)}</span>
           </DialogDescription>
         </DialogHeader>
 
@@ -133,51 +133,43 @@ export default function SupplierTransactionHistoryDialog({
                   <TableHeader>
                     <TableRow className="bg-gray-100 dark:bg-gray-700">
                       <TableHead className="font-semibold text-gray-700 dark:text-gray-300">Date</TableHead>
-                      <TableHead className="font-semibold text-gray-700 dark:text-gray-300">Product</TableHead>
-                      <TableHead className="font-semibold text-gray-700 dark:text-gray-300">Quantity</TableHead>
-                      <TableHead className="font-semibold text-gray-700 dark:text-gray-300">Unit Price</TableHead>
-                      <TableHead className="font-semibold text-gray-700 dark:text-gray-300">Total</TableHead>
+                      <TableHead className="font-semibold text-gray-700 dark:text-gray-300">Item No.</TableHead>
+                      <TableHead className="font-semibold text-gray-700 dark:text-gray-300">Total Value</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {paginatedItems.length > 0 ? (
-                      paginatedItems.map((purchase) => (
-                        <TableRow key={purchase.id} className="hover:bg-gray-100 dark:hover:bg-gray-700/50">
-                          <TableCell className="text-gray-700 dark:text-gray-300">
-                            {formatNepaliDateForTable(purchase.purchaseDate)}
-                          </TableCell>
-                          <TableCell className="font-medium text-gray-900 dark:text-gray-100">
-                            {purchase.items
-                              ?.map((i) => toTitleCase(i.productName || ""))
-                              .filter(Boolean)
-                              .join(", ")}
-                          </TableCell>
-                          <TableCell className="text-gray-700 dark:text-gray-300">
-                            {purchase.items?.reduce((sum, i) => sum + (i.quantityPurchased || 0), 0)}{" "}
-                            units
-                          </TableCell>
-                          <TableCell className="text-gray-700 dark:text-gray-300">
-                            Rs{" "}
-                            {(
-                              purchase.items?.reduce((sum, i) => sum + (i.purchasePrice || 0), 0) || 0
-                            ).toLocaleString()}
-                          </TableCell>
-                          <TableCell className="font-semibold text-blue-600 dark:text-blue-400">
-                            Rs{" "}
-                            {(
-                              purchase.items?.reduce(
-                                (sum, i) =>
-                                  sum + (i.quantityPurchased || 0) * (i.purchasePrice || 0),
-                                0,
-                              ) || 0
-                            ).toLocaleString()}
-                          </TableCell>
-                        </TableRow>
-                      ))
+                      paginatedItems.map((purchase) => {
+                        const itemNo =
+                          purchase.items?.reduce(
+                            (sum, i) => sum + (i.quantityPurchased || 0),
+                            0,
+                          ) || 0
+                        const purchaseTotal =
+                          purchase.items?.reduce(
+                            (sum, i) =>
+                              sum + (i.quantityPurchased || 0) * (i.purchasePrice || 0),
+                            0,
+                          ) || 0
+
+                        return (
+                          <TableRow key={purchase.id} className="hover:bg-gray-100 dark:hover:bg-gray-700/50">
+                            <TableCell className="text-gray-700 dark:text-gray-300">
+                              {formatNepaliDateForTable(purchase.purchaseDate)}
+                            </TableCell>
+                            <TableCell className="font-medium text-gray-900 dark:text-gray-100">
+                              {itemNo}
+                            </TableCell>
+                            <TableCell className="font-semibold text-blue-600 dark:text-blue-400">
+                              Rs {purchaseTotal.toLocaleString()}
+                            </TableCell>
+                          </TableRow>
+                        )
+                      })
                     ) : (
                       <TableRow>
-                        <TableCell colSpan={5} className="text-center py-8 text-gray-500 dark:text-gray-400">
-                          No purchase transactions found for this supplier in {currentYear}
+                        <TableCell colSpan={3} className="text-center py-8 text-gray-500 dark:text-gray-400">
+                          No purchase transactions found for this supplier
                         </TableCell>
                       </TableRow>
                     )}
