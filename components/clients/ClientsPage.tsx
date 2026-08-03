@@ -2,43 +2,30 @@
 
 import type React from "react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/components/ui/use-toast"
 import { useApproval } from "@/contexts/ApprovalContext"
 import { useAuth } from "@/contexts/AuthContext"
 import { usePersistentForm } from "@/contexts/FormPersistenceContext"
 import { useInventory } from "@/contexts/InventoryContext"
-import { cn, formatNepaliDateForTable, getCurrentNepaliYear, getNepaliYear, toTitleCase } from "@/lib/utils"
-import { Building, CheckCircle, Clock, Edit, Eye, Loader2, Mail, Phone, Plus, Search, Trash2 } from "lucide-react"
+import { formatNepaliDateForTable, toTitleCase } from "@/lib/utils"
+import { CheckCircle, Edit, Eye, Loader2, Mail, Phone, Search, Trash2 } from "lucide-react"
 import { useState } from "react"
 import { Progress } from "../ui/progress"
+import AddClientPageDialog from "./AddClientPageDialog"
+import ClientTransactionHistoryDialog from "./ClientTransactionHistoryDialog"
+import UpdateClientDialog from "./UpdateClientDialog"
+import ViewClientDialog from "./ViewClientDialog"
 import { validateClientFormData } from "./utils"
-
-const inputClass =
-  "border-2 focus:border-slate-500 transition-colors dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
-const selectTriggerClass = inputClass
-const errorTextClass = "text-sm text-red-600 dark:text-red-400"
 
 export default function ClientsPage() {
   const {
@@ -99,9 +86,6 @@ export default function ClientsPage() {
   const fieldErrorClass = (field: string) =>
     fieldErrors[field] ? "border-red-500 focus:border-red-500 dark:border-red-500" : ""
 
-  const renderFieldError = (field: string) =>
-    fieldErrors[field] ? <p className={errorTextClass}>{fieldErrors[field]}</p> : null
-
   const { formData, updateForm: persistFormUpdate, resetForm } = usePersistentForm('clients-form', initialFormData)
 
   const updateForm = (updates: Partial<typeof initialFormData>) => {
@@ -135,6 +119,8 @@ export default function ClientsPage() {
 
     return matchesSearch && matchesPayment
   })
+
+  const companyOptions = [...new Set(clients.map(client => client.company))]
 
   const updateProgress = (step: string, current: number, total: number) => {
     setCurrentStep(step)
@@ -395,518 +381,61 @@ export default function ClientsPage() {
           <p className="text-gray-600 dark:text-gray-300">Manage client relationships and contact information</p>
         </div>
         <div className="absolute top-6 right-0 flex space-x-3">
-          <Dialog open={isAddDialogOpen} onOpenChange={(open) => {
-            setIsAddDialogOpen(open)
-            if (!open) clearFieldErrors()
-          }}>
-            <DialogTrigger asChild>
-              <Button
-                onClick={resetForm}
-                variant="neutral"
-                className="shadow-lg hover:shadow-xl transition-all"
-              >
-                <Plus className="h-4 w-4" />
-                Add Client
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-md">
-              <DialogHeader>
-                <DialogTitle>Add New Client</DialogTitle>
-                <DialogDescription>
-                  Enter client information to add to your database
-                  {user?.role !== "admin" && (
-                    <div className="mt-2">
-                      <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-700">
-                        <Clock className="h-3 w-3 mr-1" />
-                        Changes require admin approval
-                      </Badge>
-                    </div>
-                  )}
-                </DialogDescription>
-              </DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Full Name *</Label>
-                  <Input
-                    id="name"
-                    value={formData.name}
-                    onChange={(e) => updateForm({ name: e.target.value })}
-                    className={cn(inputClass, fieldErrorClass("name"))}
-                  />
-                  {renderFieldError("name")}
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email *</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => updateForm({ email: e.target.value })}
-                    className={cn(inputClass, fieldErrorClass("email"))}
-                  />
-                  {renderFieldError("email")}
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="phone">Phone *</Label>
-                  <Input
-                    id="phone"
-                    value={formData.phone}
-                    onChange={(e) => updateForm({ phone: e.target.value })}
-                    className={cn(inputClass, fieldErrorClass("phone"))}
-                  />
-                  {renderFieldError("phone")}
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="company">Company Type *</Label>
-                  <div className="space-y-2">
-                    <Select
-                      value={formData.company}
-                      onValueChange={(value) => updateForm({ company: value })}
-                    >
-                      <SelectTrigger className={cn(selectTriggerClass, fieldErrorClass("company"))}>
-                        <SelectValue placeholder="Select company type or enter custom type" />
-                      </SelectTrigger>
-                      <SelectContent className="max-h-60">
-                        <SelectItem value="custom">+ Add Custom Company Type</SelectItem>
-                        {[...new Set(clients.map(client => client.company))].map((company) => (
-                          <SelectItem key={company} value={company}>
-                            {company}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {renderFieldError("company")}
-                    {formData.company === "custom" && (
-                      <Input
-                        placeholder="Enter custom company type"
-                        value={formData.customCompany || ""}
-                        onChange={(e) => updateForm({ customCompany: e.target.value })}
-                        className={cn("mt-2", inputClass, fieldErrorClass("customCompany"))}
-                      />
-                    )}
-                    {formData.company === "custom" && renderFieldError("customCompany")}
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="address">Address</Label>
-                  <Input
-                    id="address"
-                    value={formData.address}
-                    onChange={(e) => updateForm({ address: e.target.value })}
-                    placeholder="Enter full address"
-                    className={inputClass}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="paymentStatus">Payment Status *</Label>
-                  <Select
-                    value={formData.paymentStatus || "Pending"}
-                    onValueChange={(value) =>
-                      updateForm({ paymentStatus: value as "Received" | "Pending" })
-                    }
-                  >
-                    <SelectTrigger className={cn("h-8 w-32", selectTriggerClass, fieldErrorClass("paymentStatus"))}>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Received">Received</SelectItem>
-                      <SelectItem value="Pending">Pending</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  {renderFieldError("paymentStatus")}
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="status">Status *</Label>
-                  <Select
-                    value={formData.status}
-                    onValueChange={(value) => updateForm({ status: value })}
-                  >
-                    <SelectTrigger className={cn(selectTriggerClass, fieldErrorClass("status"))}>
-                      <SelectValue placeholder="Select status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Active">Active</SelectItem>
-                      <SelectItem value="Inactive">Inactive</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  {renderFieldError("status")}
-                </div>
-                <div className="flex justify-end space-x-2">
-                  <Button type="button" variant="neutralOutline" onClick={clearForm}>
-                    Cancel
-                  </Button>
-                  <Button type="submit">
-                    {/* Removed user?.role === "admin" ? "Add Client" : "Submit for Approval" */}
-                    Add Client
-                  </Button>
-                </div>
-              </form>
-            </DialogContent>
-          </Dialog>
-
-          {/* Approval Reason Dialog */}
-          <Dialog open={showApprovalDialog} onOpenChange={setShowApprovalDialog}>
-            <DialogContent className="max-w-md">
-              <DialogHeader>
-                <DialogTitle>Submit for Approval</DialogTitle>
-                <DialogDescription>Please provide a reason for this client request</DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="reason">Reason for Request</Label>
-                  <Textarea
-                    id="reason"
-                    value={approvalReason}
-                    onChange={(e) => setApprovalReason(e.target.value)}
-                    placeholder="Explain why this client should be added..."
-                    rows={4}
-                    required
-                  />
-                </div>
-                <div className="flex justify-end space-x-2">
-                  <Button variant="neutralOutline" onClick={() => setShowApprovalDialog(false)}>
-                    Cancel
-                  </Button>
-                  <Button onClick={submitForApproval} disabled={!approvalReason.trim()}>
-                    Submit Request
-                  </Button>
-                </div>
-              </div>
-            </DialogContent>
-          </Dialog>
+          <AddClientPageDialog
+            open={isAddDialogOpen}
+            onOpenChange={(open) => {
+              setIsAddDialogOpen(open)
+              if (!open) clearFieldErrors()
+            }}
+            formData={formData}
+            updateForm={updateForm}
+            companyOptions={companyOptions}
+            userRole={user?.role}
+            fieldErrors={fieldErrors}
+            fieldErrorClass={fieldErrorClass}
+            onSubmit={handleSubmit}
+            onCancel={clearForm}
+            onResetForm={resetForm}
+            showApprovalDialog={showApprovalDialog}
+            onShowApprovalDialogChange={setShowApprovalDialog}
+            approvalReason={approvalReason}
+            onApprovalReasonChange={setApprovalReason}
+            onSubmitForApproval={submitForApproval}
+          />
         </div>
       </div>
 
-      {/* Edit Client Dialog */}
-      <Dialog open={isEditDialogOpen} onOpenChange={(open) => {
-        setIsEditDialogOpen(open)
-        if (!open) {
-          clearFieldErrors()
-          setEditingClient(null)
-        }
-      }}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Edit Client</DialogTitle>
-            <DialogDescription>Update client information</DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleEditSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="edit-name">Full Name *</Label>
-              <Input
-                id="edit-name"
-                value={formData.name}
-                onChange={(e) => updateForm({ name: e.target.value })}
-                className={cn(inputClass, fieldErrorClass("name"))}
-              />
-              {renderFieldError("name")}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-email">Email *</Label>
-              <Input
-                id="edit-email"
-                type="email"
-                value={formData.email}
-                onChange={(e) => updateForm({ email: e.target.value })}
-                className={cn(inputClass, fieldErrorClass("email"))}
-              />
-              {renderFieldError("email")}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-phone">Phone *</Label>
-              <Input
-                id="edit-phone"
-                value={formData.phone}
-                onChange={(e) => updateForm({ phone: e.target.value })}
-                className={cn(inputClass, fieldErrorClass("phone"))}
-              />
-              {renderFieldError("phone")}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-company">Company Type *</Label>
-              <div className="space-y-2">
-                <Select
-                  value={formData.company}
-                  onValueChange={(value) => updateForm({ company: value })}
-                >
-                  <SelectTrigger className={cn(selectTriggerClass, fieldErrorClass("company"))}>
-                    <SelectValue placeholder="Select company type or enter custom type" />
-                  </SelectTrigger>
-                  <SelectContent className="max-h-60">
-                    <SelectItem value="custom">+ Add Custom Company Type</SelectItem>
-                    {[...new Set(clients.map(client => client.company))].map((company) => (
-                      <SelectItem key={company} value={company}>
-                        {company}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {renderFieldError("company")}
-                {formData.company === "custom" && (
-                  <Input
-                    placeholder="Enter custom company type"
-                    value={formData.customCompany || ""}
-                    onChange={(e) => updateForm({ customCompany: e.target.value })}
-                    className={cn("mt-2", inputClass, fieldErrorClass("customCompany"))}
-                  />
-                )}
-                {formData.company === "custom" && renderFieldError("customCompany")}
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-address">Address</Label>
-              <Input
-                id="edit-address"
-                value={formData.address}
-                onChange={(e) => updateForm({ address: e.target.value })}
-                placeholder="Enter full address"
-                className={inputClass}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-status">Status *</Label>
-              <Select
-                value={formData.status}
-                onValueChange={(value) => updateForm({ status: value })}
-              >
-                <SelectTrigger className={cn(selectTriggerClass, fieldErrorClass("status"))}>
-                  <SelectValue placeholder="Select status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Active">Active</SelectItem>
-                  <SelectItem value="Inactive">Inactive</SelectItem>
-                </SelectContent>
-              </Select>
-              {renderFieldError("status")}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-paymentStatus">Payment Status *</Label>
-              <Select
-                value={formData.paymentStatus || "Pending"}
-                onValueChange={(value) =>
-                  updateForm({ paymentStatus: value as "Received" | "Pending" })
-                }
-              >
-                <SelectTrigger className={cn("h-8 w-32", selectTriggerClass, fieldErrorClass("paymentStatus"))}>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Received">Received</SelectItem>
-                  <SelectItem value="Pending">Pending</SelectItem>
-                </SelectContent>
-              </Select>
-              {renderFieldError("paymentStatus")}
-            </div>
-            <div className="flex justify-end space-x-2">
-              <Button type="button" variant="neutralOutline" onClick={() => {
-                clearForm()
-                setIsEditDialogOpen(false)
-              }}>
-                Cancel
-              </Button>
-              <Button type="submit">Update Client</Button>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
+      <UpdateClientDialog
+        open={isEditDialogOpen}
+        onOpenChange={(open) => {
+          setIsEditDialogOpen(open)
+          if (!open) {
+            clearFieldErrors()
+            setEditingClient(null)
+          }
+        }}
+        formData={formData}
+        updateForm={updateForm}
+        companyOptions={companyOptions}
+        fieldErrors={fieldErrors}
+        fieldErrorClass={fieldErrorClass}
+        onSubmit={handleEditSubmit}
+        onCancel={() => {
+          clearForm()
+          setIsEditDialogOpen(false)
+        }}
+      />
 
-      {/* View Client Dialog */}
-      <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-white dark:bg-gray-800 border dark:border-gray-700">
-          <DialogHeader className="pb-6">
-            <DialogTitle className="text-2xl font-bold text-gray-800 dark:text-gray-200 flex items-center space-x-3">
-              <div className="p-2 bg-blue-100 dark:bg-blue-900/20 rounded-lg">
-                <Eye className="h-6 w-6 text-blue-600 dark:text-blue-400" />
-              </div>
-              <span>Client Details</span>
-            </DialogTitle>
-            <DialogDescription className="text-gray-600 dark:text-gray-400">
-              Complete information about the selected client
-            </DialogDescription>
-          </DialogHeader>
-
-          {viewingClient && (
-            <div className="space-y-6">
-              {/* Basic Information */}
-              <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-6">
-                <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center space-x-2">
-                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                  <span>Basic Information</span>
-                </h3>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Client Name</Label>
-                    <p className="text-gray-900 dark:text-gray-100 font-medium text-base">{viewingClient.name}</p>
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Company Type</Label>
-                    <p className="text-gray-900 dark:text-gray-100 font-medium text-base">{viewingClient.company}</p>
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Tax ID</Label>
-                    <p className="text-gray-700 dark:text-gray-300 font-mono text-base">{viewingClient.taxId || "Not specified"}</p>
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Client ID</Label>
-                    <p className="text-gray-700 dark:text-gray-300 font-mono text-base">{viewingClient.id}</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Contact Information */}
-              <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-6">
-                <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center space-x-2">
-                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                  <span>Contact Information</span>
-                </h3>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Email</Label>
-                    <p className="text-gray-900 dark:text-gray-100 font-medium text-base">{viewingClient.email}</p>
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Phone</Label>
-                    <p className="text-gray-900 dark:text-gray-100 font-medium text-base">{viewingClient.phone}</p>
-                  </div>
-                  <div className="space-y-2 lg:col-span-2">
-                    <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Address</Label>
-                    <p className="text-gray-700 dark:text-gray-300 font-medium text-base bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-600">
-                      {formatClientAddress(viewingClient)}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Financial Information */}
-              <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-6">
-                <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center space-x-2">
-                  <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                  <span>Financial Information</span>
-                </h3>
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Credit Limit</Label>
-                    <p className="text-gray-900 dark:text-gray-100 font-semibold text-lg">
-                      Rs {viewingClient.creditLimit?.toLocaleString() || "0"}
-                    </p>
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Current Balance</Label>
-                    <p className="text-gray-900 dark:text-gray-100 font-semibold text-lg">
-                      Rs {viewingClient.currentBalance?.toLocaleString() || "0"}
-                    </p>
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Total Spent</Label>
-                    <p className="font-semibold text-lg text-green-600 dark:text-green-400">
-                      Rs {getClientTotalSpent(viewingClient.name).toLocaleString()}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Order Information */}
-              <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-6">
-                <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center space-x-2">
-                  <div className="w-2 h-2 bg-indigo-500 rounded-full"></div>
-                  <span>Order Information</span>
-                </h3>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Total Orders</Label>
-                    <p className="text-gray-900 dark:text-gray-100 font-semibold text-lg">
-                      {getClientOrderCount(viewingClient.name)} orders
-                    </p>
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Last Order</Label>
-                    <p className="text-gray-700 dark:text-gray-300 font-medium text-base">
-                      {getClientLastOrder(viewingClient.name) ? formatNepaliDateForTable(getClientLastOrder(viewingClient.name)!) : 'No orders yet'}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Timestamps */}
-              <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-6">
-                <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center space-x-2">
-                  <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-                  <span>Timestamps</span>
-                </h3>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Created</Label>
-                    <p className="text-gray-700 dark:text-gray-300 font-medium text-base">
-                      {formatNepaliDateForTable(viewingClient.createdAt)}
-                    </p>
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Last Updated</Label>
-                    <p className="text-gray-700 dark:text-gray-300 font-medium text-base">
-                      {formatNepaliDateForTable(viewingClient.updatedAt || viewingClient.createdAt)}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Status */}
-              <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-6">
-                <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center space-x-2">
-                  <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                  <span>Status</span>
-                </h3>
-                <div className="flex items-center space-x-6">
-                  <div className="flex items-center space-x-3">
-                    <div className={`w-4 h-4 rounded-full ${viewingClient.isActive !== false ? "bg-green-500" : "bg-red-500"}`}></div>
-                    <span className="text-gray-700 dark:text-gray-300 font-medium text-base">
-                      {viewingClient.isActive !== false ? "Active" : "Inactive"}
-                    </span>
-                  </div>
-                  <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400 px-4 py-2 text-sm font-medium">
-                    Active Client
-                  </Badge>
-                </div>
-              </div>
-
-              {/* Notes */}
-              {viewingClient.notes && (
-                <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-6">
-                  <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center space-x-2">
-                    <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
-                    <span>Notes</span>
-                  </h3>
-                  <div className="space-y-2">
-                    <p className="text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-600 leading-relaxed text-base">
-                      {viewingClient.notes}
-                    </p>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200 dark:border-gray-700">
-            <Button
-              type="button"
-              variant="neutralOutline"
-              onClick={() => setIsViewDialogOpen(false)}
-              className="px-6 py-2"
-            >
-              Close
-            </Button>
-            <Button
-              type="button"
-              onClick={() => {
-                setIsViewDialogOpen(false)
-                handleEdit(viewingClient)
-              }}
-              className="px-6 py-2"
-            >
-              Edit Client
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <ViewClientDialog
+        open={isViewDialogOpen}
+        onOpenChange={setIsViewDialogOpen}
+        client={viewingClient}
+        formatClientAddress={formatClientAddress}
+        getClientTotalSpent={getClientTotalSpent}
+        getClientOrderCount={getClientOrderCount}
+        getClientLastOrder={getClientLastOrder}
+        onEdit={handleEdit}
+      />
 
       {/* Delete Client Dialog */}
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
@@ -1093,195 +622,12 @@ export default function ClientsPage() {
         </CardContent>
       </Card>
 
-      {/* Client Transaction History Dialog */}
-      <Dialog open={isClientHistoryDialogOpen} onOpenChange={setIsClientHistoryDialogOpen}>
-        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto bg-white dark:bg-gray-800 border dark:border-gray-700">
-          <DialogHeader className="pb-6">
-            <DialogTitle className="text-2xl font-bold text-gray-800 dark:text-gray-200 flex items-center space-x-3">
-              <div className="p-2 bg-teal-100 dark:bg-teal-900/20 rounded-lg">
-                <svg className="h-6 w-6 text-teal-600 dark:text-teal-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                </svg>
-              </div>
-              <span>Client Transaction History</span>
-            </DialogTitle>
-            <DialogDescription className="text-gray-600 dark:text-gray-400">
-              All transactions with <span className="font-semibold text-gray-800 dark:text-gray-200">{selectedClientForHistory}</span> in {getCurrentNepaliYear()}
-            </DialogDescription>
-          </DialogHeader>
-
-          {selectedClientForHistory && (
-            <div className="space-y-6">
-              {/* Client Summary */}
-              <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-6">
-                <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center space-x-2">
-                  <div className="w-2 h-2 bg-teal-500 rounded-full"></div>
-                  <span>Client Summary</span>
-                </h3>
-                <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Client Name</Label>
-                    <p className="text-gray-900 dark:text-gray-100 font-medium text-base">{selectedClientForHistory}</p>
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Total Sales</Label>
-                    <p className="text-gray-900 dark:text-gray-100 font-semibold text-lg">
-                      {sales.filter(s => s.client === selectedClientForHistory && getNepaliYear(s.saleDate) === getCurrentNepaliYear()).length} transactions
-                    </p>
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">
-                      Total Quantity
-                    </Label>
-
-                    <p className="text-gray-900 dark:text-gray-100 font-semibold text-lg">
-                      {sales
-                        .filter(
-                          (s) =>
-                            s.client === selectedClientForHistory &&
-                            getNepaliYear(s.saleDate) === getCurrentNepaliYear()
-                        )
-                        .reduce(
-                          (sum, s) =>
-                            sum +
-                            (s.items?.reduce(
-                              (itemSum, item) =>
-                                itemSum + (item.quantitySold || 0),
-                              0
-                            ) || 0),
-                          0
-                        )}{" "}
-                      units
-                    </p>
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">
-                      Total Value
-                    </Label>
-
-                    <p className="font-semibold text-lg text-teal-600 dark:text-teal-400">
-                      Rs{" "}
-                      {sales
-                        .filter(
-                          (s) =>
-                            s.client === selectedClientForHistory &&
-                            getNepaliYear(s.saleDate) === getCurrentNepaliYear()
-                        )
-                        .reduce(
-                          (sum, s) =>
-                            sum +
-                            (s.items?.reduce(
-                              (itemSum, item) =>
-                                itemSum +
-                                (item.quantitySold || 0) *
-                                (item.salePrice || 0),
-                              0
-                            ) || 0),
-                          0
-                        )
-                        .toLocaleString()}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Sales Transactions */}
-              <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-6">
-                <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center space-x-2">
-                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                  <span>Sales Transactions ({sales.filter(s => s.client === selectedClientForHistory && getNepaliYear(s.saleDate) === getCurrentNepaliYear()).length})</span>
-                </h3>
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="bg-gray-100 dark:bg-gray-700">
-                        <TableHead className="font-semibold text-gray-700 dark:text-gray-300">Date</TableHead>
-                        <TableHead className="font-semibold text-gray-700 dark:text-gray-300">Product</TableHead>
-                        <TableHead className="font-semibold text-gray-700 dark:text-gray-300">Quantity</TableHead>
-                        <TableHead className="font-semibold text-gray-700 dark:text-gray-300">Unit Price</TableHead>
-                        <TableHead className="font-semibold text-gray-700 dark:text-gray-300">Total</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {(() => {
-                        const currentYear = getCurrentNepaliYear()
-                        const clientSales = sales.filter(sale =>
-                          sale.client === selectedClientForHistory &&
-                          getNepaliYear(sale.saleDate) === currentYear
-                        ).sort((a, b) => new Date(b.saleDate).getTime() - new Date(a.saleDate).getTime())
-
-                        return clientSales.length > 0 ? (
-                          clientSales.map((sale) => (
-                            <TableRow key={sale.id} className="hover:bg-gray-100 dark:hover:bg-gray-700/50">
-                              <TableCell className="text-gray-700 dark:text-gray-300">
-                                {formatNepaliDateForTable(sale.saleDate)}
-                              </TableCell>
-                              <TableCell className="font-medium text-gray-900 dark:text-gray-100">
-                                {sale.items
-                                  ?.map((i) => toTitleCase(i.productName || ""))
-                                  .filter(Boolean)
-                                  .join(", ")}
-                              </TableCell>
-
-                              <TableCell className="text-gray-700 dark:text-gray-300">
-                                {sale.items?.reduce(
-                                  (sum, i) => sum + (i.quantitySold || 0),
-                                  0
-                                )}{" "}
-                                units
-                              </TableCell>
-
-                              <TableCell className="text-gray-700 dark:text-gray-300">
-                                Rs{" "}
-                                {(
-                                  sale.items?.reduce(
-                                    (sum, i) => sum + (i.salePrice || 0),
-                                    0
-                                  ) || 0
-                                ).toLocaleString()}
-                              </TableCell>
-
-                              <TableCell className="font-semibold text-green-600 dark:text-green-400">
-                                Rs{" "}
-                                {(
-                                  sale.items?.reduce(
-                                    (sum, i) =>
-                                      sum +
-                                      (i.quantitySold || 0) *
-                                      (i.salePrice || 0),
-                                    0
-                                  ) || 0
-                                ).toLocaleString()}
-                              </TableCell>
-                            </TableRow>
-                          ))
-                        ) : (
-                          <TableRow>
-                            <TableCell colSpan={5} className="text-center py-8 text-gray-500 dark:text-gray-400">
-                              No sales transactions found for this client in {currentYear}
-                            </TableCell>
-                          </TableRow>
-                        )
-                      })()}
-                    </TableBody>
-                  </Table>
-                </div>
-              </div>
-            </div>
-          )}
-
-          <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200 dark:border-gray-700">
-            <Button
-              type="button"
-              variant="neutralOutline"
-              onClick={() => setIsClientHistoryDialogOpen(false)}
-              className="px-6 py-2"
-            >
-              Close
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <ClientTransactionHistoryDialog
+        open={isClientHistoryDialogOpen}
+        onOpenChange={setIsClientHistoryDialogOpen}
+        clientName={selectedClientForHistory}
+        sales={sales}
+      />
     </div>
   )
 }

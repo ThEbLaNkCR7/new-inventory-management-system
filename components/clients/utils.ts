@@ -6,7 +6,7 @@ export type ClientFormData = {
   customCompany?: string
   address?: string
   status?: string
-  paymentStatus?: string
+  paymentStatus?: "Received" | "Pending"
 }
 
 export function validateClientFormData(formData: ClientFormData): Record<string, string> {
