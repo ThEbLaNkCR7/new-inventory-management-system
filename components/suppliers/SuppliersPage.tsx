@@ -3,16 +3,13 @@
 import type React from "react"
 
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -31,15 +28,14 @@ import { useApproval } from "@/contexts/ApprovalContext"
 import { useAuth } from "@/contexts/AuthContext"
 import { usePersistentForm } from "@/contexts/FormPersistenceContext"
 import { useInventory } from "@/contexts/InventoryContext"
-import { cn, formatNepaliDateForTable, getCurrentNepaliYear, getNepaliYear, toTitleCase } from "@/lib/utils"
-import { Building, CheckCircle, Clock, Edit, Eye, Loader2, Mail, Phone, Plus, Search, Trash2 } from "lucide-react"
+import { formatNepaliDateForTable, getCurrentNepaliYear, getNepaliYear, toTitleCase } from "@/lib/utils"
+import { CheckCircle, Clock, Edit, Eye, Loader2, Mail, Phone, Search, Trash2 } from "lucide-react"
 import { useEffect, useState } from "react"
+import AddSupplierPageDialog from "./AddSupplierPageDialog"
+import SupplierTransactionHistoryDialog from "./SupplierTransactionHistoryDialog"
+import UpdateSupplierDialog from "./UpdateSupplierDialog"
+import ViewSupplierDialog from "./ViewSupplierDialog"
 import { validateSupplierFormData } from "./utils"
-
-const inputClass =
-  "border-2 focus:border-slate-500 transition-colors dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
-const selectTriggerClass = inputClass
-const errorTextClass = "text-sm text-red-600 dark:text-red-400"
 
 export default function SuppliersPage() {
   const {
@@ -100,9 +96,6 @@ export default function SuppliersPage() {
   const fieldErrorClass = (field: string) =>
     fieldErrors[field] ? "border-red-500 focus:border-red-500 dark:border-red-500" : ""
 
-  const renderFieldError = (field: string) =>
-    fieldErrors[field] ? <p className={errorTextClass}>{fieldErrors[field]}</p> : null
-
   const { formData, updateForm: persistFormUpdate, resetForm } = usePersistentForm('suppliers-form', initialFormData)
 
   const updateForm = (updates: Partial<typeof initialFormData>) => {
@@ -147,6 +140,7 @@ export default function SuppliersPage() {
 
   const currentYear = getCurrentNepaliYear()
   const years = Array.from({ length: 10 }, (_, i) => currentYear - i)
+  const companyOptions = [...new Set(suppliers.map(supplier => supplier.company))]
 
   const clearForm = () => {
     resetForm()
@@ -401,177 +395,28 @@ export default function SuppliersPage() {
           <p className="text-gray-600 dark:text-gray-300">Manage supplier relationships and procurement</p>
         </div>
         <div className="absolute top-6 right-0 flex space-x-3">
-          <Dialog open={isAddDialogOpen} onOpenChange={(open) => {
-            setIsAddDialogOpen(open)
-            if (!open) clearFieldErrors()
-          }}>
-            <DialogTrigger asChild>
-              <Button
-                onClick={() => { resetForm(); setIsAddDialogOpen(true); }}
-                variant="neutral"
-                className="shadow-lg hover:shadow-xl transition-all"
-              >
-                <Plus className="h-4 w-4" />
-                Add Supplier
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-md">
-              <DialogHeader>
-                <DialogTitle>Add New Supplier</DialogTitle>
-                <DialogDescription>
-                  Enter supplier information to add to your database
-                  {!isAdmin && (
-                    <div className="mt-2 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
-                      <div className="flex items-center text-amber-800 dark:text-amber-200">
-                        <Clock className="h-4 w-4 mr-2" />
-                        <span className="text-sm font-medium">Changes require admin approval</span>
-                      </div>
-                    </div>
-                  )}
-                </DialogDescription>
-              </DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Full Name *</Label>
-                  <Input
-                    id="name"
-                    value={formData.name}
-                    onChange={(e) => updateForm({ name: e.target.value })}
-                    className={cn(inputClass, fieldErrorClass("name"))}
-                  />
-                  {renderFieldError("name")}
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email *</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => updateForm({ email: e.target.value })}
-                    className={cn(inputClass, fieldErrorClass("email"))}
-                  />
-                  {renderFieldError("email")}
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="phone">Phone *</Label>
-                  <Input
-                    id="phone"
-                    value={formData.phone}
-                    onChange={(e) => updateForm({ phone: e.target.value })}
-                    className={cn(inputClass, fieldErrorClass("phone"))}
-                  />
-                  {renderFieldError("phone")}
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="company">Company Type *</Label>
-                  <div className="space-y-2">
-                    <Select
-                      value={formData.company}
-                      onValueChange={(value) => updateForm({ company: value })}
-                    >
-                      <SelectTrigger className={cn(selectTriggerClass, fieldErrorClass("company"))}>
-                        <SelectValue placeholder="Select company type or enter custom type" />
-                      </SelectTrigger>
-                      <SelectContent className="max-h-60">
-                        <SelectItem value="custom">+ Add Custom Company Type</SelectItem>
-                        {[...new Set(suppliers.map(supplier => supplier.company))].map((company) => (
-                          <SelectItem key={company} value={company}>
-                            {company}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {renderFieldError("company")}
-                    {formData.company === "custom" && (
-                      <Input
-                        placeholder="Enter custom company type"
-                        value={formData.customCompany || ""}
-                        onChange={(e) => updateForm({ customCompany: e.target.value })}
-                        className={cn("mt-2", inputClass, fieldErrorClass("customCompany"))}
-                      />
-                    )}
-                    {formData.company === "custom" && renderFieldError("customCompany")}
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="address">Address</Label>
-                  <Input
-                    id="address"
-                    value={formData.address}
-                    onChange={(e) => updateForm({ address: e.target.value })}
-                    placeholder="Enter full address"
-                    className={inputClass}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="status">Status *</Label>
-                  <Select value={formData.status} onValueChange={(value) => updateForm({ status: value })}>
-                    <SelectTrigger className={cn(selectTriggerClass, fieldErrorClass("status"))}>
-                      <SelectValue placeholder="Select status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Active">Active</SelectItem>
-                      <SelectItem value="Inactive">Inactive</SelectItem>
-                      <SelectItem value="Pending">Pending</SelectItem>
-                      <SelectItem value="Suspended">Suspended</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  {renderFieldError("status")}
-                </div>
-                <div className="flex justify-end space-x-2">
-                  <Button type="button" variant="neutralOutline" onClick={clearForm}>
-                    Cancel
-                  </Button>
-                  {isAdmin ? (
-                    <Button type="submit">
-                      Add Supplier
-                    </Button>
-                  ) : (
-                    <Button
-                      type="button"
-                      onClick={() => {
-                        if (!validateForm()) return
-                        setShowApprovalDialog(true)
-                      }}
-                    >
-                      Submit for Approval
-                    </Button>
-                  )}
-                </div>
-              </form>
-            </DialogContent>
-          </Dialog>
-
-          {/* Approval Reason Dialog */}
-          <Dialog open={showApprovalDialog} onOpenChange={setShowApprovalDialog}>
-            <DialogContent className="max-w-md">
-              <DialogHeader>
-                <DialogTitle>Submit for Approval</DialogTitle>
-                <DialogDescription>Please provide a reason for this supplier request</DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="reason">Reason for Request</Label>
-                  <Textarea
-                    id="reason"
-                    value={approvalReason}
-                    onChange={(e) => setApprovalReason(e.target.value)}
-                    placeholder="Explain why this supplier should be added..."
-                    rows={4}
-                    required
-                  />
-                </div>
-                <div className="flex justify-end space-x-2">
-                  <Button variant="neutralOutline" onClick={() => setShowApprovalDialog(false)}>
-                    Cancel
-                  </Button>
-                  <Button onClick={submitForApproval} disabled={!approvalReason.trim()}>
-                    Submit Request
-                  </Button>
-                </div>
-              </div>
-            </DialogContent>
-          </Dialog>
+          <AddSupplierPageDialog
+            open={isAddDialogOpen}
+            onOpenChange={(open) => {
+              setIsAddDialogOpen(open)
+              if (!open) clearFieldErrors()
+            }}
+            formData={formData}
+            updateForm={updateForm}
+            companyOptions={companyOptions}
+            isAdmin={isAdmin}
+            fieldErrors={fieldErrors}
+            fieldErrorClass={fieldErrorClass}
+            onSubmit={handleSubmit}
+            onCancel={clearForm}
+            onResetForm={resetForm}
+            validateForm={validateForm}
+            showApprovalDialog={showApprovalDialog}
+            onShowApprovalDialogChange={setShowApprovalDialog}
+            approvalReason={approvalReason}
+            onApprovalReasonChange={setApprovalReason}
+            onSubmitForApproval={submitForApproval}
+          />
         </div>
       </div>
 
@@ -729,319 +574,39 @@ export default function SuppliersPage() {
         </CardContent>
       </Card>
 
-      {/* View Supplier Dialog */}
-      <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-white dark:bg-gray-800 border dark:border-gray-700">
-          <DialogHeader className="pb-6">
-            <DialogTitle className="text-2xl font-bold text-gray-800 dark:text-gray-200 flex items-center space-x-3">
-              <div className="p-2 bg-blue-100 dark:bg-blue-900/20 rounded-lg">
-                <Eye className="h-6 w-6 text-blue-600 dark:text-blue-400" />
-              </div>
-              <span>Supplier Details</span>
-            </DialogTitle>
-            <DialogDescription className="text-gray-600 dark:text-gray-400">
-              Complete information about the selected supplier
-            </DialogDescription>
-          </DialogHeader>
+      <ViewSupplierDialog
+        open={isViewDialogOpen}
+        onOpenChange={setIsViewDialogOpen}
+        supplier={viewingSupplier}
+        getSupplierOrderCount={getSupplierOrderCount}
+        getSupplierTotalSpent={getSupplierTotalSpent}
+        getSupplierLastOrder={getSupplierLastOrder}
+        onEdit={handleEdit}
+      />
 
-          {viewingSupplier && (
-            <div className="space-y-6">
-              {/* Basic Information */}
-              <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-6">
-                <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center space-x-2">
-                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                  <span>Basic Information</span>
-                </h3>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Contact Name</Label>
-                    <p className="text-gray-900 dark:text-gray-100 font-medium text-base">{viewingSupplier.name}</p>
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Company Type</Label>
-                    <p className="text-gray-900 dark:text-gray-100 font-medium text-base">{viewingSupplier.company}</p>
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Status</Label>
-                    <Badge
-                      variant="secondary"
-                      className={`px-3 py-1 text-sm font-medium ${viewingSupplier.status === 'Active' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-400' :
-                        viewingSupplier.status === 'Inactive' ? 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-400' :
-                          viewingSupplier.status === 'Pending' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-400' :
-                            'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-400'
-                        }`}
-                    >
-                      {viewingSupplier.status || 'Active'}
-                    </Badge>
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Supplier ID</Label>
-                    <p className="text-gray-700 dark:text-gray-300 font-mono text-base">{viewingSupplier.id}</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Contact Information */}
-              <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-6">
-                <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center space-x-2">
-                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                  <span>Contact Information</span>
-                </h3>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Email</Label>
-                    <p className="text-gray-900 dark:text-gray-100 font-medium text-base">{viewingSupplier.email}</p>
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Phone</Label>
-                    <p className="text-gray-900 dark:text-gray-100 font-medium text-base">{viewingSupplier.phone}</p>
-                  </div>
-                  <div className="space-y-2 lg:col-span-2">
-                    <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Address</Label>
-                    <p className="text-gray-700 dark:text-gray-300 font-medium text-base bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-600">
-                      {viewingSupplier.address || "Address not specified"}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Business Information */}
-              <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-6">
-                <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center space-x-2">
-                  <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                  <span>Business Information</span>
-                </h3>
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Total Orders</Label>
-                    <p className="text-gray-900 dark:text-gray-100 font-semibold text-lg">
-                      {getSupplierOrderCount(viewingSupplier.name)} orders
-                    </p>
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Total Spent</Label>
-                    <p className="font-semibold text-lg text-blue-600 dark:text-blue-400">
-                      Rs {getSupplierTotalSpent(viewingSupplier.name).toLocaleString()}
-                    </p>
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Last Order</Label>
-                    <p className="text-gray-700 dark:text-gray-300 font-medium text-base">
-                      {getSupplierLastOrder(viewingSupplier.name) ? formatNepaliDateForTable(getSupplierLastOrder(viewingSupplier.name)!) : 'No orders yet'}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Timestamps */}
-              <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-6">
-                <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center space-x-2">
-                  <div className="w-2 h-2 bg-indigo-500 rounded-full"></div>
-                  <span>Timestamps</span>
-                </h3>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Created</Label>
-                    <p className="text-gray-700 dark:text-gray-300 font-medium text-base">
-                      {formatNepaliDateForTable(viewingSupplier.createdAt)}
-                    </p>
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Last Updated</Label>
-                    <p className="text-gray-700 dark:text-gray-300 font-medium text-base">
-                      {formatNepaliDateForTable(viewingSupplier.updatedAt || viewingSupplier.createdAt)}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Status */}
-              <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-6">
-                <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center space-x-2">
-                  <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                  <span>Status</span>
-                </h3>
-                <div className="flex items-center space-x-6">
-                  <div className="flex items-center space-x-3">
-                    <div className={`w-4 h-4 rounded-full ${viewingSupplier.isActive !== false ? "bg-green-500" : "bg-red-500"}`}></div>
-                    <span className="text-gray-700 dark:text-gray-300 font-medium text-base">
-                      {viewingSupplier.isActive !== false ? "Active" : "Inactive"}
-                    </span>
-                  </div>
-                  <Badge variant="secondary" className="bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400 px-4 py-2 text-sm font-medium">
-                    Verified Supplier
-                  </Badge>
-                </div>
-              </div>
-            </div>
-          )}
-
-          <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200 dark:border-gray-700">
-            <Button
-              type="button"
-              variant="neutralOutline"
-              onClick={() => setIsViewDialogOpen(false)}
-              className="px-6 py-2"
-            >
-              Close
-            </Button>
-            <Button
-              type="button"
-              onClick={() => {
-                setIsViewDialogOpen(false)
-                handleEdit(viewingSupplier)
-              }}
-              className="px-6 py-2"
-            >
-              Edit Supplier
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Edit Supplier Dialog */}
-      <Dialog open={isEditDialogOpen} onOpenChange={(open) => {
-        setIsEditDialogOpen(open)
-        if (!open) {
-          clearFieldErrors()
-          setEditingSupplier(null)
-        }
-      }}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Edit Supplier</DialogTitle>
-            <DialogDescription>
-              Update supplier information
-              {!isAdmin && (
-                <div className="mt-2 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
-                  <div className="flex items-center text-amber-800 dark:text-amber-200">
-                    <Clock className="h-4 w-4 mr-2" />
-                    <span className="text-sm font-medium">Changes require admin approval</span>
-                  </div>
-                </div>
-              )}
-            </DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleEditSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="edit-name">Contact Name *</Label>
-              <Input
-                id="edit-name"
-                value={formData.name}
-                onChange={(e) => updateForm({ name: e.target.value })}
-                className={cn(inputClass, fieldErrorClass("name"))}
-              />
-              {renderFieldError("name")}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-email">Email *</Label>
-              <Input
-                id="edit-email"
-                type="email"
-                value={formData.email}
-                onChange={(e) => updateForm({ email: e.target.value })}
-                className={cn(inputClass, fieldErrorClass("email"))}
-              />
-              {renderFieldError("email")}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-phone">Phone *</Label>
-              <Input
-                id="edit-phone"
-                value={formData.phone}
-                onChange={(e) => updateForm({ phone: e.target.value })}
-                className={cn(inputClass, fieldErrorClass("phone"))}
-              />
-              {renderFieldError("phone")}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-company">Company Type *</Label>
-              <div className="space-y-2">
-                <Select
-                  value={formData.company}
-                  onValueChange={(value) => updateForm({ company: value })}
-                >
-                  <SelectTrigger className={cn(selectTriggerClass, fieldErrorClass("company"))}>
-                    <SelectValue placeholder="Select company type or enter custom type" />
-                  </SelectTrigger>
-                  <SelectContent className="max-h-60">
-                    <SelectItem value="custom">+ Add Custom Company Type</SelectItem>
-                    {[...new Set(suppliers.map(supplier => supplier.company))].map((company) => (
-                      <SelectItem key={company} value={company}>
-                        {company}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {renderFieldError("company")}
-                {formData.company === "custom" && (
-                  <Input
-                    placeholder="Enter custom company type"
-                    value={formData.customCompany || ""}
-                    onChange={(e) => updateForm({ customCompany: e.target.value })}
-                    className={cn("mt-2", inputClass, fieldErrorClass("customCompany"))}
-                  />
-                )}
-                {formData.company === "custom" && renderFieldError("customCompany")}
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-address">Address</Label>
-              <Input
-                id="edit-address"
-                value={formData.address}
-                onChange={(e) => updateForm({ address: e.target.value })}
-                className={inputClass}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-status">Status *</Label>
-              <Select value={formData.status} onValueChange={(value) => updateForm({ status: value })}>
-                <SelectTrigger className={cn(selectTriggerClass, fieldErrorClass("status"))}>
-                  <SelectValue placeholder="Select status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Active">Active</SelectItem>
-                  <SelectItem value="Inactive">Inactive</SelectItem>
-                  <SelectItem value="Pending">Pending</SelectItem>
-                  <SelectItem value="Suspended">Suspended</SelectItem>
-                </SelectContent>
-              </Select>
-              {renderFieldError("status")}
-            </div>
-            {!isAdmin && (
-              <div className="space-y-2">
-                <Label htmlFor="edit-reason">Reason for Changes *</Label>
-                <Textarea
-                  id="edit-reason"
-                  value={approvalReason}
-                  onChange={(e) => setApprovalReason(e.target.value)}
-                  placeholder="Explain why you're making these changes..."
-                  rows={3}
-                  required
-                />
-              </div>
-            )}
-            <div className="flex justify-end space-x-2">
-              <Button type="button" variant="neutralOutline" onClick={() => {
-                clearForm()
-                setIsEditDialogOpen(false)
-              }}>
-                Cancel
-              </Button>
-              {isAdmin ? (
-                <Button type="submit">
-                  Update Supplier
-                </Button>
-              ) : (
-                <Button type="submit" disabled={!approvalReason.trim()}>
-                  Submit for Approval
-                </Button>
-              )}
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
+      <UpdateSupplierDialog
+        open={isEditDialogOpen}
+        onOpenChange={(open) => {
+          setIsEditDialogOpen(open)
+          if (!open) {
+            clearFieldErrors()
+            setEditingSupplier(null)
+          }
+        }}
+        formData={formData}
+        updateForm={updateForm}
+        companyOptions={companyOptions}
+        isAdmin={isAdmin}
+        approvalReason={approvalReason}
+        onApprovalReasonChange={setApprovalReason}
+        fieldErrors={fieldErrors}
+        fieldErrorClass={fieldErrorClass}
+        onSubmit={handleEditSubmit}
+        onCancel={() => {
+          clearForm()
+          setIsEditDialogOpen(false)
+        }}
+      />
 
       {/* Delete Supplier Dialog */}
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
@@ -1117,182 +682,12 @@ export default function SuppliersPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Supplier Transaction History Dialog */}
-      <Dialog open={isSupplierHistoryDialogOpen} onOpenChange={setIsSupplierHistoryDialogOpen}>
-        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto bg-white dark:bg-gray-800 border dark:border-gray-700">
-          <DialogHeader className="pb-6">
-            <DialogTitle className="text-2xl font-bold text-gray-800 dark:text-gray-200 flex items-center space-x-3">
-              <div className="p-2 bg-orange-100 dark:bg-orange-900/20 rounded-lg">
-                <svg className="h-6 w-6 text-orange-600 dark:text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                </svg>
-              </div>
-              <span>Supplier Transaction History</span>
-            </DialogTitle>
-            <DialogDescription className="text-gray-600 dark:text-gray-400">
-              All transactions with <span className="font-semibold text-gray-800 dark:text-gray-200">{selectedSupplierForHistory}</span> in {getCurrentNepaliYear()}
-            </DialogDescription>
-          </DialogHeader>
-
-          {selectedSupplierForHistory && (
-            <div className="space-y-6">
-              {/* Supplier Summary */}
-              <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-6">
-                <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center space-x-2">
-                  <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-                  <span>Supplier Summary</span>
-                </h3>
-                <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Supplier Name</Label>
-                    <p className="text-gray-900 dark:text-gray-100 font-medium text-base">{selectedSupplierForHistory}</p>
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Total Purchases</Label>
-                    <p className="text-gray-900 dark:text-gray-100 font-semibold text-lg">
-                      {purchases.filter(p => p.supplier === selectedSupplierForHistory && getNepaliYear(p.purchaseDate) === getCurrentNepaliYear()).length} transactions
-                    </p>
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Total Quantity</Label>
-                    <p className="text-gray-900 dark:text-gray-100 font-semibold text-lg">
-                      {purchases
-                        .filter(
-                          (p) =>
-                            p.supplier === selectedSupplierForHistory &&
-                            getNepaliYear(p.purchaseDate) === getCurrentNepaliYear()
-                        )
-                        .reduce(
-                          (sum, p) =>
-                            sum +
-                            (p.items?.reduce(
-                              (itemSum, item) =>
-                                itemSum + (item.quantityPurchased || 0),
-                              0
-                            ) || 0),
-                          0
-                        )} units
-                    </p>
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Total Value</Label>
-                    <p className="text-gray-900 dark:text-gray-100 font-semibold text-lg">
-                      Rs {purchases
-                        .filter(
-                          (p) =>
-                            p.supplier === selectedSupplierForHistory &&
-                            getNepaliYear(p.purchaseDate) === getCurrentNepaliYear()
-                        )
-                        .reduce(
-                          (sum, p) =>
-                            sum +
-                            (p.items?.reduce(
-                              (itemSum, item) =>
-                                itemSum + (item.quantityPurchased || 0) * (item.purchasePrice || 0),
-                              0
-                            ) || 0),
-                          0
-                        )
-                        .toLocaleString()}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Purchase Transactions */}
-              <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-6">
-                <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center space-x-2">
-                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                  <span>Purchase Transactions ({purchases.filter(p => p.supplier === selectedSupplierForHistory && getNepaliYear(p.purchaseDate) === getCurrentNepaliYear()).length})</span>
-                </h3>
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="bg-gray-100 dark:bg-gray-700">
-                        <TableHead className="font-semibold text-gray-700 dark:text-gray-300">Date</TableHead>
-                        <TableHead className="font-semibold text-gray-700 dark:text-gray-300">Product</TableHead>
-                        <TableHead className="font-semibold text-gray-700 dark:text-gray-300">Quantity</TableHead>
-                        <TableHead className="font-semibold text-gray-700 dark:text-gray-300">Unit Price</TableHead>
-                        <TableHead className="font-semibold text-gray-700 dark:text-gray-300">Total</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {(() => {
-                        const currentYear = getCurrentNepaliYear()
-                        const supplierPurchases = purchases.filter(purchase =>
-                          purchase.supplier === selectedSupplierForHistory &&
-                          getNepaliYear(purchase.purchaseDate) === currentYear
-                        ).sort((a, b) => new Date(b.purchaseDate).getTime() - new Date(a.purchaseDate).getTime())
-
-                        return supplierPurchases.length > 0 ? (
-                          supplierPurchases.map((purchase) => (
-                            <TableRow key={purchase.id} className="hover:bg-gray-100 dark:hover:bg-gray-700/50">
-                              <TableCell className="text-gray-700 dark:text-gray-300">
-                                {formatNepaliDateForTable(purchase.purchaseDate)}
-                              </TableCell>
-                              <TableCell className="font-medium text-gray-900 dark:text-gray-100">
-                                {purchase.items
-                                  ?.map((i) => toTitleCase(i.productName || ""))
-                                  .filter(Boolean)
-                                  .join(", ")}
-                              </TableCell>
-                              <TableCell className="text-gray-700 dark:text-gray-300">
-                                {purchase.items?.reduce(
-                                  (sum, i) => sum + (i.quantityPurchased || 0),
-                                  0
-                                )}{" "}
-                                units
-                              </TableCell>
-                              <TableCell className="text-gray-700 dark:text-gray-300">
-                                Rs{" "}
-                                {(
-                                  purchase.items?.reduce(
-                                    (sum, i) => sum + (i.purchasePrice || 0),
-                                    0
-                                  ) || 0
-                                ).toLocaleString()}
-                              </TableCell>
-                              <TableCell className="font-semibold text-blue-600 dark:text-blue-400">
-                                Rs{" "}
-                                {(
-                                  purchase.items?.reduce(
-                                    (sum, i) =>
-                                      sum +
-                                      (i.quantityPurchased || 0) *
-                                      (i.purchasePrice || 0),
-                                    0
-                                  ) || 0
-                                ).toLocaleString()}
-                              </TableCell>
-                            </TableRow>
-                          ))
-                        ) : (
-                          <TableRow>
-                            <TableCell colSpan={5} className="text-center py-8 text-gray-500 dark:text-gray-400">
-                              No purchase transactions found for this supplier in {currentYear}
-                            </TableCell>
-                          </TableRow>
-                        )
-                      })()}
-                    </TableBody>
-                  </Table>
-                </div>
-              </div>
-            </div>
-          )}
-
-          <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200 dark:border-gray-700">
-            <Button
-              type="button"
-              variant="neutralOutline"
-              onClick={() => setIsSupplierHistoryDialogOpen(false)}
-              className="px-6 py-2"
-            >
-              Close
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <SupplierTransactionHistoryDialog
+        open={isSupplierHistoryDialogOpen}
+        onOpenChange={setIsSupplierHistoryDialogOpen}
+        supplierName={selectedSupplierForHistory}
+        purchases={purchases}
+      />
     </div>
   )
 }
