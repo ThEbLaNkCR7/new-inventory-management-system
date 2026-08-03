@@ -32,6 +32,8 @@ import {
   XCircle
 } from "lucide-react"
 import { useMemo, useState } from "react"
+import DataPagination from "@/components/ui/data-pagination"
+import { usePagination } from "@/hooks/usePagination"
 
 const APPROVAL_TYPES = ["product", "sale", "purchase", "client", "supplier"] as const
 type ApprovalType = (typeof APPROVAL_TYPES)[number]
@@ -121,6 +123,10 @@ export default function ApprovalsPage() {
 
   const pendingList = getPendingChanges()
   const historyList = getChangeHistory()
+
+  const historyPagination = usePagination(historyList, {
+    resetKey: historyList.length,
+  })
 
   const pendingByType = useMemo(() => {
     const grouped: Record<ApprovalType | "other", any[]> = {
@@ -534,7 +540,7 @@ export default function ApprovalsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {historyList.map((change) => (
+                {historyPagination.paginatedItems.map((change) => (
                   <TableRow key={change.id} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/40 transition-colors">
                     <TableCell>
                       <div className="flex items-center space-x-2">
@@ -576,6 +582,18 @@ export default function ApprovalsPage() {
               </TableBody>
             </Table>
           </div>
+        )}
+        {historyList.length > 0 && (
+          <DataPagination
+            page={historyPagination.page}
+            totalPages={historyPagination.totalPages}
+            totalItems={historyPagination.totalItems}
+            startItem={historyPagination.startItem}
+            endItem={historyPagination.endItem}
+            pageSize={historyPagination.pageSize}
+            onPageChange={historyPagination.setPage}
+            onPageSizeChange={historyPagination.setPageSize}
+          />
         )}
       </CardContent>
     </Card>

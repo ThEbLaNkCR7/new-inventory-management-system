@@ -20,8 +20,10 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatNepaliDateForTable, toTitleCase } from "@/lib/utils";
+import { usePagination } from "@/hooks/usePagination";
 import { Building2, Edit, Eye, Search, Trash2, TrendingUp, Users, X } from "lucide-react";
 import React from "react";
+import DataPagination from "@/components/ui/data-pagination";
 import { formatSaleTotal } from "./utils";
 
 interface SalesTableProps {
@@ -68,6 +70,20 @@ export default function SalesTable({
 
     return filteredSales;
   }, [filteredSales, activeTab]);
+
+  const {
+    page,
+    setPage,
+    pageSize,
+    setPageSize,
+    totalItems,
+    totalPages,
+    paginatedItems: paginatedSales,
+    startItem,
+    endItem,
+  } = usePagination(tabSales, {
+    resetKey: `${searchTerm}|${activeTab}`,
+  });
 
   return (
     <Card className="dark:bg-gray-800 dark:border-gray-700 overflow-hidden">
@@ -181,7 +197,7 @@ export default function SalesTable({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {tabSales.map((sale) => (
+                  {paginatedSales.map((sale) => (
                     <TableRow
                       key={sale.id}
                       className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-150"
@@ -281,7 +297,7 @@ export default function SalesTable({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {tabSales.map((sale) => (
+                  {paginatedSales.map((sale) => (
                     <TableRow
                       key={sale.id}
                       className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-150"
@@ -381,7 +397,7 @@ export default function SalesTable({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {tabSales.map((sale) => (
+                  {paginatedSales.map((sale) => (
                     <TableRow
                       key={sale.id}
                       className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-150"
@@ -451,6 +467,16 @@ export default function SalesTable({
             </div>
           </TabsContent>
         </Tabs>
+        <DataPagination
+          page={page}
+          totalPages={totalPages}
+          totalItems={totalItems}
+          startItem={startItem}
+          endItem={endItem}
+          pageSize={pageSize}
+          onPageChange={setPage}
+          onPageSizeChange={setPageSize}
+        />
       </CardContent>
     </Card>
   );

@@ -19,9 +19,11 @@ import { useAuth } from "@/contexts/AuthContext"
 import { usePersistentForm } from "@/contexts/FormPersistenceContext"
 import { useInventory } from "@/contexts/InventoryContext"
 import { formatNepaliDateForTable, toTitleCase } from "@/lib/utils"
+import { usePagination } from "@/hooks/usePagination"
 import { CheckCircle, Edit, Eye, Filter, Loader2, Mail, Phone, Search, Trash2, X } from "lucide-react"
 import { useState } from "react"
 import { Progress } from "../ui/progress"
+import DataPagination from "@/components/ui/data-pagination"
 import AddClientPageDialog from "./AddClientPageDialog"
 import ClientTransactionHistoryDialog from "./ClientTransactionHistoryDialog"
 import UpdateClientDialog from "./UpdateClientDialog"
@@ -119,6 +121,20 @@ export default function ClientsPage() {
       paymentFilter === "All" || client.paymentStatus === paymentFilter
 
     return matchesSearch && matchesPayment
+  })
+
+  const {
+    page,
+    setPage,
+    pageSize,
+    setPageSize,
+    totalItems,
+    totalPages,
+    paginatedItems: paginatedClients,
+    startItem,
+    endItem,
+  } = usePagination(filteredClients, {
+    resetKey: `${searchTerm}|${paymentFilter}`,
   })
 
   const companyOptions = [...new Set(clients.map(client => client.company))]
@@ -546,7 +562,7 @@ export default function ClientsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredClients.map((client) => (
+                {paginatedClients.map((client) => (
                   <TableRow key={client.id}>
                     <TableCell>
                       <div className="space-y-1">
@@ -635,6 +651,16 @@ export default function ClientsPage() {
               </div>
             )}
           </div>
+          <DataPagination
+            page={page}
+            totalPages={totalPages}
+            totalItems={totalItems}
+            startItem={startItem}
+            endItem={endItem}
+            pageSize={pageSize}
+            onPageChange={setPage}
+            onPageSizeChange={setPageSize}
+          />
         </CardContent>
       </Card>
 

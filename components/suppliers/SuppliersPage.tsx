@@ -29,8 +29,10 @@ import { useAuth } from "@/contexts/AuthContext"
 import { usePersistentForm } from "@/contexts/FormPersistenceContext"
 import { useInventory } from "@/contexts/InventoryContext"
 import { formatNepaliDateForTable, getCurrentNepaliYear, getNepaliYear, toTitleCase } from "@/lib/utils"
+import { usePagination } from "@/hooks/usePagination"
 import { CheckCircle, Clock, Edit, Eye, Loader2, Mail, Phone, Search, Trash2, X } from "lucide-react"
 import { useEffect, useState } from "react"
+import DataPagination from "@/components/ui/data-pagination"
 import AddSupplierPageDialog from "./AddSupplierPageDialog"
 import SupplierTransactionHistoryDialog from "./SupplierTransactionHistoryDialog"
 import UpdateSupplierDialog from "./UpdateSupplierDialog"
@@ -137,6 +139,20 @@ export default function SuppliersPage() {
     .sort((a, b) =>
       getSupplierTotalSpent(b.name) - getSupplierTotalSpent(a.name)
     )
+
+  const {
+    page,
+    setPage,
+    pageSize,
+    setPageSize,
+    totalItems,
+    totalPages,
+    paginatedItems: paginatedSuppliers,
+    startItem,
+    endItem,
+  } = usePagination(filteredSuppliers, {
+    resetKey: searchTerm,
+  })
 
   const currentYear = getCurrentNepaliYear()
   const years = Array.from({ length: 10 }, (_, i) => currentYear - i)
@@ -485,7 +501,7 @@ export default function SuppliersPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredSuppliers.map((supplier) => (
+                {paginatedSuppliers.map((supplier) => (
                   <TableRow key={supplier.id}>
                     <TableCell>
                       <div className="space-y-1">
@@ -585,6 +601,16 @@ export default function SuppliersPage() {
               </div>
             )}
           </div>
+          <DataPagination
+            page={page}
+            totalPages={totalPages}
+            totalItems={totalItems}
+            startItem={startItem}
+            endItem={endItem}
+            pageSize={pageSize}
+            onPageChange={setPage}
+            onPageSizeChange={setPageSize}
+          />
         </CardContent>
       </Card>
 

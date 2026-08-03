@@ -19,6 +19,8 @@ import {
 } from "@/components/ui/table"
 import type { Product, Purchase, Sale } from "@/contexts/InventoryContext"
 import { formatNepaliDateForTable, toTitleCase } from "@/lib/utils"
+import DataPagination from "@/components/ui/data-pagination"
+import { usePagination } from "@/hooks/usePagination"
 import {
   computeTransactionStats,
   filterPurchasesByProducts,
@@ -226,9 +228,21 @@ function TransactionTable({
   onPartyClick: (party: string, type: "client" | "supplier") => void
   totalColorClass: string
 }) {
+  const {
+    page,
+    setPage,
+    pageSize,
+    setPageSize,
+    totalItems,
+    totalPages,
+    paginatedItems,
+    startItem,
+    endItem,
+  } = usePagination(rows, { pageSize: 10, resetKey: rows.length })
+
   return (
-    <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-6">
-      <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center space-x-2">
+    <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-4">
+      <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3 flex items-center space-x-2">
         <div className={`w-2 h-2 ${dotColor} rounded-full`}></div>
         <span>{title}</span>
       </h3>
@@ -244,8 +258,8 @@ function TransactionTable({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {rows.length > 0 ? (
-              rows.map((row) => (
+            {paginatedItems.length > 0 ? (
+              paginatedItems.map((row) => (
                 <TableRow key={row.key} className="hover:bg-gray-100 dark:hover:bg-gray-700/50">
                   <TableCell className="text-gray-700 dark:text-gray-300">
                     {formatNepaliDateForTable(row.date)}
@@ -277,6 +291,17 @@ function TransactionTable({
           </TableBody>
         </Table>
       </div>
+      <DataPagination
+        page={page}
+        totalPages={totalPages}
+        totalItems={totalItems}
+        startItem={startItem}
+        endItem={endItem}
+        pageSize={pageSize}
+        onPageChange={setPage}
+        onPageSizeChange={setPageSize}
+        className="px-0"
+      />
     </div>
   )
 }

@@ -1,6 +1,10 @@
+"use client"
+
 import LedgerEntryTableHeader from "@/components/ledger-accounts/LedgerEntryTableHeader"
 import { formatRs, getAccountTypeLabel, type LedgerReport } from "@/components/ledger-accounts/utils"
+import DataPagination from "@/components/ui/data-pagination"
 import type { LedgerAccount } from "@/contexts/LedgerContext"
+import { usePagination } from "@/hooks/usePagination"
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table"
 
 interface LedgerReportContentProps {
@@ -15,6 +19,21 @@ export default function LedgerReportContent({
   dateRangeLabel,
 }: LedgerReportContentProps) {
   const columnCount = 9
+  const rows = report?.rows ?? []
+  const {
+    page,
+    setPage,
+    pageSize,
+    setPageSize,
+    totalItems,
+    totalPages,
+    paginatedItems,
+    startItem,
+    endItem,
+  } = usePagination(rows, {
+    pageSize: 15,
+    resetKey: `${account.id}|${rows.length}`,
+  })
 
   return (
     <div className="ledger-report-content border rounded-lg p-4 bg-white dark:bg-gray-900 text-sm space-y-2">
@@ -40,14 +59,14 @@ export default function LedgerReportContent({
         <Table>
           <LedgerEntryTableHeader />
           <TableBody>
-            {report?.rows.length === 0 && (
+            {rows.length === 0 && (
               <TableRow>
                 <TableCell colSpan={columnCount} className="text-center text-muted-foreground">
                   No entries found.
                 </TableCell>
               </TableRow>
             )}
-            {report?.rows.map((row) => (
+            {paginatedItems.map((row) => (
               <TableRow key={row.id}>
                 <TableCell>{row.nepaliDateDisplay}</TableCell>
                 <TableCell>{row.englishDateDisplay}</TableCell>
@@ -66,7 +85,7 @@ export default function LedgerReportContent({
                 </TableCell>
               </TableRow>
             ))}
-            {report && report.rows.length > 0 && (
+            {report && rows.length > 0 && (
               <TableRow className="font-bold border-t-2">
                 <TableCell colSpan={6}>Grand Total</TableCell>
                 <TableCell className="text-right">{formatRs(report.totalDebit)}</TableCell>
@@ -77,6 +96,18 @@ export default function LedgerReportContent({
           </TableBody>
         </Table>
       </div>
+      <DataPagination
+        page={page}
+        totalPages={totalPages}
+        totalItems={totalItems}
+        startItem={startItem}
+        endItem={endItem}
+        pageSize={pageSize}
+        onPageChange={setPage}
+        onPageSizeChange={setPageSize}
+        pageSizeOptions={[15, 25, 50]}
+        className="px-0 print:hidden"
+      />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-4 border-t summary-grid">
         <div className="rounded-lg border bg-muted/30 p-3">

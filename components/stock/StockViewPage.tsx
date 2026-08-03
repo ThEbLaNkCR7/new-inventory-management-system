@@ -13,6 +13,8 @@ import { useInventory } from "@/contexts/InventoryContext"
 import { toTitleCase } from "@/lib/utils"
 import { AlertTriangle, Clock, Filter, Package, Search, X } from "lucide-react"
 import { useState } from "react"
+import DataPagination from "@/components/ui/data-pagination"
+import { usePagination } from "@/hooks/usePagination"
 
 export default function StockViewPage() {
   const { products, sales } = useInventory()
@@ -93,6 +95,14 @@ export default function StockViewPage() {
 
   const filteredRemainingItems = filterProducts(remainingItems)
   const filteredSoldItems = filterProducts(soldItems)
+
+  const remainingPagination = usePagination(filteredRemainingItems, {
+    resetKey: `${searchTerm}|${selectedBatch}|remaining`,
+  })
+  const soldPagination = usePagination(filteredSoldItems, {
+    resetKey: `${searchTerm}|${selectedBatch}|sold`,
+  })
+
   const hasActiveFilters = searchTerm.trim() !== "" || selectedBatch !== "all"
 
   const clearFilters = () => {
@@ -261,7 +271,7 @@ export default function StockViewPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredRemainingItems.map((product: any) => (
+                    {remainingPagination.paginatedItems.map((product: any) => (
                       <TableRow key={`${product.batchId}-${product.id}`}>
                         <TableCell>
                           <div>
@@ -316,6 +326,16 @@ export default function StockViewPage() {
                   </div>
                 )}
               </div>
+              <DataPagination
+                page={remainingPagination.page}
+                totalPages={remainingPagination.totalPages}
+                totalItems={remainingPagination.totalItems}
+                startItem={remainingPagination.startItem}
+                endItem={remainingPagination.endItem}
+                pageSize={remainingPagination.pageSize}
+                onPageChange={remainingPagination.setPage}
+                onPageSizeChange={remainingPagination.setPageSize}
+              />
             </TabsContent>
 
             <TabsContent value="sold" className="mt-4">
@@ -332,7 +352,7 @@ export default function StockViewPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredSoldItems.map((product: any, index) => (
+                    {soldPagination.paginatedItems.map((product: any, index) => (
                       <TableRow key={index}>
                         <TableCell className="text-gray-700">
                           <div>
@@ -365,6 +385,16 @@ export default function StockViewPage() {
                   </div>
                 )}
               </div>
+              <DataPagination
+                page={soldPagination.page}
+                totalPages={soldPagination.totalPages}
+                totalItems={soldPagination.totalItems}
+                startItem={soldPagination.startItem}
+                endItem={soldPagination.endItem}
+                pageSize={soldPagination.pageSize}
+                onPageChange={soldPagination.setPage}
+                onPageSizeChange={soldPagination.setPageSize}
+              />
             </TabsContent>
           </Tabs>
         </CardContent>

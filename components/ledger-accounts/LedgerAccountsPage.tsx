@@ -36,6 +36,8 @@ import type { LedgerAccount, LedgerAccountType } from "@/contexts/LedgerContext"
 import { useLedger } from "@/contexts/LedgerContext"
 import { BookOpen, Eye, Filter, Loader2, Plus, Search, Trash2, X } from "lucide-react"
 import { useMemo, useState } from "react"
+import DataPagination from "@/components/ui/data-pagination"
+import { usePagination } from "@/hooks/usePagination"
 
 const inputClass =
   "border-2 focus:border-slate-500 transition-colors dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
@@ -86,6 +88,20 @@ export default function LedgerAccountsPage() {
     const matchesSearch = account.name.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesType = typeFilter === "all" || account.accountType === typeFilter
     return matchesSearch && matchesType
+  })
+
+  const {
+    page,
+    setPage,
+    pageSize,
+    setPageSize,
+    totalItems,
+    totalPages,
+    paginatedItems: paginatedAccounts,
+    startItem,
+    endItem,
+  } = usePagination(filteredAccounts, {
+    resetKey: `${searchTerm}|${typeFilter}`,
   })
 
   const clearFieldErrors = (...fields: string[]) => {
@@ -456,7 +472,7 @@ export default function LedgerAccountsPage() {
                     </TableCell>
                   </TableRow>
                 )}
-                {filteredAccounts.map((account) => (
+                {paginatedAccounts.map((account) => (
                   <TableRow key={account.id}>
                     <TableCell className="font-medium">{account.name}</TableCell>
                     <TableCell>
@@ -504,6 +520,16 @@ export default function LedgerAccountsPage() {
               </TableBody>
             </Table>
           </div>
+          <DataPagination
+            page={page}
+            totalPages={totalPages}
+            totalItems={totalItems}
+            startItem={startItem}
+            endItem={endItem}
+            pageSize={pageSize}
+            onPageChange={setPage}
+            onPageSizeChange={setPageSize}
+          />
         </CardContent>
       </Card>
 

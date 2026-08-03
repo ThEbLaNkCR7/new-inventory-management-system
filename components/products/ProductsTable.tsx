@@ -9,6 +9,8 @@ import type { Product } from "@/contexts/InventoryContext"
 import { toTitleCase } from "@/lib/utils"
 import { AlertTriangle, Edit, Eye, Filter, Package, Search, Trash2, X } from "lucide-react"
 import { useState } from "react"
+import DataPagination from "@/components/ui/data-pagination"
+import { usePagination } from "@/hooks/usePagination"
 import type { ProductGroup } from "./types"
 import { formatProductNetWeight } from "./utils"
 
@@ -41,6 +43,19 @@ export default function ProductsTable({
 }: ProductsTableProps) {
   const [selectedVariants, setSelectedVariants] = useState<Record<string, string>>({})
   const hasActiveFilters = searchTerm.trim() !== "" || categoryFilter !== "all"
+  const {
+    page,
+    setPage,
+    pageSize,
+    setPageSize,
+    totalItems,
+    totalPages,
+    paginatedItems,
+    startItem,
+    endItem,
+  } = usePagination(groupedProducts, {
+    resetKey: `${searchTerm}|${categoryFilter}`,
+  })
 
   const clearFilters = () => {
     onSearchTermChange("")
@@ -121,7 +136,7 @@ export default function ProductsTable({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {groupedProducts.map((group) => {
+              {paginatedItems.map((group) => {
                 const selectedVariantId = selectedVariants[group.name] || group.variants[0]?.id
                 const selectedVariant = group.variants.find((v) => v.id === selectedVariantId) || group.variants[0]
 
@@ -235,6 +250,16 @@ export default function ProductsTable({
             </div>
           )}
         </div>
+        <DataPagination
+          page={page}
+          totalPages={totalPages}
+          totalItems={totalItems}
+          startItem={startItem}
+          endItem={endItem}
+          pageSize={pageSize}
+          onPageChange={setPage}
+          onPageSizeChange={setPageSize}
+        />
       </CardContent>
     </Card>
   )

@@ -46,6 +46,8 @@ import {
   X,
 } from "lucide-react"
 import { useEffect, useState } from "react"
+import DataPagination from "@/components/ui/data-pagination"
+import { usePagination } from "@/hooks/usePagination"
 import { formatNepaliDateForTable } from '../../lib/nepaliDateUtils'
 import { MaterialDatePicker } from "../ui/MaterialDatePicker"
 
@@ -114,6 +116,22 @@ export default function BatchesPage() {
       batch.batchNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
       batch.supplier.toLowerCase().includes(searchTerm.toLowerCase()),
   )
+
+
+  const {
+    page,
+    setPage,
+    pageSize,
+    setPageSize,
+    totalItems,
+    totalPages,
+    paginatedItems: paginatedBatches,
+    startItem,
+    endItem,
+  } = usePagination(filteredBatches, {
+    pageSize: 9,
+    resetKey: searchTerm,
+  })
 
   const handleSupplierChange = (value: string) => {
     if (value === "__new__") {
@@ -904,7 +922,7 @@ export default function BatchesPage() {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredBatches.map((batch) => (
+              {paginatedBatches.map((batch) => (
                 <Card
                   key={batch.id}
                   onClick={() => {
@@ -1003,6 +1021,17 @@ export default function BatchesPage() {
               ))}
             </div>
           )}
+          <DataPagination
+            page={page}
+            totalPages={totalPages}
+            totalItems={totalItems}
+            startItem={startItem}
+            endItem={endItem}
+            pageSize={pageSize}
+            onPageChange={setPage}
+            onPageSizeChange={setPageSize}
+            pageSizeOptions={[9, 18, 27]}
+          />
         </CardContent>
       </Card>
 

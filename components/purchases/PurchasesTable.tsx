@@ -21,8 +21,10 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { Purchase } from "@/contexts/InventoryContext";
 import { formatNepaliDateForTable, toTitleCase } from "@/lib/utils";
+import { usePagination } from "@/hooks/usePagination";
 import { Building2, Edit, Eye, Search, Trash2, TrendingUp, Users, X } from "lucide-react";
 import React from "react";
+import DataPagination from "@/components/ui/data-pagination";
 import { formatPurchaseTotal } from "./utils";
 
 interface PurchasesTableProps {
@@ -68,6 +70,20 @@ export default function PurchasesTable({
     return filteredPurchases;
   }, [filteredPurchases, activeTab]);
 
+  const {
+    page,
+    setPage,
+    pageSize,
+    setPageSize,
+    totalItems,
+    totalPages,
+    paginatedItems: paginatedPurchases,
+    startItem,
+    endItem,
+  } = usePagination(tabPurchases, {
+    resetKey: `${searchTerm}|${activeTab}`,
+  });
+
   const renderTable = (
     showSupplierType: boolean,
     emptyMessage: string,
@@ -100,7 +116,7 @@ export default function PurchasesTable({
           </TableRow>
         </TableHeader>
         <TableBody>
-          {tabPurchases.map((purchase) => (
+          {paginatedPurchases.map((purchase) => (
             <TableRow
               key={purchase.id}
               className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-150"
@@ -277,6 +293,16 @@ export default function PurchasesTable({
             {renderTable(false, "No company purchases found")}
           </TabsContent>
         </Tabs>
+        <DataPagination
+          page={page}
+          totalPages={totalPages}
+          totalItems={totalItems}
+          startItem={startItem}
+          endItem={endItem}
+          pageSize={pageSize}
+          onPageChange={setPage}
+          onPageSizeChange={setPageSize}
+        />
       </CardContent>
     </Card>
   );
