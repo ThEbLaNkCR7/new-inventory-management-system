@@ -11,8 +11,10 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/components/ui/use-toast"
 import { useApproval } from "@/contexts/ApprovalContext"
 import { useAuth } from "@/contexts/AuthContext"
@@ -20,7 +22,7 @@ import { usePersistentForm } from "@/contexts/FormPersistenceContext"
 import { useInventory } from "@/contexts/InventoryContext"
 import { formatNepaliDateForTable, toTitleCase } from "@/lib/utils"
 import { usePagination } from "@/hooks/usePagination"
-import { CheckCircle, Edit, Eye, Filter, Loader2, Mail, Phone, Search, Trash2, X } from "lucide-react"
+import { CheckCircle, Clock, Edit, Eye, Filter, Loader2, Mail, Phone, Search, Trash2, X } from "lucide-react"
 import { useState } from "react"
 import { Progress } from "../ui/progress"
 import DataPagination from "@/components/ui/data-pagination"
@@ -43,6 +45,8 @@ export default function ClientsPage() {
   } = useInventory()
   const { submitChange } = useApproval()
   const { toast } = useToast()
+  const { user } = useAuth()
+  const isAdmin = user?.role === "admin"
   const [searchTerm, setSearchTerm] = useState("")
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
@@ -53,6 +57,7 @@ export default function ClientsPage() {
   const [editingClient, setEditingClient] = useState<any>(null)
   const [viewingClient, setViewingClient] = useState<any>(null)
   const [deletingClient, setDeletingClient] = useState<any>(null)
+  const [deleteReason, setDeleteReason] = useState("")
   const initialFormData = {
     name: "",
     email: "",
@@ -74,8 +79,6 @@ export default function ClientsPage() {
   const [approvalReason, setApprovalReason] = useState("")
   const [paymentFilter, setPaymentFilter] = useState<"All" | "Received" | "Pending">("All")
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
-
-  const { user } = useAuth()
 
   const clearFieldErrors = (...fields: string[]) => {
     setFieldErrors((prev) => {
@@ -174,48 +177,46 @@ export default function ClientsPage() {
     setIsAddDialogOpen(false)
   }
 
+  const buildClientPayload = () => {
+    const companyName = formData.company === "custom" ? formData.customCompany : formData.company
+    const { customCompany, ...clientData } = formData
+    return {
+      ...clientData,
+      company: companyName,
+      address: {
+        street: formData.address,
+        city: "",
+        state: "",
+        zipCode: "",
+        country: "",
+      },
+      taxId: "",
+      creditLimit: 0,
+      currentBalance: 0,
+      totalSpent: 0,
+      orders: 0,
+      lastOrder: new Date().toISOString().split("T")[0],
+      isActive: formData.status === "Active",
+      paymentStatus: formData.paymentStatus || "Pending",
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!validateForm()) return
+    if (!isAdmin) return
+
+    const newClientData = buildClientPayload()
+    setIsAddDialogOpen(false)
     setIsLoading(true)
     setProgress(0)
     try {
       toast({ title: "Processing...", description: "Validating client data...", duration: 2000 })
-      updateProgress("Validating client data...", 1, 4)
-      await new Promise(resolve => setTimeout(resolve, 500))
-
-      updateProgress("Adding client to database...", 2, 4)
-      await new Promise(resolve => setTimeout(resolve, 500))
-
-      updateProgress("Setting up client profile...", 3, 4)
-      const companyName = formData.company === "custom" ? formData.customCompany : formData.company
-      const { customCompany, ...clientData } = formData
-      await addClient({
-        ...clientData,
-        company: companyName,
-        address: {
-          street: formData.address,
-          city: "",
-          state: "",
-          zipCode: "",
-          country: "",
-        },
-        taxId: "",
-        creditLimit: 0,
-        currentBalance: 0,
-        totalSpent: 0,
-        orders: 0,
-        lastOrder: new Date().toISOString().split('T')[0],
-        isActive: formData.status === "Active",
-        paymentStatus: formData.paymentStatus || "Pending",
-      })
-
-      updateProgress("Operation completed!", 4, 4)
-      await new Promise(resolve => setTimeout(resolve, 300))
-
-      toast({ title: "Success", description: "Client added successfully!", })
+      updateProgress("Validating client data...", 1, 3)
+      await addClient(newClientData)
+      updateProgress("Operation completed!", 3, 3)
+      toast({ title: "Success", description: "Client added successfully!" })
       resetForm()
-      setIsAddDialogOpen(false)
       setShowSuccessAlert(true)
       setAlertMessage("Client added successfully!")
     } catch (err) {
@@ -228,30 +229,12 @@ export default function ClientsPage() {
   }
 
   const submitForApproval = () => {
-    const companyName = formData.company === "custom" ? formData.customCompany : formData.company
-    const { customCompany, ...clientData } = formData
+    if (!validateForm()) return
     submitChange({
       type: "client",
       action: "create",
-      proposedData: {
-        ...clientData,
-        company: companyName,
-        address: {
-          street: formData.address,
-          city: "",
-          state: "",
-          zipCode: "",
-          country: "",
-        },
-        taxId: "",
-        creditLimit: 0,
-        currentBalance: 0,
-        totalSpent: 0,
-        orders: 0,
-        lastOrder: new Date().toISOString().split('T')[0],
-        isActive: formData.status === "Active"
-      },
-      requestedBy: "", // Removed user?.email || ""
+      proposedData: buildClientPayload(),
+      requestedBy: user?.email || "",
       reason: approvalReason,
     })
     toast({ title: "Submitted", description: "Client request submitted for admin approval." })
@@ -280,41 +263,60 @@ export default function ClientsPage() {
   const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!validateForm()) return
-    setIsLoading(true)
-    setProgress(0)
-    try {
-      toast({ title: "Processing...", description: "Validating changes...", duration: 2000 })
-      updateProgress("Validating changes...", 1, 4)
-      await new Promise(resolve => setTimeout(resolve, 500))
-      if (editingClient) {
-        const companyName = formData.company === "custom" ? formData.customCompany : formData.company
-        const { customCompany, ...clientData } = formData
-        const updateData = {
-          ...clientData,
-          company: companyName,
-          address: {
-            street: formData.address,
-            city: "",
-            state: "",
-            zipCode: "",
-            country: "",
-          },
-          isActive: formData.status === "Active",
-          paymentStatus: formData.paymentStatus || "Pending",
-        }
+
+    if (!editingClient) {
+      toast({ title: "Error", description: "No client selected for editing.", variant: "destructive" })
+      return
+    }
+
+    if (!isAdmin && !approvalReason.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "Please provide a reason for the changes.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    const updateData = buildClientPayload()
+
+    if (isAdmin) {
+      setIsLoading(true)
+      setProgress(0)
+      try {
+        toast({ title: "Processing...", description: "Validating changes...", duration: 2000 })
+        updateProgress("Validating changes...", 1, 3)
         await updateClient(editingClient.id, updateData)
+        updateProgress("Operation completed!", 3, 3)
+        toast({ title: "Success", description: "Client updated successfully!" })
         resetForm()
         setIsEditDialogOpen(false)
         setEditingClient(null)
+        setApprovalReason("")
         setShowSuccessAlert(true)
         setAlertMessage("Client updated successfully!")
+      } catch (err) {
+        toast({ title: "Error", description: "Failed to update client.", variant: "destructive" })
+      } finally {
+        setIsLoading(false)
+        setProgress(0)
+        setCurrentStep("")
       }
-    } catch (err) {
-      toast({ title: "Error", description: "Failed to update client.", variant: "destructive" })
-    } finally {
-      setIsLoading(false)
-      setProgress(0)
-      setCurrentStep("")
+    } else {
+      submitChange({
+        type: "client",
+        action: "update",
+        entityId: editingClient.id,
+        originalData: editingClient,
+        proposedData: updateData,
+        requestedBy: user?.email || "",
+        reason: approvalReason,
+      })
+      resetForm()
+      setIsEditDialogOpen(false)
+      setEditingClient(null)
+      setApprovalReason("")
+      toast({ title: "Submitted", description: "Client update submitted for admin approval." })
     }
   }
 
@@ -334,24 +336,55 @@ export default function ClientsPage() {
   }
 
   const handleDeleteConfirm = async () => {
+    if (!deletingClient) {
+      toast({ title: "Error", description: "No client selected for deletion.", variant: "destructive" })
+      return
+    }
+
+    if (!isAdmin && !deleteReason.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "Please provide a reason for deleting this client.",
+        variant: "destructive",
+      })
+      return
+    }
+
     setIsDeleteDialogOpen(false)
-    setIsLoading(true)
-    setProgress(0)
-    try {
-      toast({ title: "Processing...", description: "Validating deletion...", duration: 2000 })
-      updateProgress("Validating deletion...", 1, 3)
-      if (deletingClient) {
+
+    if (isAdmin) {
+      setIsLoading(true)
+      setProgress(0)
+      try {
+        toast({ title: "Processing...", description: "Validating deletion...", duration: 2000 })
+        updateProgress("Validating deletion...", 1, 3)
         await deleteClient(deletingClient.id)
+        updateProgress("Operation completed!", 3, 3)
+        toast({ title: "Success", description: "Client deleted successfully!" })
         setDeletingClient(null)
         setShowSuccessAlert(true)
         setAlertMessage("Client deleted successfully!")
+      } catch (err) {
+        toast({ title: "Error", description: "Failed to delete client.", variant: "destructive" })
+      } finally {
+        setIsLoading(false)
+        setProgress(0)
+        setCurrentStep("")
+        setDeleteReason("")
       }
-    } catch (err) {
-      toast({ title: "Error", description: "Failed to delete client.", variant: "destructive" })
-    } finally {
-      setIsLoading(false)
-      setProgress(0)
-      setCurrentStep("")
+    } else {
+      submitChange({
+        type: "client",
+        action: "delete",
+        entityId: deletingClient.id,
+        originalData: deletingClient,
+        proposedData: { id: deletingClient.id },
+        requestedBy: user?.email || "",
+        reason: deleteReason,
+      })
+      setDeletingClient(null)
+      setDeleteReason("")
+      toast({ title: "Submitted", description: "Client deletion submitted for admin approval." })
     }
   }
 
@@ -407,12 +440,13 @@ export default function ClientsPage() {
             formData={formData}
             updateForm={updateForm}
             companyOptions={companyOptions}
-            userRole={user?.role}
+            isAdmin={isAdmin}
             fieldErrors={fieldErrors}
             fieldErrorClass={fieldErrorClass}
             onSubmit={handleSubmit}
             onCancel={clearForm}
             onResetForm={resetForm}
+            validateForm={validateForm}
             showApprovalDialog={showApprovalDialog}
             onShowApprovalDialogChange={setShowApprovalDialog}
             approvalReason={approvalReason}
@@ -429,17 +463,22 @@ export default function ClientsPage() {
           if (!open) {
             clearFieldErrors()
             setEditingClient(null)
+            setApprovalReason("")
           }
         }}
         formData={formData}
         updateForm={updateForm}
         companyOptions={companyOptions}
+        isAdmin={isAdmin}
+        approvalReason={approvalReason}
+        onApprovalReasonChange={setApprovalReason}
         fieldErrors={fieldErrors}
         fieldErrorClass={fieldErrorClass}
         onSubmit={handleEditSubmit}
         onCancel={() => {
           clearForm()
           setIsEditDialogOpen(false)
+          setApprovalReason("")
         }}
       />
 
@@ -463,30 +502,66 @@ export default function ClientsPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
               </svg>
             </div>
-            <DialogTitle className="text-xl font-semibold mb-3">Delete Client</DialogTitle>
-            <DialogDescription className="text-gray-600 dark:text-gray-300 mb-6">
+            <DialogTitle className="text-xl font-semibold">Delete Client</DialogTitle>
+            <DialogDescription className="text-center text-gray-600 dark:text-gray-300 mb-4">
               Are you sure you want to delete <span className="font-semibold text-gray-900 dark:text-gray-100">{deletingClient?.name}</span>? This action cannot be undone.
+              {!isAdmin && (
+                <div className="mt-2 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+                  <div className="flex items-center text-amber-800 dark:text-amber-200">
+                    <Clock className="h-4 w-4 mr-2" />
+                    <span className="text-sm font-medium">This will be submitted for admin approval</span>
+                  </div>
+                </div>
+              )}
             </DialogDescription>
-            <div className="flex justify-center space-x-3">
+
+            {!isAdmin && (
+              <div className="space-y-2 mb-4 text-left">
+                <Label htmlFor="delete-reason">Reason for Deletion *</Label>
+                <Textarea
+                  id="delete-reason"
+                  value={deleteReason}
+                  onChange={(e) => setDeleteReason(e.target.value)}
+                  placeholder="Explain why you want to delete this client..."
+                  rows={3}
+                  required
+                />
+              </div>
+            )}
+
+            <div className="flex justify-center space-x-3 pt-4">
               <Button
                 type="button"
                 variant="neutralOutline"
                 onClick={() => {
                   setIsDeleteDialogOpen(false)
                   setDeletingClient(null)
+                  setDeleteReason("")
                 }}
                 className="px-6"
               >
                 Cancel
               </Button>
-              <Button
-                type="button"
-                variant="destructive"
-                onClick={handleDeleteConfirm}
-                className="px-6"
-              >
-                Delete Client
-              </Button>
+              {isAdmin ? (
+                <Button
+                  type="button"
+                  variant="destructive"
+                  onClick={handleDeleteConfirm}
+                  className="px-6"
+                >
+                  Delete Client
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  variant="destructive"
+                  onClick={handleDeleteConfirm}
+                  className="px-6"
+                  disabled={!deleteReason.trim()}
+                >
+                  Submit for Approval
+                </Button>
+              )}
             </div>
           </div>
         </DialogContent>

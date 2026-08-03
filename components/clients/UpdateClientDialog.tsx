@@ -19,7 +19,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { Textarea } from "@/components/ui/textarea"
 import { cn } from "@/lib/utils"
+import { Clock } from "lucide-react"
 import type { ClientFormData } from "./utils"
 
 const inputClass =
@@ -33,6 +35,9 @@ interface UpdateClientDialogProps {
   formData: ClientFormData
   updateForm: (updates: Partial<ClientFormData>) => void
   companyOptions: string[]
+  isAdmin: boolean
+  approvalReason: string
+  onApprovalReasonChange: (value: string) => void
   fieldErrors: Record<string, string>
   fieldErrorClass: (field: string) => string
   onSubmit: (e: React.FormEvent) => void
@@ -45,6 +50,9 @@ export default function UpdateClientDialog({
   formData,
   updateForm,
   companyOptions,
+  isAdmin,
+  approvalReason,
+  onApprovalReasonChange,
   fieldErrors,
   fieldErrorClass,
   onSubmit,
@@ -58,7 +66,17 @@ export default function UpdateClientDialog({
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Edit Client</DialogTitle>
-          <DialogDescription>Update client information</DialogDescription>
+          <DialogDescription>
+            Update client information
+            {!isAdmin && (
+              <div className="mt-2 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+                <div className="flex items-center text-amber-800 dark:text-amber-200">
+                  <Clock className="h-4 w-4 mr-2" />
+                  <span className="text-sm font-medium">Changes require admin approval</span>
+                </div>
+              </div>
+            )}
+          </DialogDescription>
         </DialogHeader>
         <form onSubmit={onSubmit} className="space-y-4">
           <div className="space-y-2">
@@ -167,11 +185,30 @@ export default function UpdateClientDialog({
             </Select>
             {renderFieldError("paymentStatus")}
           </div>
+          {!isAdmin && (
+            <div className="space-y-2">
+              <Label htmlFor="edit-reason">Reason for Changes *</Label>
+              <Textarea
+                id="edit-reason"
+                value={approvalReason}
+                onChange={(e) => onApprovalReasonChange(e.target.value)}
+                placeholder="Explain why you're making these changes..."
+                rows={3}
+                required
+              />
+            </div>
+          )}
           <div className="flex justify-end space-x-2">
             <Button type="button" variant="neutralOutline" onClick={onCancel}>
               Cancel
             </Button>
-            <Button type="submit">Update Client</Button>
+            {isAdmin ? (
+              <Button type="submit">Update Client</Button>
+            ) : (
+              <Button type="submit" disabled={!approvalReason.trim()}>
+                Submit for Approval
+              </Button>
+            )}
           </div>
         </form>
       </DialogContent>

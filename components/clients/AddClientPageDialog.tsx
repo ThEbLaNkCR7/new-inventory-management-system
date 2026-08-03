@@ -2,7 +2,6 @@
 
 import type React from "react"
 
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -37,12 +36,13 @@ interface AddClientPageDialogProps {
   formData: ClientFormData
   updateForm: (updates: Partial<ClientFormData>) => void
   companyOptions: string[]
-  userRole?: string
+  isAdmin: boolean
   fieldErrors: Record<string, string>
   fieldErrorClass: (field: string) => string
   onSubmit: (e: React.FormEvent) => void
   onCancel: () => void
   onResetForm: () => void
+  validateForm: () => boolean
   showApprovalDialog: boolean
   onShowApprovalDialogChange: (open: boolean) => void
   approvalReason: string
@@ -56,12 +56,13 @@ export default function AddClientPageDialog({
   formData,
   updateForm,
   companyOptions,
-  userRole,
+  isAdmin,
   fieldErrors,
   fieldErrorClass,
   onSubmit,
   onCancel,
   onResetForm,
+  validateForm,
   showApprovalDialog,
   onShowApprovalDialogChange,
   approvalReason,
@@ -76,7 +77,10 @@ export default function AddClientPageDialog({
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogTrigger asChild>
           <Button
-            onClick={onResetForm}
+            onClick={() => {
+              onResetForm()
+              onOpenChange(true)
+            }}
             variant="neutral"
             className="shadow-lg hover:shadow-xl transition-all"
           >
@@ -89,12 +93,12 @@ export default function AddClientPageDialog({
             <DialogTitle>Add New Client</DialogTitle>
             <DialogDescription>
               Enter client information to add to your database
-              {userRole !== "admin" && (
-                <div className="mt-2">
-                  <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-700">
-                    <Clock className="h-3 w-3 mr-1" />
-                    Changes require admin approval
-                  </Badge>
+              {!isAdmin && (
+                <div className="mt-2 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+                  <div className="flex items-center text-amber-800 dark:text-amber-200">
+                    <Clock className="h-4 w-4 mr-2" />
+                    <span className="text-sm font-medium">Changes require admin approval</span>
+                  </div>
                 </div>
               )}
             </DialogDescription>
@@ -210,16 +214,24 @@ export default function AddClientPageDialog({
               <Button type="button" variant="neutralOutline" onClick={onCancel}>
                 Cancel
               </Button>
-              <Button type="submit">
-                {/* Removed user?.role === "admin" ? "Add Client" : "Submit for Approval" */}
-                Add Client
-              </Button>
+              {isAdmin ? (
+                <Button type="submit">Add Client</Button>
+              ) : (
+                <Button
+                  type="button"
+                  onClick={() => {
+                    if (!validateForm()) return
+                    onShowApprovalDialogChange(true)
+                  }}
+                >
+                  Submit for Approval
+                </Button>
+              )}
             </div>
           </form>
         </DialogContent>
       </Dialog>
 
-      {/* Approval Reason Dialog */}
       <Dialog open={showApprovalDialog} onOpenChange={onShowApprovalDialogChange}>
         <DialogContent className="max-w-md">
           <DialogHeader>
@@ -228,7 +240,7 @@ export default function AddClientPageDialog({
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="reason">Reason for Request</Label>
+              <Label htmlFor="reason">Reason for Request *</Label>
               <Textarea
                 id="reason"
                 value={approvalReason}

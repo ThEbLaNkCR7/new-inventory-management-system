@@ -9,6 +9,7 @@
     "start": "next start",
     "lint": "next lint",
     "setup-demo": "node setup-demo-data.js",
+    "seed:users": "node setup-users.js",
     "mongodb:start": "./scripts/local-mongodb.sh start",
     "mongodb:stop": "./scripts/local-mongodb.sh stop",
     "mongodb:restart": "./scripts/local-mongodb.sh restart",
@@ -77,6 +78,7 @@
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
     "@types/d3-path": "^3.1.1",
     "@types/d3-time": "^3.0.4",
     "@types/node": "^20.0.0",
