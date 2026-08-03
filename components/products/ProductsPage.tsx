@@ -1,6 +1,7 @@
 "use client"
 
-import SupplierHistoryDialog from "@/components/purchases/SupplierHistoryDialog"
+import SupplierTransactionHistoryDialog from "@/components/suppliers/SupplierTransactionHistoryDialog"
+import ClientTransactionHistoryDialog from "@/components/clients/ClientTransactionHistoryDialog"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/components/ui/use-toast"
@@ -16,7 +17,6 @@ import { useEffect, useMemo, useState } from "react"
 import AddProductDialog from "./AddProductDialog"
 import AddSupplierDialog from "@/components/suppliers/AddSupplierDialog"
 import CategoryHistoryDialog from "./CategoryHistoryDialog"
-import ClientHistoryDialog from "./ClientHistoryDialog"
 import DeleteProductDialog from "./DeleteProductDialog"
 import EditProductDialog from "./EditProductDialog"
 import ProcessingOverlay from "./ProcessingOverlay"
@@ -656,15 +656,15 @@ export default function ProductsPage() {
         onSupplierClick={handleSupplierClick}
       />
 
-      <SupplierHistoryDialog
-        isOpen={isSupplierHistoryOpen}
+      <SupplierTransactionHistoryDialog
+        open={isSupplierHistoryOpen}
         onOpenChange={setIsSupplierHistoryOpen}
         supplierName={selectedSupplierForHistory}
         purchases={purchases}
       />
 
-      <ClientHistoryDialog
-        isOpen={isClientHistoryOpen}
+      <ClientTransactionHistoryDialog
+        open={isClientHistoryOpen}
         onOpenChange={setIsClientHistoryOpen}
         clientName={selectedClientForHistory}
         sales={sales}

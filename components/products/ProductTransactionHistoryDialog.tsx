@@ -252,9 +252,8 @@ function TransactionTable({
             <TableRow className="bg-gray-100 dark:bg-gray-700">
               <TableHead className="font-semibold text-gray-700 dark:text-gray-300">Date</TableHead>
               <TableHead className="font-semibold text-gray-700 dark:text-gray-300">{partyLabel}</TableHead>
-              <TableHead className="font-semibold text-gray-700 dark:text-gray-300">Quantity</TableHead>
-              <TableHead className="font-semibold text-gray-700 dark:text-gray-300">Unit Price</TableHead>
-              <TableHead className="font-semibold text-gray-700 dark:text-gray-300">Total</TableHead>
+              <TableHead className="font-semibold text-gray-700 dark:text-gray-300">Item No.</TableHead>
+              <TableHead className="font-semibold text-gray-700 dark:text-gray-300">Total Value</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -272,10 +271,7 @@ function TransactionTable({
                       {toTitleCase(row.party)}
                     </span>
                   </TableCell>
-                  <TableCell className="text-gray-700 dark:text-gray-300">{row.quantity} units</TableCell>
-                  <TableCell className="text-gray-700 dark:text-gray-300">
-                    Rs {Number(row.unitPrice).toLocaleString()}
-                  </TableCell>
+                  <TableCell className="text-gray-700 dark:text-gray-300">{row.quantity ?? 0}</TableCell>
                   <TableCell className={`font-semibold ${totalColorClass}`}>
                     Rs {row.total.toLocaleString()}
                   </TableCell>
@@ -283,7 +279,7 @@ function TransactionTable({
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={5} className="text-center py-8 text-gray-500 dark:text-gray-400">
+                <TableCell colSpan={4} className="text-center py-8 text-gray-500 dark:text-gray-400">
                   {emptyMessage}
                 </TableCell>
               </TableRow>
