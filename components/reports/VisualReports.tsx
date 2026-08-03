@@ -121,7 +121,7 @@ export default function VisualReports() {
     .slice(0, 5)
 
   return (
-    <div className="report-print-root space-y-6 p-6 min-h-screen transition-colors duration-300">
+    <div className="report-print-root space-y-4 min-h-screen transition-colors duration-300">
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div className="space-y-2">
           <h1 className="section-title">
@@ -236,7 +236,7 @@ export default function VisualReports() {
       </Card>
 
       {/* Two Column Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Category Breakdown - Simple Bar Chart */}
         <Card className="border border-gray-200 dark:border-gray-700">
           <CardHeader>

@@ -111,16 +111,16 @@ export default function StockViewPage() {
   )
 
   return (
-    <div className="space-y-8 p-6 min-h-screen">
+    <div className="space-y-4 min-h-screen">
 
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold">Stock Overview</h1>
-        <p className="text-gray-600">Monitor inventory levels and stock movements</p>
+        <h1 className="text-xl font-semibold">Stock Overview</h1>
+        <p className="text-sm text-gray-600">Monitor inventory levels and stock movements</p>
       </div>
 
       {/* Summary */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
 
         <Card>
           <CardHeader className="flex flex-row justify-between pb-2">
@@ -131,7 +131,7 @@ export default function StockViewPage() {
           </CardHeader>
 
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">
+            <div className="text-xl font-bold text-green-600">
               {totalRemainingQuantity}
             </div>
             <p className="text-xs text-muted-foreground">
@@ -149,7 +149,7 @@ export default function StockViewPage() {
           </CardHeader>
 
           <CardContent>
-            <div className="text-2xl font-bold text-orange-600">
+            <div className="text-xl font-bold text-orange-600">
               {totalSoldQuantity}
             </div>
             <p className="text-xs text-muted-foreground">
@@ -167,7 +167,7 @@ export default function StockViewPage() {
           </CardHeader>
 
           <CardContent>
-            <div className="text-2xl font-bold text-blue-600">
+            <div className="text-xl font-bold text-blue-600">
               Rs{" "}
               {remainingItems
                 .filter((p): p is NonNullable<typeof p> => p !== null)
@@ -184,15 +184,15 @@ export default function StockViewPage() {
 
       {/* Tables */}
       <Card className="overflow-hidden dark:bg-gray-800 dark:border-gray-700">
-        <CardHeader className="pb-4">
-          <CardTitle className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg font-semibold text-gray-900 dark:text-gray-100">
             Stock Details
           </CardTitle>
           <CardDescription className="text-gray-600 dark:text-gray-400 mt-1">
             Browse remaining and sold stock by product and batch
           </CardDescription>
 
-          <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
+          <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
               <Input
@@ -235,7 +235,7 @@ export default function StockViewPage() {
           </div>
         </CardHeader>
 
-        <CardContent className="border-t border-gray-100 dark:border-gray-700 pt-6">
+        <CardContent className="border-t border-gray-100 dark:border-gray-700 pt-4">
           <Tabs defaultValue="remaining">
             <TabsList>
               <TabsTrigger value="remaining">
@@ -251,13 +251,13 @@ export default function StockViewPage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">Product</TableHead>
-                      <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">Category</TableHead>
-                      <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">Units</TableHead>
-                      <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">Unit Weight</TableHead>
-                      <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">Price</TableHead>
-                      <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">Batch</TableHead>
-                      <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">Last Restocked</TableHead>
+                      <TableHead className="font-semibold text-sm text-gray-700 dark:text-gray-300">Product</TableHead>
+                      <TableHead className="font-semibold text-sm text-gray-700 dark:text-gray-300">Category</TableHead>
+                      <TableHead className="font-semibold text-sm text-gray-700 dark:text-gray-300">Units</TableHead>
+                      <TableHead className="font-semibold text-sm text-gray-700 dark:text-gray-300">Unit Weight</TableHead>
+                      <TableHead className="font-semibold text-sm text-gray-700 dark:text-gray-300">Price</TableHead>
+                      <TableHead className="font-semibold text-sm text-gray-700 dark:text-gray-300">Batch</TableHead>
+                      <TableHead className="font-semibold text-sm text-gray-700 dark:text-gray-300">Last Restocked</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -323,12 +323,12 @@ export default function StockViewPage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">Product</TableHead>
-                      <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">Client</TableHead>
-                      <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">Quantity</TableHead>
-                      <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">Units Sold</TableHead>
-                      <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">Total</TableHead>
-                      <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">Last Sold</TableHead>
+                      <TableHead className="font-semibold text-sm text-gray-700 dark:text-gray-300">Product</TableHead>
+                      <TableHead className="font-semibold text-sm text-gray-700 dark:text-gray-300">Client</TableHead>
+                      <TableHead className="font-semibold text-sm text-gray-700 dark:text-gray-300">Quantity</TableHead>
+                      <TableHead className="font-semibold text-sm text-gray-700 dark:text-gray-300">Units Sold</TableHead>
+                      <TableHead className="font-semibold text-sm text-gray-700 dark:text-gray-300">Total</TableHead>
+                      <TableHead className="font-semibold text-sm text-gray-700 dark:text-gray-300">Last Sold</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>

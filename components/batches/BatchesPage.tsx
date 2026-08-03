@@ -415,7 +415,7 @@ export default function BatchesPage() {
   }
 
   return (
-    <div className="space-y-8 p-6 bg-white dark:bg-gray-900 min-h-screen transition-colors duration-300">
+    <div className="space-y-4 bg-white dark:bg-gray-900 min-h-screen transition-colors duration-300">
       {isLoading && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
           <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-xl max-w-md w-full mx-4">
@@ -441,7 +441,7 @@ export default function BatchesPage() {
       )}
 
       {showSuccessAlert && (
-        <Alert className="border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20 p-4 mb-4">
+        <Alert className="border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20 p-3 mb-0">
           <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
           <AlertDescription className="text-green-800 dark:text-green-200">{alertMessage}</AlertDescription>
         </Alert>
@@ -452,9 +452,9 @@ export default function BatchesPage() {
           <h1 className="section-title">
             Batches
           </h1>
-          <p className="text-gray-600 dark:text-gray-300 text-lg">Track and manage product batches and lot numbers</p>
+          <p className="text-gray-600 dark:text-gray-300 text-sm">Track and manage product batches and lot numbers</p>
         </div>
-        <div className="absolute top-6 right-0 flex space-x-3">
+        <div className="absolute top-0 right-0 flex space-x-3">
           <Dialog open={isAddDialogOpen} onOpenChange={handleAddDialogOpenChange}>
             <DialogTrigger asChild>
               <Button
@@ -770,7 +770,7 @@ export default function BatchesPage() {
                     })}
 
                     {batchItems.length === 0 && (
-                      <div className="text-center py-12 px-6 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900/50">
+                      <div className="text-center py-8 px-6 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900/50">
                         <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800">
                           <Package className="h-7 w-7 text-slate-400" />
                         </div>
@@ -859,10 +859,10 @@ export default function BatchesPage() {
       </div>
 
       <Card className="dark:bg-gray-800 dark:border-gray-700 overflow-hidden">
-        <CardHeader className="pb-4">
-          <CardTitle className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg font-semibold text-gray-900 dark:text-gray-100">
             Batches
-            <span className="ml-2 text-lg font-medium text-gray-500 dark:text-gray-400">
+            <span className="ml-1.5 text-sm font-medium text-gray-500 dark:text-gray-400">
               ({filteredBatches.length})
             </span>
           </CardTitle>
@@ -870,7 +870,7 @@ export default function BatchesPage() {
             Track incoming inventory batches and stock arrivals
           </CardDescription>
 
-          <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
+          <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
               <Input
@@ -894,16 +894,16 @@ export default function BatchesPage() {
             )}
           </div>
         </CardHeader>
-        <CardContent className="border-t border-gray-100 dark:border-gray-700 pt-6">
+        <CardContent className="border-t border-gray-100 dark:border-gray-700 pt-4">
           {filteredBatches.length === 0 ? (
-            <div className="text-center py-12">
+            <div className="text-center py-8">
               <Package className="h-12 w-12 mx-auto text-gray-400 dark:text-gray-500 mb-3" />
               <p className="text-gray-500 dark:text-gray-400">
                 {searchTerm.trim() ? "No batches match your search" : "No batches found"}
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {filteredBatches.map((batch) => (
                 <Card
                   key={batch.id}
@@ -1146,7 +1146,7 @@ export default function BatchesPage() {
       />
 
       {filteredBatches.length === 0 && (
-        <div className="text-center py-12">
+        <div className="text-center py-8">
           <Package className="mx-auto h-12 w-12 text-gray-400 mb-4" />
           <p className="text-gray-500">No batches found</p>
         </div>

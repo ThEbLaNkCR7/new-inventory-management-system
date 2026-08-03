@@ -71,15 +71,15 @@ export default function SalesTable({
 
   return (
     <Card className="dark:bg-gray-800 dark:border-gray-700 overflow-hidden">
-      <CardHeader className="pb-4">
-        <CardTitle className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+      <CardHeader className="pb-3">
+        <CardTitle className="text-lg font-semibold text-gray-900 dark:text-gray-100">
           Sales Transactions
         </CardTitle>
         <CardDescription className="text-gray-600 dark:text-gray-400 mt-1">
           Track all sales transactions and revenue by client type
         </CardDescription>
 
-        <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
             <Input
@@ -109,7 +109,7 @@ export default function SalesTable({
           onValueChange={onActiveTabChange}
           className="w-full"
         >
-          <TabsList className="grid w-full grid-cols-3 mb-6 bg-gray-100 dark:bg-gray-800 p-1.5 rounded-xl h-14">
+          <TabsList className="grid w-full grid-cols-3 mb-4 bg-gray-100 dark:bg-gray-800 p-1 rounded-lg h-11">
             <TabsTrigger
               value="all"
               className="flex items-center justify-center space-x-2 data-[state=active]:bg-white dark:data-[state=active]:bg-gray-700 data-[state=active]:shadow-lg data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-400 data-[state=active]:font-semibold transition-all duration-300 ease-in-out rounded-lg px-3 py-2.5 h-full"
@@ -160,22 +160,22 @@ export default function SalesTable({
               <Table>
                 <TableHeader>
                   <TableRow className="bg-gray-50 dark:bg-gray-700">
-                    <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">
+                    <TableHead className="font-semibold text-sm text-gray-700 dark:text-gray-300">
                       Items
                     </TableHead>
-                    <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">
+                    <TableHead className="font-semibold text-sm text-gray-700 dark:text-gray-300">
                       Client
                     </TableHead>
-                    <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">
+                    <TableHead className="font-semibold text-sm text-gray-700 dark:text-gray-300">
                       Quantity
                     </TableHead>
-                    <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">
+                    <TableHead className="font-semibold text-sm text-gray-700 dark:text-gray-300">
                       Total
                     </TableHead>
-                    <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">
+                    <TableHead className="font-semibold text-sm text-gray-700 dark:text-gray-300">
                       Date
                     </TableHead>
-                    <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">
+                    <TableHead className="font-semibold text-sm text-gray-700 dark:text-gray-300">
                       Actions
                     </TableHead>
                   </TableRow>
@@ -260,22 +260,22 @@ export default function SalesTable({
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">
+                    <TableHead className="font-semibold text-sm text-gray-700 dark:text-gray-300">
                       Items
                     </TableHead>
-                    <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">
+                    <TableHead className="font-semibold text-sm text-gray-700 dark:text-gray-300">
                       Client
                     </TableHead>
-                    <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">
+                    <TableHead className="font-semibold text-sm text-gray-700 dark:text-gray-300">
                       Quantity
                     </TableHead>
-                    <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">
+                    <TableHead className="font-semibold text-sm text-gray-700 dark:text-gray-300">
                       Total
                     </TableHead>
-                    <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">
+                    <TableHead className="font-semibold text-sm text-gray-700 dark:text-gray-300">
                       Date
                     </TableHead>
-                    <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">
+                    <TableHead className="font-semibold text-sm text-gray-700 dark:text-gray-300">
                       Actions
                     </TableHead>
                   </TableRow>
@@ -360,22 +360,22 @@ export default function SalesTable({
               <Table>
                 <TableHeader>
                   <TableRow className="bg-gray-50 dark:bg-gray-700">
-                    <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">
+                    <TableHead className="font-semibold text-sm text-gray-700 dark:text-gray-300">
                       Items
                     </TableHead>
-                    <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">
+                    <TableHead className="font-semibold text-sm text-gray-700 dark:text-gray-300">
                       Client
                     </TableHead>
-                    <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">
+                    <TableHead className="font-semibold text-sm text-gray-700 dark:text-gray-300">
                       Quantity
                     </TableHead>
-                    <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">
+                    <TableHead className="font-semibold text-sm text-gray-700 dark:text-gray-300">
                       Total
                     </TableHead>
-                    <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">
+                    <TableHead className="font-semibold text-sm text-gray-700 dark:text-gray-300">
                       Date
                     </TableHead>
-                    <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">
+                    <TableHead className="font-semibold text-sm text-gray-700 dark:text-gray-300">
                       Actions
                     </TableHead>
                   </TableRow>

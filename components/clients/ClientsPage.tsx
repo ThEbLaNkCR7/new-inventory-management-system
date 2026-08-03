@@ -340,7 +340,7 @@ export default function ClientsPage() {
   }
 
   return (
-    <div className="space-y-6 p-6 min-h-screen transition-colors duration-300">
+    <div className="space-y-4 min-h-screen transition-colors duration-300">
       {isLoading && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
           <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-xl max-w-md w-full mx-4">
@@ -368,7 +368,7 @@ export default function ClientsPage() {
       )}
       {/* Success/Info Alert */}
       {showSuccessAlert && (
-        <Alert className="border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20 p-4 mb-4">
+        <Alert className="border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20 p-3 mb-0">
           <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
           <AlertDescription className="text-green-800 dark:text-green-200">{alertMessage}</AlertDescription>
         </Alert>
@@ -381,7 +381,7 @@ export default function ClientsPage() {
           </h1>
           <p className="text-gray-600 dark:text-gray-300">Manage client relationships and contact information</p>
         </div>
-        <div className="absolute top-6 right-0 flex space-x-3">
+        <div className="absolute top-0 right-0 flex space-x-3">
           <AddClientPageDialog
             open={isAddDialogOpen}
             onOpenChange={(open) => {
@@ -477,10 +477,10 @@ export default function ClientsPage() {
       </Dialog>
 
       <Card className="dark:bg-gray-800 dark:border-gray-700 overflow-hidden">
-        <CardHeader className="pb-4">
-          <CardTitle className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg font-semibold text-gray-900 dark:text-gray-100">
             Clients
-            <span className="ml-2 text-lg font-medium text-gray-500 dark:text-gray-400">
+            <span className="ml-1.5 text-sm font-medium text-gray-500 dark:text-gray-400">
               ({filteredClients.length})
             </span>
           </CardTitle>
@@ -488,7 +488,7 @@ export default function ClientsPage() {
             Manage your client contacts and information
           </CardDescription>
 
-          <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
+          <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
               <Input
@@ -538,11 +538,11 @@ export default function ClientsPage() {
             <Table>
               <TableHeader>
                 <TableRow className="bg-gray-50 dark:bg-gray-700/80 hover:bg-gray-50 dark:hover:bg-gray-700/80">
-                  <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">Client Name</TableHead>
-                  <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">Contact</TableHead>
-                  <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">Payment</TableHead>
-                  <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">Total Spent</TableHead>
-                  <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">Actions</TableHead>
+                  <TableHead className="font-semibold text-sm text-gray-700 dark:text-gray-300">Client Name</TableHead>
+                  <TableHead className="font-semibold text-sm text-gray-700 dark:text-gray-300">Contact</TableHead>
+                  <TableHead className="font-semibold text-sm text-gray-700 dark:text-gray-300">Payment</TableHead>
+                  <TableHead className="font-semibold text-sm text-gray-700 dark:text-gray-300">Total Spent</TableHead>
+                  <TableHead className="font-semibold text-sm text-gray-700 dark:text-gray-300">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

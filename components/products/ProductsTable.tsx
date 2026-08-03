@@ -48,13 +48,13 @@ export default function ProductsTable({
   }
 
   return (
-    <Card className="shadow-xl border-0 bg-white/80 dark:bg-gray-800 dark:border-gray-700 backdrop-blur-sm overflow-hidden">
-      <CardHeader className="pb-4">
+    <Card className="shadow-sm border border-gray-100 dark:border-gray-700 bg-white/80 dark:bg-gray-800 dark:border-gray-700 backdrop-blur-sm overflow-hidden">
+      <CardHeader className="pb-3">
         <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <CardTitle className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+            <CardTitle className="text-lg font-semibold text-gray-900 dark:text-gray-100">
               Products Details
-              <span className="ml-2 text-lg font-medium text-gray-500 dark:text-gray-400">
+              <span className="ml-1.5 text-sm font-medium text-gray-500 dark:text-gray-400">
                 ({groupedProducts.length})
               </span>
             </CardTitle>
@@ -64,7 +64,7 @@ export default function ProductsTable({
           </div>
         </div>
 
-        <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
             <Input
@@ -112,12 +112,12 @@ export default function ProductsTable({
           <Table>
             <TableHeader>
               <TableRow className="bg-gray-50 dark:bg-gray-700/80 hover:bg-gray-50 dark:hover:bg-gray-700/80">
-                <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">Product Name</TableHead>
-                <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">Category</TableHead>
-                <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">No. of units</TableHead>
-                <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">Unit Weight</TableHead>
-                <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">Unit Price</TableHead>
-                <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">Actions</TableHead>
+                <TableHead className="font-semibold text-sm text-gray-700 dark:text-gray-300">Product Name</TableHead>
+                <TableHead className="font-semibold text-sm text-gray-700 dark:text-gray-300">Category</TableHead>
+                <TableHead className="font-semibold text-sm text-gray-700 dark:text-gray-300">No. of units</TableHead>
+                <TableHead className="font-semibold text-sm text-gray-700 dark:text-gray-300">Unit Weight</TableHead>
+                <TableHead className="font-semibold text-sm text-gray-700 dark:text-gray-300">Unit Price</TableHead>
+                <TableHead className="font-semibold text-sm text-gray-700 dark:text-gray-300">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -214,9 +214,9 @@ export default function ProductsTable({
             </TableBody>
           </Table>
           {groupedProducts.length === 0 && (
-            <div className="text-center py-12">
+            <div className="text-center py-8">
               <div className="text-gray-400 dark:text-gray-500 mb-4">
-                <Package className="h-16 w-16 mx-auto" />
+                <Package className="h-12 w-12 mx-auto" />
               </div>
               <p className="text-gray-500 dark:text-gray-400 text-lg">
                 {hasActiveFilters ? "No products match your filters" : "No products found"}

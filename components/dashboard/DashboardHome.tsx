@@ -225,31 +225,31 @@ export default function DashboardHome() {
   ]
 
   return (
-    <div className="space-y-8 p-6 min-h-screen transition-colors duration-300 bg-white dark:bg-gray-900">
+    <div className="space-y-4 min-h-screen transition-colors duration-300 bg-white dark:bg-gray-900">
       <div className="space-y-2">
         <h1 className="section-title">
           Dashboard
         </h1>
-        <p className="text-gray-600 dark:text-gray-300 text-lg">Comprehensive overview of your inventory management system</p>
+        <p className="text-gray-600 dark:text-gray-300 text-sm">Comprehensive overview of your inventory management system</p>
       </div>
 
       {/* Inventory Section */}
-      <div className="space-y-4 mt-10">
-        <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100 border-b dark:border-gray-700 pb-2 mb-6 tracking-tight pl-4 border-l-4 border-blue-500 bg-blue-50/60 dark:bg-blue-900/20">Inventory</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+      <div className="space-y-3 mt-4">
+        <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100 border-b dark:border-gray-700 pb-1.5 mb-3 tracking-tight pl-4 border-l-4 border-blue-500 bg-blue-50/60 dark:bg-blue-900/20">Inventory</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Total Products */}
           {stats.filter(s => s.title === "Total Products").map((stat, index) => {
             const Icon = stat.icon
             return (
-              <Card key={index} className="shadow-lg hover:shadow-xl transition-all duration-300 border-0 bg-white/90 dark:bg-gray-800 dark:border-gray-700 backdrop-blur-sm hover:scale-105">
+              <Card key={index} className="shadow-sm hover:shadow-md transition-shadow duration-200 border-0 bg-white/90 dark:bg-gray-800 dark:border-gray-700">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-semibold text-gray-900 dark:text-gray-200">{stat.title}</CardTitle>
-                  <div className={`p-3 rounded-full ${stat.bgColor} shadow-md transition-all duration-300 hover:scale-110`}>
+                  <div className={`p-2 rounded-full ${stat.bgColor} shadow-md transition-all duration-300 hover:scale-110`}>
                     <Icon className={`h-5 w-5 ${stat.color}`} />
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className={`text-3xl font-bold ${stat.color}`}>{stat.value}</div>
+                  <div className={`text-xl font-bold ${stat.color}`}>{stat.value}</div>
                   <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">{stat.description}</p>
                 </CardContent>
               </Card>
@@ -259,15 +259,15 @@ export default function DashboardHome() {
           {stats.filter(s => s.title === "Inventory Value").map((stat, index) => {
             const Icon = stat.icon
             return (
-              <Card key={index} className="shadow-lg hover:shadow-xl transition-all duration-300 border-0 bg-white/90 dark:bg-gray-800 dark:border-gray-700 backdrop-blur-sm hover:scale-105">
+              <Card key={index} className="shadow-sm hover:shadow-md transition-shadow duration-200 border-0 bg-white/90 dark:bg-gray-800 dark:border-gray-700">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-semibold text-gray-900 dark:text-gray-200">{stat.title}</CardTitle>
-                  <div className={`p-3 rounded-full ${stat.bgColor} shadow-md transition-all duration-300 hover:scale-110`}>
+                  <div className={`p-2 rounded-full ${stat.bgColor} shadow-md transition-all duration-300 hover:scale-110`}>
                     <Icon className={`h-5 w-5 ${stat.color}`} />
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className={`text-3xl font-bold ${stat.color}`}>{stat.value}</div>
+                  <div className={`text-xl font-bold ${stat.color}`}>{stat.value}</div>
                   <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">{stat.description}</p>
                 </CardContent>
               </Card>
@@ -277,12 +277,12 @@ export default function DashboardHome() {
           {quickStats.filter(q => q.title === "Low Stock Items").map((stat, index) => {
             const Icon = stat.icon
             return (
-              <Card key={index} className="shadow-lg hover:shadow-xl transition-all duration-300 border-0 bg-white/90 dark:bg-gray-800 dark:border-gray-700 backdrop-blur-sm hover:scale-105">
+              <Card key={index} className="shadow-sm hover:shadow-md transition-shadow duration-200 border-0 bg-white/90 dark:bg-gray-800 dark:border-gray-700">
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-semibold text-gray-900 dark:text-gray-200">{stat.title}</p>
-                      <p className={`text-2xl font-bold ${stat.color}`}>{stat.value}</p>
+                      <p className={`text-xl font-bold ${stat.color}`}>{stat.value}</p>
                     </div>
                     <Icon className={`h-8 w-8 ${stat.color} opacity-80`} />
                   </div>
@@ -293,12 +293,12 @@ export default function DashboardHome() {
           {quickStats.filter(q => q.title === "Dead Stock").map((stat, index) => {
             const Icon = stat.icon
             return (
-              <Card key={index} className="shadow-lg hover:shadow-xl transition-all duration-300 border-0 bg-white/90 dark:bg-gray-800 dark:border-gray-700 backdrop-blur-sm hover:scale-105">
+              <Card key={index} className="shadow-sm hover:shadow-md transition-shadow duration-200 border-0 bg-white/90 dark:bg-gray-800 dark:border-gray-700">
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-semibold text-gray-900 dark:text-gray-200">{stat.title}</p>
-                      <p className={`text-2xl font-bold ${stat.color}`}>{stat.value}</p>
+                      <p className={`text-xl font-bold ${stat.color}`}>{stat.value}</p>
                     </div>
                     <Icon className={`h-8 w-8 ${stat.color} opacity-80`} />
                   </div>
@@ -309,7 +309,7 @@ export default function DashboardHome() {
         </div>
 
         {/* most frequently sales */}
-        <div className="mt-10">
+        <div className="mt-4">
           <h2 className="text-xl font-bold text-green-600 mb-4">
             Top Selling Products
           </h2>
@@ -330,22 +330,22 @@ export default function DashboardHome() {
       </div>
 
       {/* Sales & Purchases Section */}
-      <div className="space-y-4 mt-12">
-        <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100 border-b dark:border-gray-700 pb-2 mb-6 tracking-tight pl-4 border-l-4 border-green-500 bg-green-50/60 dark:bg-green-900/20">Sales & Purchases</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+      <div className="space-y-3 mt-4">
+        <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100 border-b dark:border-gray-700 pb-1.5 mb-3 tracking-tight pl-4 border-l-4 border-green-500 bg-green-50/60 dark:bg-green-900/20">Sales & Purchases</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Total Sales */}
           {stats.filter(s => s.title === "Total Sales").map((stat, index) => {
             const Icon = stat.icon
             return (
-              <Card key={index} className="shadow-lg hover:shadow-xl transition-all duration-300 border-0 bg-white/90 dark:bg-gray-800 dark:border-gray-700 backdrop-blur-sm hover:scale-105">
+              <Card key={index} className="shadow-sm hover:shadow-md transition-shadow duration-200 border-0 bg-white/90 dark:bg-gray-800 dark:border-gray-700">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-semibold text-gray-900 dark:text-gray-200">{stat.title}</CardTitle>
-                  <div className={`p-3 rounded-full ${stat.bgColor} shadow-md transition-all duration-300 hover:scale-110`}>
+                  <div className={`p-2 rounded-full ${stat.bgColor} shadow-md transition-all duration-300 hover:scale-110`}>
                     <Icon className={`h-5 w-5 ${stat.color}`} />
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className={`text-3xl font-bold ${stat.color}`}>{stat.value}</div>
+                  <div className={`text-xl font-bold ${stat.color}`}>{stat.value}</div>
                   <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">{stat.description}</p>
                 </CardContent>
               </Card>
@@ -355,15 +355,15 @@ export default function DashboardHome() {
           {stats.filter(s => s.title === "Total Purchases").map((stat, index) => {
             const Icon = stat.icon
             return (
-              <Card key={index} className="shadow-lg hover:shadow-xl transition-all duration-300 border-0 bg-white/90 dark:bg-gray-800 dark:border-gray-700 backdrop-blur-sm hover:scale-105">
+              <Card key={index} className="shadow-sm hover:shadow-md transition-shadow duration-200 border-0 bg-white/90 dark:bg-gray-800 dark:border-gray-700">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-semibold text-gray-900 dark:text-gray-200">{stat.title}</CardTitle>
-                  <div className={`p-3 rounded-full ${stat.bgColor} shadow-md transition-all duration-300 hover:scale-110`}>
+                  <div className={`p-2 rounded-full ${stat.bgColor} shadow-md transition-all duration-300 hover:scale-110`}>
                     <Icon className={`h-5 w-5 ${stat.color}`} />
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className={`text-3xl font-bold ${stat.color}`}>{stat.value}</div>
+                  <div className={`text-xl font-bold ${stat.color}`}>{stat.value}</div>
                   <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">{stat.description}</p>
                 </CardContent>
               </Card>
@@ -373,15 +373,15 @@ export default function DashboardHome() {
           {stats.filter(s => s.title === "Net Profit").map((stat, index) => {
             const Icon = stat.icon
             return (
-              <Card key={index} className="shadow-lg hover:shadow-xl transition-all duration-300 border-0 bg-white/90 dark:bg-gray-800 dark:border-gray-700 backdrop-blur-sm hover:scale-105">
+              <Card key={index} className="shadow-sm hover:shadow-md transition-shadow duration-200 border-0 bg-white/90 dark:bg-gray-800 dark:border-gray-700">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-semibold text-gray-900 dark:text-gray-200">{stat.title}</CardTitle>
-                  <div className={`p-3 rounded-full ${stat.bgColor} shadow-md transition-all duration-300 hover:scale-110`}>
+                  <div className={`p-2 rounded-full ${stat.bgColor} shadow-md transition-all duration-300 hover:scale-110`}>
                     <Icon className={`h-5 w-5 ${stat.color}`} />
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className={`text-3xl font-bold ${stat.color}`}>{stat.value}</div>
+                  <div className={`text-xl font-bold ${stat.color}`}>{stat.value}</div>
                   <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">{stat.description}</p>
                 </CardContent>
               </Card>
@@ -391,12 +391,12 @@ export default function DashboardHome() {
           {quickStats.filter(q => q.title === "This Monthly Sales").map((stat, index) => {
             const Icon = stat.icon
             return (
-              <Card key={index} className="shadow-lg hover:shadow-xl transition-all duration-300 border-0 bg-white/90 dark:bg-gray-800 dark:border-gray-700 backdrop-blur-sm hover:scale-105">
+              <Card key={index} className="shadow-sm hover:shadow-md transition-shadow duration-200 border-0 bg-white/90 dark:bg-gray-800 dark:border-gray-700">
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-semibold text-gray-900 dark:text-gray-200">{stat.title}</p>
-                      <p className={`text-2xl font-bold ${stat.color}`}>{stat.value}</p>
+                      <p className={`text-xl font-bold ${stat.color}`}>{stat.value}</p>
                     </div>
                     <Icon className={`h-8 w-8 ${stat.color} opacity-80`} />
                   </div>
@@ -408,22 +408,22 @@ export default function DashboardHome() {
       </div>
 
       {/* Business Associate Section */}
-      <div className="space-y-4 mt-12">
-        <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100 border-b dark:border-gray-700 pb-2 mb-6 tracking-tight pl-4 border-l-4 border-indigo-500 bg-indigo-50/60 dark:bg-indigo-900/20">Business Associate</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+      <div className="space-y-3 mt-4">
+        <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100 border-b dark:border-gray-700 pb-1.5 mb-3 tracking-tight pl-4 border-l-4 border-indigo-500 bg-indigo-50/60 dark:bg-indigo-900/20">Business Associate</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Active Clients */}
           {stats.filter(s => s.title === "Active Clients").map((stat, index) => {
             const Icon = stat.icon
             return (
-              <Card key={index} className="shadow-lg hover:shadow-xl transition-all duration-300 border-0 bg-white/90 dark:bg-gray-800 dark:border-gray-700 backdrop-blur-sm hover:scale-105">
+              <Card key={index} className="shadow-sm hover:shadow-md transition-shadow duration-200 border-0 bg-white/90 dark:bg-gray-800 dark:border-gray-700">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-semibold text-gray-900 dark:text-gray-200">{stat.title}</CardTitle>
-                  <div className={`p-3 rounded-full ${stat.bgColor} shadow-md transition-all duration-300 hover:scale-110`}>
+                  <div className={`p-2 rounded-full ${stat.bgColor} shadow-md transition-all duration-300 hover:scale-110`}>
                     <Icon className={`h-5 w-5 ${stat.color}`} />
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className={`text-3xl font-bold ${stat.color}`}>{stat.value}</div>
+                  <div className={`text-xl font-bold ${stat.color}`}>{stat.value}</div>
                   <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">{stat.description}</p>
                 </CardContent>
               </Card>
@@ -433,12 +433,12 @@ export default function DashboardHome() {
           {quickStats.filter(q => q.title === "Active Suppliers").map((stat, index) => {
             const Icon = stat.icon
             return (
-              <Card key={index} className="shadow-lg hover:shadow-xl transition-all duration-300 border-0 bg-white/90 dark:bg-gray-800 dark:border-gray-700 backdrop-blur-sm hover:scale-105">
+              <Card key={index} className="shadow-sm hover:shadow-md transition-shadow duration-200 border-0 bg-white/90 dark:bg-gray-800 dark:border-gray-700">
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-semibold text-gray-900 dark:text-gray-200">{stat.title}</p>
-                      <p className={`text-2xl font-bold ${stat.color}`}>{stat.value}</p>
+                      <p className={`text-xl font-bold ${stat.color}`}>{stat.value}</p>
                     </div>
                     <Icon className={`h-8 w-8 ${stat.color} opacity-80`} />
                   </div>
@@ -450,12 +450,12 @@ export default function DashboardHome() {
           {quickStats.filter(q => q.title === "Avg. Product Price").map((stat, index) => {
             const Icon = stat.icon
             return (
-              <Card key={index} className="shadow-lg hover:shadow-xl transition-all duration-300 border-0 bg-white/90 dark:bg-gray-800 dark:border-gray-700 backdrop-blur-sm hover:scale-105">
+              <Card key={index} className="shadow-sm hover:shadow-md transition-shadow duration-200 border-0 bg-white/90 dark:bg-gray-800 dark:border-gray-700">
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-semibold text-gray-900 dark:text-gray-200">{stat.title}</p>
-                      <p className={`text-2xl font-bold ${stat.color}`}>{stat.value}</p>
+                      <p className={`text-xl font-bold ${stat.color}`}>{stat.value}</p>
                     </div>
                     <Icon className={`h-8 w-8 ${stat.color} opacity-80`} />
                   </div>
@@ -465,7 +465,7 @@ export default function DashboardHome() {
           })}
 
           {/* CLIENT OVERDUE RECEIVABLES */}
-          <Card className="shadow-lg hover:shadow-xl transition-all duration-300 border-0 bg-white/90 dark:bg-gray-800 dark:border-gray-700 backdrop-blur-sm hover:scale-105">
+          <Card className="shadow-sm hover:shadow-md transition-shadow duration-200 border-0 bg-white/90 dark:bg-gray-800 dark:border-gray-700">
             <CardHeader>
               <CardTitle className="flex items-center text-red-600">
                 <AlertTriangle className="mr-2 h-5 w-5" />
@@ -503,7 +503,7 @@ export default function DashboardHome() {
           </Card>
 
           {/* SUPPLIER OVERDUE PAYABLES */}
-          <Card className="shadow-lg hover:shadow-xl transition-all duration-300 border-0 bg-white/90 dark:bg-gray-800 dark:border-gray-700 backdrop-blur-sm hover:scale-105">
+          <Card className="shadow-sm hover:shadow-md transition-shadow duration-200 border-0 bg-white/90 dark:bg-gray-800 dark:border-gray-700">
             <CardHeader>
               <CardTitle className="flex items-center text-orange-600">
                 <Truck className="mr-2 h-5 w-5" />
@@ -543,7 +543,7 @@ export default function DashboardHome() {
       </div>
 
       {/* Alerts and Recent Activity */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Low Stock Alert */}
         <Card className="dark:bg-gray-800 dark:border-gray-700">
           <CardHeader>
@@ -693,7 +693,7 @@ export default function DashboardHome() {
       </div>
 
       {/* Performance Summary */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card className="dark:bg-gray-800 dark:border-gray-700">
           <CardHeader>
             <CardTitle className="text-gray-900 dark:text-gray-200">This Week's Performance</CardTitle>

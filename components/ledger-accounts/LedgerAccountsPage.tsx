@@ -211,10 +211,10 @@ export default function LedgerAccountsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
+          <h1 className="text-xl font-semibold flex items-center gap-2">
             <BookOpen className="h-7 w-7" />
             Ledger Account
           </h1>
@@ -376,14 +376,14 @@ export default function LedgerAccountsPage() {
       </div>
 
       <Card className="overflow-hidden">
-        <CardHeader className="pb-4">
-          <CardTitle className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg font-semibold text-gray-900 dark:text-gray-100">
             Ledger Accounts
           </CardTitle>
           <CardDescription className="text-gray-600 dark:text-gray-400 mt-1">
             Manage accounts and record manual ledger transactions.
           </CardDescription>
-          <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
+          <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
@@ -428,7 +428,7 @@ export default function LedgerAccountsPage() {
             </div>
           </div>
         </CardHeader>
-        <CardContent className="border-t border-gray-100 dark:border-gray-700 pt-6">
+        <CardContent className="border-t border-gray-100 dark:border-gray-700 pt-4">
           {isRefreshing && (
             <div className="flex items-center gap-2 text-muted-foreground mb-4">
               <Loader2 className="h-4 w-4 animate-spin" />

@@ -610,9 +610,9 @@ export default function ApprovalsPage() {
             {changes.map((change) => (
               <div
                 key={change.id}
-                className={`p-6 hover:bg-slate-50/80 dark:hover:bg-slate-800/30 transition-all duration-200 border-l-4 ${getActionAccent(change.action)}`}
+                className={`p-4 hover:bg-slate-50/80 dark:hover:bg-slate-800/30 transition-all duration-200 border-l-4 ${getActionAccent(change.action)}`}
               >
-                <div className="flex justify-between items-start mb-4 gap-4">
+                <div className="flex justify-between items-start mb-3 gap-3">
                   <div className="flex items-start space-x-3 min-w-0">
                     <div className={`p-2.5 rounded-xl border shrink-0 ${getActionColor(change.action)}`}>
                       {getActionIcon(change.action)}
@@ -638,7 +638,7 @@ export default function ApprovalsPage() {
                 </div>
 
                 {change.reason && (
-                  <div className="bg-amber-50/80 border border-amber-200 rounded-xl p-4 mb-4 dark:bg-amber-900/15 dark:border-amber-800">
+                  <div className="bg-amber-50/80 border border-amber-200 rounded-lg p-3 mb-3 dark:bg-amber-900/15 dark:border-amber-800">
                     <div className="flex items-center space-x-2 mb-2">
                       <FileText className="h-4 w-4 text-amber-600 dark:text-amber-400" />
                       <Label className="text-sm font-semibold text-amber-800 dark:text-amber-200">Reason for Request</Label>
@@ -673,7 +673,7 @@ export default function ApprovalsPage() {
   )}
 
   return (
-    <div className="space-y-8 p-6 bg-white dark:bg-gray-900 min-h-screen transition-colors duration-300">
+    <div className="space-y-4 bg-white dark:bg-gray-900 min-h-screen transition-colors duration-300">
       {isLoading ? (
         <Card className="shadow-lg border-slate-200 dark:bg-slate-900/50 dark:border-slate-700">
           <CardContent className="text-center py-16">
@@ -736,7 +736,7 @@ export default function ApprovalsPage() {
         </Card>
       </div>
 
-      <Tabs defaultValue={pendingList.length > 0 ? "pending" : "history"} className="space-y-6">
+      <Tabs defaultValue={pendingList.length > 0 ? "pending" : "history"} className="space-y-4">
         <TabsList className="grid w-full grid-cols-2 bg-slate-100 dark:bg-slate-800 p-1.5 rounded-xl h-14">
           <TabsTrigger
             value="pending"
@@ -829,7 +829,7 @@ export default function ApprovalsPage() {
 
           {selectedChange && (
             <ScrollArea className="max-h-[55vh] px-6 py-4">
-              <div className="space-y-6">
+              <div className="space-y-4">
                 {/* Request Header */}
                 <div className="bg-gradient-to-r from-slate-50 to-indigo-50/50 border border-slate-200 rounded-xl p-5 dark:from-slate-900/50 dark:to-indigo-900/10 dark:border-slate-700">
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

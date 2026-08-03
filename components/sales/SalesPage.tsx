@@ -729,7 +729,7 @@ export default function SalesPage() {
   }, [formData.items, products])
 
   return (
-    <div className="space-y-6 p-6 min-h-screen transition-colors duration-300">
+    <div className="space-y-4 min-h-screen transition-colors duration-300">
       {isLoading && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
           <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-xl max-w-md w-full mx-4">
@@ -753,7 +753,7 @@ export default function SalesPage() {
 
       {/* Success/Info Alert */}
       {showSuccessAlert && (
-        <Alert className="border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20 p-4 mb-4">
+        <Alert className="border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20 p-3 mb-0">
           <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
           <AlertDescription className="text-green-800 dark:text-green-200">{alertMessage}</AlertDescription>
         </Alert>
@@ -773,11 +773,11 @@ export default function SalesPage() {
             </div>
           )}
         </div>
-        <div className="absolute top-6 right-0 flex space-x-3">
+        <div className="absolute top-0 right-0 flex space-x-3">
           <Button
             type="button"
             onClick={() => exportSalesToCSV(filteredSales)}
-            className="px-6 py-2 mb-4"
+            className="px-4 py-2"
           >
             Export Sales CSV
           </Button>

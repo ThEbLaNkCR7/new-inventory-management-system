@@ -201,7 +201,7 @@ export default function MonthlyYearlyReports() {
   }
 
   return (
-    <div className="report-print-root space-y-6 p-6 min-h-screen transition-colors duration-300">
+    <div className="report-print-root space-y-4 min-h-screen transition-colors duration-300">
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div className="space-y-2">
           <h1 className="section-title">

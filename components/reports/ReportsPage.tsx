@@ -296,7 +296,7 @@ export default function ReportsPage() {
     .slice(0, 5)
 
   return (
-    <div className="report-print-root space-y-8 p-6 bg-white dark:bg-gray-900 min-h-screen transition-colors duration-300">
+    <div className="report-print-root space-y-4 bg-white dark:bg-gray-900 min-h-screen transition-colors duration-300">
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div className="space-y-2">
           <h1 className="section-title">
@@ -328,16 +328,16 @@ export default function ReportsPage() {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="monthly" className="space-y-6">
+        <TabsContent value="monthly" className="space-y-4">
           {/* Monthly Report Content */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <Card className="dark:bg-gray-800 dark:border-gray-700">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Monthly Sales</CardTitle>
                 <TrendingUp className="h-4 w-4 text-green-600" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-green-600">Rs {monthlySales.toLocaleString()}</div>
+                <div className="text-xl font-bold text-green-600">Rs {monthlySales.toLocaleString()}</div>
                 <p className="text-xs text-muted-foreground">Total sales this month</p>
               </CardContent>
             </Card>
@@ -348,7 +348,7 @@ export default function ReportsPage() {
                 <TrendingDown className="h-4 w-4 text-blue-600" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-blue-600">Rs {monthlyPurchases.toLocaleString()}</div>
+                <div className="text-xl font-bold text-blue-600">Rs {monthlyPurchases.toLocaleString()}</div>
                 <p className="text-xs text-muted-foreground">Total purchases this month</p>
               </CardContent>
             </Card>
@@ -359,7 +359,7 @@ export default function ReportsPage() {
                 <DollarSign className="h-4 w-4 text-purple-600" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-purple-600">Rs {monthlyProfit.toLocaleString()}</div>
+                <div className="text-xl font-bold text-purple-600">Rs {monthlyProfit.toLocaleString()}</div>
                 <p className="text-xs text-muted-foreground">Net profit this month</p>
               </CardContent>
             </Card>
@@ -370,7 +370,7 @@ export default function ReportsPage() {
                 <Package className="h-4 w-4 text-orange-600" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-orange-600">{sales.length + purchases.length}</div>
+                <div className="text-xl font-bold text-orange-600">{sales.length + purchases.length}</div>
                 <p className="text-xs text-muted-foreground">Total transactions</p>
               </CardContent>
             </Card>
@@ -402,16 +402,16 @@ export default function ReportsPage() {
           </div>
         </TabsContent>
 
-        <TabsContent value="yearly" className="space-y-6">
+        <TabsContent value="yearly" className="space-y-4">
           {/* Yearly Report Content */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <Card className="dark:bg-gray-800 dark:border-gray-700">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Yearly Sales</CardTitle>
                 <TrendingUp className="h-4 w-4 text-green-600" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-green-600">Rs {totalSales.toLocaleString()}</div>
+                <div className="text-xl font-bold text-green-600">Rs {totalSales.toLocaleString()}</div>
                 <p className="text-xs text-muted-foreground">Total sales this year</p>
               </CardContent>
             </Card>
@@ -422,7 +422,7 @@ export default function ReportsPage() {
                 <TrendingDown className="h-4 w-4 text-blue-600" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-blue-600">Rs {totalPurchases.toLocaleString()}</div>
+                <div className="text-xl font-bold text-blue-600">Rs {totalPurchases.toLocaleString()}</div>
                 <p className="text-xs text-muted-foreground">Total purchases this year</p>
               </CardContent>
             </Card>
@@ -433,7 +433,7 @@ export default function ReportsPage() {
                 <DollarSign className="h-4 w-4 text-purple-600" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-purple-600">Rs {profit.toLocaleString()}</div>
+                <div className="text-xl font-bold text-purple-600">Rs {profit.toLocaleString()}</div>
                 <p className="text-xs text-muted-foreground">Net profit this year</p>
               </CardContent>
             </Card>
@@ -444,7 +444,7 @@ export default function ReportsPage() {
                 <Package className="h-4 w-4 text-orange-600" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-orange-600">{sales.length + purchases.length}</div>
+                <div className="text-xl font-bold text-orange-600">{sales.length + purchases.length}</div>
                 <p className="text-xs text-muted-foreground">All transactions this year</p>
               </CardContent>
             </Card>
@@ -509,14 +509,14 @@ export default function ReportsPage() {
       </Tabs>
 
       {/* Key Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="dark:bg-gray-800 dark:border-gray-700">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium dark:text-gray-200">Total Revenue</CardTitle>
             <DollarSign className="h-4 w-4 text-green-600 dark:text-green-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600 dark:text-green-400">
+            <div className="text-xl font-bold text-green-600 dark:text-green-400">
               Rs {totalSales.toLocaleString()}
             </div>
             <p className="text-xs text-muted-foreground dark:text-gray-400">
@@ -531,7 +531,7 @@ export default function ReportsPage() {
             <TrendingDown className="h-4 w-4 text-red-600 dark:text-red-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600 dark:text-red-400">
+            <div className="text-xl font-bold text-red-600 dark:text-red-400">
               Rs {totalPurchases.toLocaleString()}
             </div>
             <p className="text-xs text-muted-foreground dark:text-gray-400">
@@ -565,14 +565,14 @@ export default function ReportsPage() {
             <AlertTriangle className="h-4 w-4 text-orange-600 dark:text-orange-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">{lowStockProducts.length}</div>
+            <div className="text-xl font-bold text-orange-600 dark:text-orange-400">{lowStockProducts.length}</div>
             <p className="text-xs text-muted-foreground dark:text-gray-400">Require immediate attention</p>
           </CardContent>
         </Card>
       </div>
 
       {/* Charts and Tables */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Top Selling Products */}
         <Card className="dark:bg-gray-800 dark:border-gray-700">
           <CardHeader>
@@ -662,11 +662,11 @@ export default function ReportsPage() {
             <Table>
               <TableHeader>
                 <TableRow className="dark:border-gray-700">
-                  <TableHead className="dark:text-gray-300 font-semibold text-lg text-gray-700">Date</TableHead>
-                  <TableHead className="dark:text-gray-300 font-semibold text-lg text-gray-700">Type</TableHead>
-                  <TableHead className="dark:text-gray-300 font-semibold text-lg text-gray-700">Product</TableHead>
-                  <TableHead className="dark:text-gray-300 font-semibold text-lg text-gray-700">Quantity</TableHead>
-                  <TableHead className="dark:text-gray-300 font-semibold text-lg text-gray-700">Amount</TableHead>
+                  <TableHead className="dark:text-gray-300 font-semibold text-sm text-gray-700">Date</TableHead>
+                  <TableHead className="dark:text-gray-300 font-semibold text-sm text-gray-700">Type</TableHead>
+                  <TableHead className="dark:text-gray-300 font-semibold text-sm text-gray-700">Product</TableHead>
+                  <TableHead className="dark:text-gray-300 font-semibold text-sm text-gray-700">Quantity</TableHead>
+                  <TableHead className="dark:text-gray-300 font-semibold text-sm text-gray-700">Amount</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

@@ -151,7 +151,7 @@ useEffect(() => {
         
         <main 
           ref={mainContentRef}
-          className="flex-1 overflow-x-hidden overflow-y-auto p-4 lg:p-6 transition-colors duration-300 print:overflow-visible print:p-0"
+          className="flex-1 overflow-x-hidden overflow-y-auto p-4 transition-colors duration-300 print:overflow-visible print:p-0"
         >
           {renderContent()}
         </main>

@@ -202,13 +202,13 @@ html {
   
   /* Section Headers */
   .section-title {
-    @apply text-2xl font-semibold text-gray-800 dark:text-gray-200 mb-4;
+    @apply text-xl font-semibold text-gray-800 dark:text-gray-200 mb-1;
     font-family: var(--font-outfit), 'Outfit', system-ui, sans-serif;
     letter-spacing: -0.01em;
   }
   
   .section-subtitle {
-    @apply text-base text-gray-600 dark:text-gray-400 mb-6;
+    @apply text-sm text-gray-600 dark:text-gray-400 mb-3;
     font-family: var(--font-outfit), 'Outfit', system-ui, sans-serif;
   }
   
@@ -668,15 +668,15 @@ html {
 @layer utilities {
   /* Spacing */
   .section-spacing {
-    @apply space-y-8;
+    @apply space-y-4;
   }
   
   .card-spacing {
-    @apply space-y-6;
+    @apply space-y-4;
   }
   
   .form-spacing {
-    @apply space-y-4;
+    @apply space-y-3;
   }
   
   /* Transitions */
