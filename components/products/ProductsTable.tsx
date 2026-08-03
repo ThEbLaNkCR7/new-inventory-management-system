@@ -63,7 +63,7 @@ export default function ProductsTable({
   }
 
   return (
-    <Card className="shadow-sm border border-gray-100 dark:border-gray-700 bg-white/80 dark:bg-gray-800 dark:border-gray-700 backdrop-blur-sm overflow-hidden">
+    <Card className="shadow-sm border border-gray-100 dark:border-gray-700 bg-white/80 dark:bg-gray-800 backdrop-blur-sm overflow-hidden">
       <CardHeader className="pb-3">
         <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
           <div>
