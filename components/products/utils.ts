@@ -108,7 +108,11 @@ export function filterProducts(
   const search = searchTerm.toLowerCase()
 
   return products.filter((product) => {
-    const matchesSearch = (product.name ?? "").toLowerCase().includes(search)
+    const matchesSearch =
+      !search ||
+      (product.name ?? "").toLowerCase().includes(search) ||
+      (product.category ?? "").toLowerCase().includes(search) ||
+      (product.supplier ?? "").toLowerCase().includes(search)
     const matchesCategory = categoryFilter === "all" || product.category === categoryFilter
     return matchesSearch && matchesCategory
   })

@@ -34,7 +34,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/components/ui/use-toast"
 import type { LedgerAccount, LedgerAccountType } from "@/contexts/LedgerContext"
 import { useLedger } from "@/contexts/LedgerContext"
-import { BookOpen, Eye, Loader2, Plus, Search, Trash2 } from "lucide-react"
+import { BookOpen, Eye, Filter, Loader2, Plus, Search, Trash2, X } from "lucide-react"
 import { useMemo, useState } from "react"
 
 const inputClass =
@@ -375,38 +375,60 @@ export default function LedgerAccountsPage() {
         </Dialog>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Ledger Accounts</CardTitle>
-          <CardDescription>
+      <Card className="overflow-hidden">
+        <CardHeader className="pb-4">
+          <CardTitle className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+            Ledger Accounts
+          </CardTitle>
+          <CardDescription className="text-gray-600 dark:text-gray-400 mt-1">
             Manage accounts and record manual ledger transactions.
           </CardDescription>
-          <div className="flex flex-col sm:flex-row gap-2 mt-2">
+          <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 placeholder="Search accounts..."
-                className={`pl-10 ${inputClass}`}
+                className={`h-10 pl-10 ${inputClass}`}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
-            <Select
-              value={typeFilter}
-              onValueChange={(value: "all" | LedgerAccountType) => setTypeFilter(value)}
-            >
-              <SelectTrigger className={`w-full sm:w-[220px] ${inputClass}`}>
-                <SelectValue placeholder="Filter by type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Account Types</SelectItem>
-                <SelectItem value="customer">Customer</SelectItem>
-                <SelectItem value="supplier">Supplier</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="flex items-center gap-2">
+              <Select
+                value={typeFilter}
+                onValueChange={(value: "all" | LedgerAccountType) => setTypeFilter(value)}
+              >
+                <SelectTrigger className={`h-10 w-full sm:w-[220px] ${inputClass}`}>
+                  <div className="flex items-center gap-2">
+                    <Filter className="h-4 w-4 shrink-0 text-muted-foreground" />
+                    <SelectValue placeholder="Filter by type" />
+                  </div>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Account Types</SelectItem>
+                  <SelectItem value="customer">Customer</SelectItem>
+                  <SelectItem value="supplier">Supplier</SelectItem>
+                </SelectContent>
+              </Select>
+              {(searchTerm.trim() !== "" || typeFilter !== "all") && (
+                <Button
+                  type="button"
+                  variant="neutralOutline"
+                  size="sm"
+                  onClick={() => {
+                    setSearchTerm("")
+                    setTypeFilter("all")
+                  }}
+                  className="h-10 shrink-0 gap-1.5"
+                >
+                  <X className="h-4 w-4" />
+                  Clear
+                </Button>
+              )}
+            </div>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="border-t border-gray-100 dark:border-gray-700 pt-6">
           {isRefreshing && (
             <div className="flex items-center gap-2 text-muted-foreground mb-4">
               <Loader2 className="h-4 w-4 animate-spin" />

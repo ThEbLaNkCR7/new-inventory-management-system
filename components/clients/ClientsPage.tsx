@@ -11,6 +11,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { useToast } from "@/components/ui/use-toast"
 import { useApproval } from "@/contexts/ApprovalContext"
@@ -18,7 +19,7 @@ import { useAuth } from "@/contexts/AuthContext"
 import { usePersistentForm } from "@/contexts/FormPersistenceContext"
 import { useInventory } from "@/contexts/InventoryContext"
 import { formatNepaliDateForTable, toTitleCase } from "@/lib/utils"
-import { CheckCircle, Edit, Eye, Loader2, Mail, Phone, Search, Trash2 } from "lucide-react"
+import { CheckCircle, Edit, Eye, Filter, Loader2, Mail, Phone, Search, Trash2, X } from "lucide-react"
 import { useState } from "react"
 import { Progress } from "../ui/progress"
 import AddClientPageDialog from "./AddClientPageDialog"
@@ -475,57 +476,68 @@ export default function ClientsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Search */}
-      <Card className="dark:bg-gray-800 dark:border-gray-700">
-        <CardContent className="pt-6">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500 h-5 w-5" />
-            <Input
-              placeholder="Search clients..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-12 border-2 focus:border-slate-500 transition-colors h-12 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
-            />
+      <Card className="dark:bg-gray-800 dark:border-gray-700 overflow-hidden">
+        <CardHeader className="pb-4">
+          <CardTitle className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+            Clients
+            <span className="ml-2 text-lg font-medium text-gray-500 dark:text-gray-400">
+              ({filteredClients.length})
+            </span>
+          </CardTitle>
+          <CardDescription className="text-gray-600 dark:text-gray-400 mt-1">
+            Manage your client contacts and information
+          </CardDescription>
+
+          <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
+              <Input
+                placeholder="Search by name, company, or email..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="h-10 pl-10 border-gray-200 dark:border-gray-600 dark:bg-gray-700/50 dark:text-gray-200 focus:border-slate-400"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <Select
+                value={paymentFilter}
+                onValueChange={(value: "All" | "Received" | "Pending") => setPaymentFilter(value)}
+              >
+                <SelectTrigger className="h-10 w-full sm:w-52 border-gray-200 dark:border-gray-600 dark:bg-gray-700/50 dark:text-gray-200">
+                  <div className="flex items-center gap-2">
+                    <Filter className="h-4 w-4 shrink-0 text-gray-400" />
+                    <SelectValue placeholder="Payment status" />
+                  </div>
+                </SelectTrigger>
+                <SelectContent className="dark:bg-gray-800 dark:border-gray-700">
+                  <SelectItem value="All">All Payments</SelectItem>
+                  <SelectItem value="Received">Payment Received</SelectItem>
+                  <SelectItem value="Pending">Payment Pending</SelectItem>
+                </SelectContent>
+              </Select>
+              {(searchTerm.trim() !== "" || paymentFilter !== "All") && (
+                <Button
+                  type="button"
+                  variant="neutralOutline"
+                  size="sm"
+                  onClick={() => {
+                    setSearchTerm("")
+                    setPaymentFilter("All")
+                  }}
+                  className="h-10 shrink-0 gap-1.5 text-gray-600 dark:text-gray-300"
+                >
+                  <X className="h-4 w-4" />
+                  Clear
+                </Button>
+              )}
+            </div>
           </div>
-        </CardContent>
-      </Card>
-
-      <div className="flex gap-2 mb-4">
-        <Button
-          variant={paymentFilter === "All" ? "default" : "neutralOutline"}
-          onClick={() => setPaymentFilter("All")}
-        >
-          All
-        </Button>
-
-        <Button
-          variant={paymentFilter === "Received" ? "default" : "neutralOutline"}
-          onClick={() => setPaymentFilter("Received")}
-          className="text-green-600 border-green-300 hover:bg-green-50"
-        >
-          Payment Received
-        </Button>
-
-        <Button
-          variant={paymentFilter === "Pending" ? "default" : "neutralOutline"}
-          onClick={() => setPaymentFilter("Pending")}
-          className="text-red-600 border-red-300 hover:bg-red-50"
-        >
-          Payment Pending
-        </Button>
-      </div>
-
-      {/* Clients Table */}
-      <Card className="dark:bg-gray-800 dark:border-gray-700">
-        <CardHeader>
-          <CardTitle>Clients ({filteredClients.length})</CardTitle>
-          <CardDescription>Manage your client contacts and information</CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
+        <CardContent className="p-0">
+          <div className="overflow-x-auto border-t border-gray-100 dark:border-gray-700">
             <Table>
               <TableHeader>
-                <TableRow className="bg-gray-50 dark:bg-gray-700">
+                <TableRow className="bg-gray-50 dark:bg-gray-700/80 hover:bg-gray-50 dark:hover:bg-gray-700/80">
                   <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">Client Name</TableHead>
                   <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">Contact</TableHead>
                   <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">Payment</TableHead>
@@ -615,7 +627,11 @@ export default function ClientsPage() {
             </Table>
             {filteredClients.length === 0 && (
               <div className="text-center py-8">
-                <p className="text-gray-500">No clients found</p>
+                <p className="text-gray-500">
+                  {searchTerm.trim() || paymentFilter !== "All"
+                    ? "No clients match your filters"
+                    : "No clients found"}
+                </p>
               </div>
             )}
           </div>

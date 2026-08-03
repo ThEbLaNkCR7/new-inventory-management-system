@@ -43,6 +43,7 @@ import {
   Trash2,
   Truck,
   Loader2,
+  X,
 } from "lucide-react"
 import { useEffect, useState } from "react"
 import { formatNepaliDateForTable } from '../../lib/nepaliDateUtils'
@@ -857,121 +858,153 @@ export default function BatchesPage() {
         </div>
       </div>
 
-      {/* Search */}
-      <Card className="dark:bg-gray-800 dark:border-gray-700">
-        <CardContent className="pt-6">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500 h-5 w-5" />
-            <Input
-              placeholder="Search batches..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-12 border-2 focus:border-slate-500 transition-colors h-12 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
-            />
+      <Card className="dark:bg-gray-800 dark:border-gray-700 overflow-hidden">
+        <CardHeader className="pb-4">
+          <CardTitle className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+            Batches
+            <span className="ml-2 text-lg font-medium text-gray-500 dark:text-gray-400">
+              ({filteredBatches.length})
+            </span>
+          </CardTitle>
+          <CardDescription className="text-gray-600 dark:text-gray-400 mt-1">
+            Track incoming inventory batches and stock arrivals
+          </CardDescription>
+
+          <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
+              <Input
+                placeholder="Search by batch number or supplier..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="h-10 pl-10 border-gray-200 dark:border-gray-600 dark:bg-gray-700/50 dark:text-gray-200 focus:border-slate-400"
+              />
+            </div>
+            {searchTerm.trim() !== "" && (
+              <Button
+                type="button"
+                variant="neutralOutline"
+                size="sm"
+                onClick={() => setSearchTerm("")}
+                className="h-10 shrink-0 gap-1.5 text-gray-600 dark:text-gray-300"
+              >
+                <X className="h-4 w-4" />
+                Clear
+              </Button>
+            )}
           </div>
+        </CardHeader>
+        <CardContent className="border-t border-gray-100 dark:border-gray-700 pt-6">
+          {filteredBatches.length === 0 ? (
+            <div className="text-center py-12">
+              <Package className="h-12 w-12 mx-auto text-gray-400 dark:text-gray-500 mb-3" />
+              <p className="text-gray-500 dark:text-gray-400">
+                {searchTerm.trim() ? "No batches match your search" : "No batches found"}
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredBatches.map((batch) => (
+                <Card
+                  key={batch.id}
+                  onClick={() => {
+                    setSelectedBatch(batch)
+                    setIsDetailOpen(true)
+                  }}
+                  className="hover:shadow-lg transition-shadow cursor-pointer dark:bg-gray-800 dark:border-gray-700 overflow-hidden"
+                >
+                  <CardHeader className="pb-3">
+                    <div className="flex items-start justify-between gap-2 min-w-0">
+                      <div className="min-w-0 flex-1">
+                        <CardTitle className="text-lg truncate">{batch.batchNumber}</CardTitle>
+                        <CardDescription className="flex items-center mt-1 min-w-0">
+                          <Truck className="h-4 w-4 mr-1 shrink-0" />
+                          <span className="truncate">
+                            {suppliers.find((s) => s.id === batch.supplier)?.name || batch.supplier}
+                          </span>
+                        </CardDescription>
+                      </div>
+                      <div className="flex shrink-0 items-center gap-1.5">
+                        <Badge className={`${getStatusColor(batch.status)} whitespace-nowrap`}>{batch.status}</Badge>
+                        <Button
+                          type="button"
+                          variant="neutralOutline"
+                          size="sm"
+                          className="h-8 w-8 shrink-0 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleDelete(batch)
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div className="flex items-center">
+                        <Calendar className="h-4 w-4 mr-2 text-gray-400" />
+                        <span>{formatNepaliDateForTable(batch.arrivalDate)}</span>
+                      </div>
+                      <div className="flex items-center">
+                        <Package className="h-4 w-4 mr-2 text-gray-400" />
+                        <span>{batch.items.length} items</span>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div className="flex items-center min-w-0">
+                        <span className="font-medium text-green-600 truncate">Rs {batch.totalValue.toLocaleString()}</span>
+                      </div>
+                      {batch.status === "pending" && (
+                        <Button
+                          size="sm"
+                          className="shrink-0 bg-green-600 hover:bg-green-700"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            updateBatchStatus(batch.id, "received")
+                          }}
+                        >
+                          Mark Received
+                        </Button>
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
+                      <h4 className="font-medium text-sm">Items:</h4>
+                      <div className="space-y-1">
+                        {batch.items.slice(0, 3).map((item, index) => {
+                          const product = products.find((p) => p.id === item.productId)
+                          const context = createBatchTrackingContext(batch.id, batch.batchNumber, batch.items, product)
+                          const sold = getSoldQuantityForBatchItem(sales, item.productId, context)
+                          const remaining = getBatchItemRemaining(sales, item.productId, item.quantity, context)
+
+                          return (
+                            <div key={index} className="text-xs text-gray-600">
+                              <div className="flex justify-between">
+                                <span>{item.productName}</span>
+                                <span>×{item.quantity}</span>
+                              </div>
+                              <div className="flex justify-between text-[11px] text-gray-500 mt-0.5">
+                                <span className="text-orange-600">{sold} sold</span>
+                                <span className="text-green-600">{remaining} in stock</span>
+                              </div>
+                            </div>
+                          )
+                        })}
+                        {batch.items.length > 3 && (
+                          <div className="text-xs text-gray-500">+{batch.items.length - 3} more items</div>
+                        )}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
-
-      {/* Batches Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredBatches.map((batch) => (
-          <Card
-            key={batch.id}
-            onClick={() => {
-              setSelectedBatch(batch)
-              setIsDetailOpen(true)
-            }}
-            className="hover:shadow-lg transition-shadow cursor-pointer dark:bg-gray-800 dark:border-gray-700 overflow-hidden"
-          >
-            <CardHeader className="pb-3">
-              <div className="flex items-start justify-between gap-2 min-w-0">
-                <div className="min-w-0 flex-1">
-                  <CardTitle className="text-lg truncate">{batch.batchNumber}</CardTitle>
-                  <CardDescription className="flex items-center mt-1 min-w-0">
-                    <Truck className="h-4 w-4 mr-1 shrink-0" />
-                    <span className="truncate">
-                      {suppliers.find((s) => s.id === batch.supplier)?.name || batch.supplier}
-                    </span>
-                  </CardDescription>
-                </div>
-                <div className="flex shrink-0 items-center gap-1.5">
-                  <Badge className={`${getStatusColor(batch.status)} whitespace-nowrap`}>{batch.status}</Badge>
-                  <Button
-                    type="button"
-                    variant="neutralOutline"
-                    size="sm"
-                    className="h-8 w-8 shrink-0 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      handleDelete(batch)
-                    }}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div className="flex items-center">
-                  <Calendar className="h-4 w-4 mr-2 text-gray-400" />
-                  <span>{formatNepaliDateForTable(batch.arrivalDate)}</span>
-                </div>
-                <div className="flex items-center">
-                  <Package className="h-4 w-4 mr-2 text-gray-400" />
-                  <span>{batch.items.length} items</span>
-                </div>
-              </div>
-
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="flex items-center min-w-0">
-                  <span className="font-medium text-green-600 truncate">Rs {batch.totalValue.toLocaleString()}</span>
-                </div>
-                {batch.status === "pending" && (
-                  <Button
-                    size="sm"
-                    className="shrink-0 bg-green-600 hover:bg-green-700"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      updateBatchStatus(batch.id, "received")
-                    }}
-                  >
-                    Mark Received
-                  </Button>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <h4 className="font-medium text-sm">Items:</h4>
-                <div className="space-y-1">
-                  {batch.items.slice(0, 3).map((item, index) => {
-                    const product = products.find((p) => p.id === item.productId)
-                    const context = createBatchTrackingContext(batch.id, batch.batchNumber, batch.items, product)
-                    const sold = getSoldQuantityForBatchItem(sales, item.productId, context)
-                    const remaining = getBatchItemRemaining(sales, item.productId, item.quantity, context)
-
-                    return (
-                      <div key={index} className="text-xs text-gray-600">
-                        <div className="flex justify-between">
-                          <span>{item.productName}</span>
-                          <span>×{item.quantity}</span>
-                        </div>
-                        <div className="flex justify-between text-[11px] text-gray-500 mt-0.5">
-                          <span className="text-orange-600">{sold} sold</span>
-                          <span className="text-green-600">{remaining} in stock</span>
-                        </div>
-                      </div>
-                    )
-                  })}
-                  {batch.items.length > 3 && (
-                    <div className="text-xs text-gray-500">+{batch.items.length - 3} more items</div>
-                  )}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
 
       {/* Batch Detail Dialog */}
       <Dialog open={isDetailOpen} onOpenChange={(open) => {

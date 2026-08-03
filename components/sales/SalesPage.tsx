@@ -24,7 +24,7 @@ import { Sale, useInventory } from "@/contexts/InventoryContext"
 import { useBatch } from "@/contexts/BatchContext"
 import { useSaleChange } from "@/hooks/useSaleChange"
 import { cn } from "@/lib/utils"
-import { CheckCircle, Clock, Loader2, Plus, Search } from "lucide-react"
+import { CheckCircle, Clock, Loader2, Plus } from "lucide-react"
 import React, { useEffect, useState } from "react"
 import { formatProductNetWeight } from "@/components/products/utils"
 import { mapSaleItemErrorsToEditFields, validateSaleFormData } from "./utils"
@@ -1098,21 +1098,6 @@ export default function SalesPage() {
         </div>
       </div>
 
-      {/* Search */}
-      <Card className="dark:bg-gray-800 dark:border-gray-700">
-        <CardContent className="pt-6">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500 h-5 w-5" />
-            <Input
-              placeholder="Search sales..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-12 border-2 focus:border-slate-500 transition-colors h-12 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
-            />
-          </div>
-        </CardContent>
-      </Card>
-
       {/* Sales Table Component */}
       <SalesTable
         filteredSales={filteredSales}
@@ -1120,6 +1105,8 @@ export default function SalesPage() {
         onActiveTabChange={setActiveTab}
         salesCounts={salesCounts}
         products={products}
+        searchTerm={searchTerm}
+        onSearchTermChange={setSearchTerm}
         onView={handleView}
         onEdit={handleEdit}
         onDelete={handleDelete}

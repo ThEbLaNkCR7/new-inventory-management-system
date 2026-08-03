@@ -27,7 +27,7 @@ import type { Product, Purchase } from "@/contexts/InventoryContext"
 import { useInventory } from "@/contexts/InventoryContext"
 import { usePurchaseChange } from "@/hooks/usePurchaseChange"
 import { cn, formatNepaliDateForTable } from "@/lib/utils"
-import { AlertTriangle, CheckCircle, Clock, Loader2, Plus, Search } from "lucide-react"
+import { AlertTriangle, CheckCircle, Clock, Loader2, Plus } from "lucide-react"
 import { useEffect, useMemo, useState, type FormEvent } from "react"
 import DeletePurchaseDialog from "./DeletePurchaseDialog"
 import EditPurchaseDialog from "./EditPurchaseDialog"
@@ -973,26 +973,13 @@ export default function PurchasesPage() {
         </div>
       </div>
 
-      {/* Search */}
-      <Card className="dark:bg-gray-800 dark:border-gray-700">
-        <CardContent className="pt-6">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500 h-5 w-5" />
-            <Input
-              placeholder="Search purchases..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-12 border-2 focus:border-slate-500 transition-colors h-12 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
-            />
-          </div>
-        </CardContent>
-      </Card>
-
       <PurchasesTable
         filteredPurchases={filteredPurchases}
         activeTab={activeTab}
         onActiveTabChange={setActiveTab}
         purchasesCounts={purchasesCounts}
+        searchTerm={searchTerm}
+        onSearchTermChange={setSearchTerm}
         onView={handleView}
         onEdit={handleEdit}
         onDelete={handleDelete}

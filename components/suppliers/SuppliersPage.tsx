@@ -29,7 +29,7 @@ import { useAuth } from "@/contexts/AuthContext"
 import { usePersistentForm } from "@/contexts/FormPersistenceContext"
 import { useInventory } from "@/contexts/InventoryContext"
 import { formatNepaliDateForTable, getCurrentNepaliYear, getNepaliYear, toTitleCase } from "@/lib/utils"
-import { CheckCircle, Clock, Edit, Eye, Loader2, Mail, Phone, Search, Trash2 } from "lucide-react"
+import { CheckCircle, Clock, Edit, Eye, Loader2, Mail, Phone, Search, Trash2, X } from "lucide-react"
 import { useEffect, useState } from "react"
 import AddSupplierPageDialog from "./AddSupplierPageDialog"
 import SupplierTransactionHistoryDialog from "./SupplierTransactionHistoryDialog"
@@ -420,52 +420,64 @@ export default function SuppliersPage() {
         </div>
       </div>
 
-      {/* Search */}
-      <Card className="dark:bg-gray-800 dark:border-gray-700">
-        <CardContent className="pt-6">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500 h-5 w-5" />
-            <Input
-              placeholder="Search suppliers..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-12 border-2 focus:border-slate-500 transition-colors h-12 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
-            />
+      <Card className="dark:bg-gray-800 dark:border-gray-700 overflow-hidden">
+        <CardHeader className="pb-4">
+          <CardTitle className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+            Suppliers
+            <span className="ml-2 text-lg font-medium text-gray-500 dark:text-gray-400">
+              ({filteredSuppliers.length})
+            </span>
+          </CardTitle>
+          <CardDescription className="text-gray-600 dark:text-gray-400 mt-1">
+            Manage your supplier contacts and information
+          </CardDescription>
+
+          <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
+              <Input
+                placeholder="Search by name, company, or email..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="h-10 pl-10 border-gray-200 dark:border-gray-600 dark:bg-gray-700/50 dark:text-gray-200 focus:border-slate-400"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <Select
+                value={selectedYear.toString()}
+                onValueChange={(value) => setSelectedYear(Number(value))}
+              >
+                <SelectTrigger className="h-10 w-full sm:w-40 border-gray-200 dark:border-gray-600 dark:bg-gray-700/50 dark:text-gray-200">
+                  <SelectValue placeholder="Select year" />
+                </SelectTrigger>
+                <SelectContent>
+                  {years.map((year) => (
+                    <SelectItem key={year} value={year.toString()}>
+                      {year}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {searchTerm.trim() !== "" && (
+                <Button
+                  type="button"
+                  variant="neutralOutline"
+                  size="sm"
+                  onClick={() => setSearchTerm("")}
+                  className="h-10 shrink-0 gap-1.5 text-gray-600 dark:text-gray-300"
+                >
+                  <X className="h-4 w-4" />
+                  Clear
+                </Button>
+              )}
+            </div>
           </div>
-        </CardContent>
-      </Card>
-
-      <div className="flex items-center space-x-3 mb-4">
-        <Label>Select Year</Label>
-        <Select
-          value={selectedYear.toString()}
-          onValueChange={(value) => setSelectedYear(Number(value))}
-        >
-          <SelectTrigger className="w-40">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {years.map((year) => (
-              <SelectItem key={year} value={year.toString()}>
-                {year}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-
-      {/* Suppliers Table */}
-      <Card className="dark:bg-gray-800 dark:border-gray-700">
-        <CardHeader>
-          <CardTitle>Suppliers ({filteredSuppliers.length})</CardTitle>
-          <CardDescription>Manage your supplier contacts and information</CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
+        <CardContent className="p-0">
+          <div className="overflow-x-auto border-t border-gray-100 dark:border-gray-700">
             <Table>
               <TableHeader>
-                <TableRow className="bg-gray-50 dark:bg-gray-700">
+                <TableRow className="bg-gray-50 dark:bg-gray-700/80 hover:bg-gray-50 dark:hover:bg-gray-700/80">
                   <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">Supplier Name</TableHead>
                   <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">Contact</TableHead>
                   <TableHead className="font-semibold text-lg text-gray-700 dark:text-gray-300">Total Spent</TableHead>
@@ -567,7 +579,9 @@ export default function SuppliersPage() {
             </Table>
             {filteredSuppliers.length === 0 && (
               <div className="text-center py-8">
-                <p className="text-gray-500">No suppliers found</p>
+                <p className="text-gray-500">
+                  {searchTerm.trim() ? "No suppliers match your search" : "No suppliers found"}
+                </p>
               </div>
             )}
           </div>

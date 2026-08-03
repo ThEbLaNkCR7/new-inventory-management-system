@@ -9,6 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import {
   Table,
   TableBody,
@@ -20,7 +21,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { Purchase } from "@/contexts/InventoryContext";
 import { formatNepaliDateForTable, toTitleCase } from "@/lib/utils";
-import { Building2, Edit, Eye, Trash2, TrendingUp, Users } from "lucide-react";
+import { Building2, Edit, Eye, Search, Trash2, TrendingUp, Users, X } from "lucide-react";
 import React from "react";
 import { formatPurchaseTotal } from "./utils";
 
@@ -33,6 +34,8 @@ interface PurchasesTableProps {
     individualCount: number;
     companyCount: number;
   };
+  searchTerm: string;
+  onSearchTermChange: (value: string) => void;
   onView: (purchase: Purchase) => void;
   onEdit: (purchase: Purchase) => void;
   onDelete: (purchase: Purchase) => void;
@@ -44,6 +47,8 @@ export default function PurchasesTable({
   activeTab,
   onActiveTabChange,
   purchasesCounts,
+  searchTerm,
+  onSearchTermChange,
   onView,
   onEdit,
   onDelete,
@@ -170,12 +175,38 @@ export default function PurchasesTable({
   );
 
   return (
-    <Card className="dark:bg-gray-800 dark:border-gray-700">
-      <CardHeader>
-        <CardTitle>Purchase Orders</CardTitle>
-        <CardDescription>
+    <Card className="dark:bg-gray-800 dark:border-gray-700 overflow-hidden">
+      <CardHeader className="pb-4">
+        <CardTitle className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+          Purchase Orders
+        </CardTitle>
+        <CardDescription className="text-gray-600 dark:text-gray-400 mt-1">
           Track all purchase orders and inventory restocking by supplier type
         </CardDescription>
+
+        <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
+            <Input
+              placeholder="Search by supplier, product, or invoice..."
+              value={searchTerm}
+              onChange={(e) => onSearchTermChange(e.target.value)}
+              className="h-10 pl-10 border-gray-200 dark:border-gray-600 dark:bg-gray-700/50 dark:text-gray-200 focus:border-slate-400"
+            />
+          </div>
+          {searchTerm.trim() !== "" && (
+            <Button
+              type="button"
+              variant="neutralOutline"
+              size="sm"
+              onClick={() => onSearchTermChange("")}
+              className="h-10 shrink-0 gap-1.5 text-gray-600 dark:text-gray-300"
+            >
+              <X className="h-4 w-4" />
+              Clear
+            </Button>
+          )}
+        </div>
       </CardHeader>
       <CardContent>
         <Tabs
