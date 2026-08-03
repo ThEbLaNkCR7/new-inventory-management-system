@@ -459,64 +459,77 @@ export default function LedgerAccountsPage() {
                   <TableHead>Account Type</TableHead>
                   <TableHead>Address</TableHead>
                   <TableHead>Opening Balance</TableHead>
+                  <TableHead>Balance</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredAccounts.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                       {ledgerAccounts.length === 0
                         ? 'No ledger accounts yet. Click "Add Ledger Account" to get started.'
                         : "No accounts match your search or filter."}
                     </TableCell>
                   </TableRow>
                 )}
-                {paginatedAccounts.map((account) => (
-                  <TableRow key={account.id}>
-                    <TableCell className="font-medium">{account.name}</TableCell>
-                    <TableCell>
-                      <Badge variant={account.accountType === "supplier" ? "secondary" : "default"}>
-                        {getAccountTypeShortLabel(account.accountType)}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>{account.address || "-"}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline">
-                        Rs. {account.openingBalance.toLocaleString("en-IN", { minimumFractionDigits: 2 })}{" "}
-                        {account.openingBalanceType}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => openAddEntry(account)}
-                          title="Add Entry"
-                        >
-                          <Plus className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => openViewReport(account)}
-                          title="View Ledger"
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleDeleteAccount(account)}
-                          title="Delete"
-                        >
-                          <Trash2 className="h-4 w-4 text-red-500" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {paginatedAccounts.map((account) => {
+                  const closing = getAccountClosingBalance(
+                    account,
+                    getEntriesForAccount(account.id),
+                  )
+                  return (
+                    <TableRow key={account.id}>
+                      <TableCell className="font-medium">{account.name}</TableCell>
+                      <TableCell>
+                        <Badge variant={account.accountType === "supplier" ? "secondary" : "default"}>
+                          {getAccountTypeShortLabel(account.accountType)}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>{account.address || "-"}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline">
+                          Rs. {account.openingBalance.toLocaleString("en-IN", { minimumFractionDigits: 2 })}{" "}
+                          {account.openingBalanceType}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline">
+                          Rs. {closing.value.toLocaleString("en-IN", { minimumFractionDigits: 2 })}{" "}
+                          {closing.side}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => openAddEntry(account)}
+                            title="Add Entry"
+                          >
+                            <Plus className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => openViewReport(account)}
+                            title="View Ledger"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleDeleteAccount(account)}
+                            title="Delete"
+                          >
+                            <Trash2 className="h-4 w-4 text-red-500" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
               </TableBody>
             </Table>
           </div>

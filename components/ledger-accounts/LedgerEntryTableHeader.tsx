@@ -8,7 +8,7 @@ export default function LedgerEntryTableHeader() {
         {LEDGER_TABLE_HEADERS.map((header, index) => (
           <TableHead
             key={header}
-            className={index >= 6 ? "text-right whitespace-nowrap" : "whitespace-nowrap"}
+            className={index >= 5 ? "text-right whitespace-nowrap" : "whitespace-nowrap"}
           >
             {header}
           </TableHead>

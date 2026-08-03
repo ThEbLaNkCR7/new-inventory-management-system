@@ -56,7 +56,6 @@ export function getAccountTypeShortLabel(accountType: LedgerAccountType = "custo
 }
 
 export const LEDGER_TABLE_HEADERS = [
-  "Nepali Date",
   "English Date",
   "Type",
   "Bill No.",
@@ -191,6 +190,27 @@ export function getAccountClosingBalance(
     account.accountType ?? "customer",
   )
   return { value: report.closingBalance, side: report.closingSide }
+}
+
+/** Totals with opening + closing on opposite sides so debit === credit. */
+export function getEqualizedTotals(
+  openingBalance: number,
+  openingType: BalanceSide,
+  totalDebit: number,
+  totalCredit: number,
+  closingBalance: number,
+  closingSide: BalanceSide,
+): { debit: number; credit: number } {
+  return {
+    debit:
+      totalDebit +
+      (openingType === "Dr" ? openingBalance : 0) +
+      (closingSide === "Cr" ? closingBalance : 0),
+    credit:
+      totalCredit +
+      (openingType === "Cr" ? openingBalance : 0) +
+      (closingSide === "Dr" ? closingBalance : 0),
+  }
 }
 
 export function validateLedgerAccountForm(data: {

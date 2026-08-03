@@ -3,6 +3,7 @@ import {
   LEDGER_TABLE_HEADERS,
   formatRs,
   getAccountTypeLabel,
+  getEqualizedTotals,
   type LedgerReport,
 } from "@/components/ledger-accounts/utils"
 import * as XLSX from "xlsx"
@@ -31,7 +32,6 @@ export function exportLedgerReportToExcel(
 
   report?.rows.forEach((row) => {
     aoa.push([
-      row.nepaliDateDisplay,
       row.englishDateDisplay,
       row.type,
       row.voucherBillNo || "-",
@@ -44,7 +44,15 @@ export function exportLedgerReportToExcel(
   })
 
   if (report && report.rows.length > 0) {
-    aoa.push(["Grand Total", "", "", "", "", "", report.totalDebit, report.totalCredit, ""])
+    const totals = getEqualizedTotals(
+      account.openingBalance,
+      account.openingBalanceType,
+      report.totalDebit,
+      report.totalCredit,
+      report.closingBalance,
+      report.closingSide,
+    )
+    aoa.push(["", "", "", "", "", totals.debit, totals.credit, ""])
   }
 
   aoa.push([])
@@ -58,11 +66,9 @@ export function exportLedgerReportToExcel(
     ])
   }
   aoa.push([])
-  aoa.push(["Note: Dr = Debit Balance, Cr = Credit Balance"])
 
   const worksheet = XLSX.utils.aoa_to_sheet(aoa)
   worksheet["!cols"] = [
-    { wch: 14 },
     { wch: 14 },
     { wch: 10 },
     { wch: 16 },
@@ -74,9 +80,9 @@ export function exportLedgerReportToExcel(
   ]
 
   if (worksheet["!merges"]) {
-    worksheet["!merges"].push({ s: { r: 0, c: 0 }, e: { r: 0, c: 8 } })
+    worksheet["!merges"].push({ s: { r: 0, c: 0 }, e: { r: 0, c: 7 } })
   } else {
-    worksheet["!merges"] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 8 } }]
+    worksheet["!merges"] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 7 } }]
   }
 
   const workbook = XLSX.utils.book_new()
@@ -171,14 +177,13 @@ export function buildLedgerPrintHtml(
 ): string {
   const headerCells = LEDGER_TABLE_HEADERS.map(
     (h, i) =>
-      `<th class="${i >= 6 ? "text-right" : ""}">${h}</th>`,
+      `<th class="${i >= 5 ? "text-right" : ""}">${h}</th>`,
   ).join("")
 
   const rows =
     report?.rows
       .map(
         (row) => `<tr>
-      <td>${row.nepaliDateDisplay}</td>
       <td>${row.englishDateDisplay}</td>
       <td>${row.type}</td>
       <td>${row.voucherBillNo || "-"}</td>
@@ -190,17 +195,28 @@ export function buildLedgerPrintHtml(
     </tr>`,
       )
       .join("") ||
-    `<tr><td colspan="9" style="text-align:center;color:#6b7280;">No entries found.</td></tr>`
+    `<tr><td colspan="8" style="text-align:center;color:#6b7280;">No entries found.</td></tr>`
 
-  const grandTotalRow =
+  const equalized =
     report && report.rows.length > 0
-      ? `<tr class="border-t-2">
-      <td colspan="6">Grand Total</td>
-      <td class="text-right">${formatRs(report.totalDebit)}</td>
-      <td class="text-right">${formatRs(report.totalCredit)}</td>
+      ? getEqualizedTotals(
+          account.openingBalance,
+          account.openingBalanceType,
+          report.totalDebit,
+          report.totalCredit,
+          report.closingBalance,
+          report.closingSide,
+        )
+      : null
+
+  const totalRow = equalized
+    ? `<tr class="border-t-2">
+      <td colspan="5"></td>
+      <td class="text-right">${formatRs(equalized.debit)}</td>
+      <td class="text-right">${formatRs(equalized.credit)}</td>
       <td></td>
     </tr>`
-      : ""
+    : ""
 
   const closingSummary =
     report && report.rows.length > 0
@@ -225,7 +241,7 @@ export function buildLedgerPrintHtml(
     </div>
     <table>
       <thead><tr>${headerCells}</tr></thead>
-      <tbody>${rows}${grandTotalRow}</tbody>
+      <tbody>${rows}${totalRow}</tbody>
     </table>
     <div class="summary-grid">
       <div>
@@ -242,6 +258,5 @@ export function buildLedgerPrintHtml(
       </div>
       ${closingSummary}
     </div>
-    <p class="note">Note: Dr = Debit Balance, Cr = Credit Balance</p>
   </div>`
 }

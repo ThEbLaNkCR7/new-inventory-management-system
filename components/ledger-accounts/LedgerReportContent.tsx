@@ -1,7 +1,12 @@
 "use client"
 
 import LedgerEntryTableHeader from "@/components/ledger-accounts/LedgerEntryTableHeader"
-import { formatRs, getAccountTypeLabel, type LedgerReport } from "@/components/ledger-accounts/utils"
+import {
+  formatRs,
+  getAccountTypeLabel,
+  getEqualizedTotals,
+  type LedgerReport,
+} from "@/components/ledger-accounts/utils"
 import DataPagination from "@/components/ui/data-pagination"
 import type { LedgerAccount } from "@/contexts/LedgerContext"
 import { usePagination } from "@/hooks/usePagination"
@@ -18,7 +23,7 @@ export default function LedgerReportContent({
   report,
   dateRangeLabel,
 }: LedgerReportContentProps) {
-  const columnCount = 9
+  const columnCount = 8
   const rows = report?.rows ?? []
   const {
     page,
@@ -34,6 +39,18 @@ export default function LedgerReportContent({
     pageSize: 15,
     resetKey: `${account.id}|${rows.length}`,
   })
+
+  const equalizedTotals =
+    report && rows.length > 0
+      ? getEqualizedTotals(
+          account.openingBalance,
+          account.openingBalanceType,
+          report.totalDebit,
+          report.totalCredit,
+          report.closingBalance,
+          report.closingSide,
+        )
+      : null
 
   return (
     <div className="ledger-report-content border rounded-lg p-4 bg-white dark:bg-gray-900 text-sm space-y-2">
@@ -68,7 +85,6 @@ export default function LedgerReportContent({
             )}
             {paginatedItems.map((row) => (
               <TableRow key={row.id}>
-                <TableCell>{row.nepaliDateDisplay}</TableCell>
                 <TableCell>{row.englishDateDisplay}</TableCell>
                 <TableCell>{row.type}</TableCell>
                 <TableCell>{row.voucherBillNo || "-"}</TableCell>
@@ -85,11 +101,11 @@ export default function LedgerReportContent({
                 </TableCell>
               </TableRow>
             ))}
-            {report && rows.length > 0 && (
+            {equalizedTotals && (
               <TableRow className="font-bold border-t-2">
-                <TableCell colSpan={6}>Grand Total</TableCell>
-                <TableCell className="text-right">{formatRs(report.totalDebit)}</TableCell>
-                <TableCell className="text-right">{formatRs(report.totalCredit)}</TableCell>
+                <TableCell colSpan={5} />
+                <TableCell className="text-right">{formatRs(equalizedTotals.debit)}</TableCell>
+                <TableCell className="text-right">{formatRs(equalizedTotals.credit)}</TableCell>
                 <TableCell />
               </TableRow>
             )}
@@ -137,10 +153,6 @@ export default function LedgerReportContent({
           </div>
         )}
       </div>
-
-      <p className="text-xs text-muted-foreground pt-2">
-        Note: Dr = Debit Balance, Cr = Credit Balance
-      </p>
     </div>
   )
 }
