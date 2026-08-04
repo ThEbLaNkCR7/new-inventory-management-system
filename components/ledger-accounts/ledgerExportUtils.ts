@@ -3,7 +3,7 @@ import {
   LEDGER_TABLE_HEADERS,
   formatRs,
   getAccountTypeLabel,
-  getEqualizedTotals,
+  getLedgerFooterTotals,
   type LedgerReport,
 } from "@/components/ledger-accounts/utils"
 import * as XLSX from "xlsx"
@@ -14,12 +14,28 @@ function sanitizeFilename(name: string) {
   return name.replace(/[^\w\-]+/g, "_").replace(/_+/g, "_")
 }
 
+function buildFooterTotals(account: LedgerAccount, report: LedgerReport | null) {
+  if (!report) return null
+  const hasOpening = account.openingBalance > 0
+  if (!hasOpening && report.rows.length === 0) return null
+  return getLedgerFooterTotals(
+    account.openingBalance,
+    account.openingBalanceType,
+    report.totalDebit,
+    report.totalCredit,
+    report.closingBalance,
+    report.closingSide,
+  )
+}
+
 export function exportLedgerReportToExcel(
   account: LedgerAccount,
   report: LedgerReport | null,
   dateRangeLabel: string,
 ) {
   const aoa: (string | number)[][] = []
+  const hasOpening = account.openingBalance > 0
+  const footer = buildFooterTotals(account, report)
 
   aoa.push([COMPANY_NAME])
   if (account.address) aoa.push([account.address])
@@ -29,6 +45,19 @@ export function exportLedgerReportToExcel(
   aoa.push([`Account Type : ${getAccountTypeLabel(account.accountType)}`])
   aoa.push([])
   aoa.push([...LEDGER_TABLE_HEADERS])
+
+  if (hasOpening) {
+    aoa.push([
+      "",
+      "Opening",
+      "",
+      "",
+      "Opening Balance",
+      account.openingBalanceType === "Dr" ? account.openingBalance : "",
+      account.openingBalanceType === "Cr" ? account.openingBalance : "",
+      "",
+    ])
+  }
 
   report?.rows.forEach((row) => {
     aoa.push([
@@ -43,23 +72,44 @@ export function exportLedgerReportToExcel(
     ])
   })
 
-  if (report && report.rows.length > 0) {
-    const totals = getEqualizedTotals(
-      account.openingBalance,
-      account.openingBalanceType,
-      report.totalDebit,
-      report.totalCredit,
-      report.closingBalance,
-      report.closingSide,
-    )
-    aoa.push(["", "", "", "", "", totals.debit, totals.credit, ""])
+  if (footer && report) {
+    aoa.push([
+      "",
+      "",
+      "",
+      "",
+      "Total",
+      footer.periodDebit,
+      footer.periodCredit,
+      "",
+    ])
+    aoa.push([
+      "",
+      "",
+      "",
+      "",
+      "Closing Balance",
+      footer.balancingDebit > 0 ? footer.balancingDebit : "",
+      footer.balancingCredit > 0 ? footer.balancingCredit : "",
+      `${formatRs(report.closingBalance)} ${report.closingSide}`,
+    ])
+    aoa.push([
+      "",
+      "",
+      "",
+      "",
+      "Grand Total",
+      footer.equalizedDebit,
+      footer.equalizedCredit,
+      "",
+    ])
   }
 
   aoa.push([])
   aoa.push(["Opening Balance", `Rs. ${formatRs(account.openingBalance)} ${account.openingBalanceType}`])
-  aoa.push(["Total Debit", `Rs. ${formatRs(report?.totalDebit ?? 0)}`])
-  aoa.push(["Total Credit", `Rs. ${formatRs(report?.totalCredit ?? 0)}`])
-  if (report && report.rows.length > 0) {
+  aoa.push(["Total Debit", `Rs. ${formatRs(footer?.periodDebit ?? report?.totalDebit ?? 0)}`])
+  aoa.push(["Total Credit", `Rs. ${formatRs(footer?.periodCredit ?? report?.totalCredit ?? 0)}`])
+  if (report && (hasOpening || report.rows.length > 0)) {
     aoa.push([
       "Closing Balance",
       `Rs. ${formatRs(report.closingBalance)} ${report.closingSide}`,
@@ -134,7 +184,12 @@ export function printLedgerReport(htmlContent: string, title: string) {
       }
       th { background: #f3f4f6; font-weight: 600; }
       td.text-right, th.text-right { text-align: right; }
-      .border-t-2 td { border-top: 2px solid #9ca3af; font-weight: 700; }
+      .border-t-2 td { border-top: 2px solid #9ca3af; }
+      .grand-total td {
+        border-top: 2px solid #111;
+        border-bottom: 3px double #111;
+        font-weight: 700;
+      }
       .summary-grid {
         display: grid;
         grid-template-columns: repeat(4, 1fr);
@@ -180,7 +235,24 @@ export function buildLedgerPrintHtml(
       `<th class="${i >= 5 ? "text-right" : ""}">${h}</th>`,
   ).join("")
 
-  const rows =
+  const hasOpening = account.openingBalance > 0
+  const showBody = hasOpening || (report?.rows.length ?? 0) > 0
+  const footer = buildFooterTotals(account, report)
+
+  const openingRow = hasOpening
+    ? `<tr>
+      <td></td>
+      <td>Opening</td>
+      <td></td>
+      <td></td>
+      <td>Opening Balance</td>
+      <td class="text-right">${account.openingBalanceType === "Dr" ? formatRs(account.openingBalance) : ""}</td>
+      <td class="text-right">${account.openingBalanceType === "Cr" ? formatRs(account.openingBalance) : ""}</td>
+      <td></td>
+    </tr>`
+    : ""
+
+  const entryRows =
     report?.rows
       .map(
         (row) => `<tr>
@@ -194,32 +266,36 @@ export function buildLedgerPrintHtml(
       <td class="text-right">${formatRs(row.balance)} ${row.balanceSide}</td>
     </tr>`,
       )
-      .join("") ||
-    `<tr><td colspan="8" style="text-align:center;color:#6b7280;">No entries found.</td></tr>`
+      .join("") || ""
 
-  const equalized =
-    report && report.rows.length > 0
-      ? getEqualizedTotals(
-          account.openingBalance,
-          account.openingBalanceType,
-          report.totalDebit,
-          report.totalCredit,
-          report.closingBalance,
-          report.closingSide,
-        )
-      : null
-
-  const totalRow = equalized
-    ? `<tr class="border-t-2">
-      <td colspan="5"></td>
-      <td class="text-right">${formatRs(equalized.debit)}</td>
-      <td class="text-right">${formatRs(equalized.credit)}</td>
-      <td></td>
-    </tr>`
+  const emptyRow = !showBody
+    ? `<tr><td colspan="8" style="text-align:center;color:#6b7280;">No entries found.</td></tr>`
     : ""
 
+  const totalRows =
+    footer && report
+      ? `<tr class="border-t-2">
+      <td colspan="5" class="text-right font-medium">Total</td>
+      <td class="text-right font-medium">${formatRs(footer.periodDebit)}</td>
+      <td class="text-right font-medium">${formatRs(footer.periodCredit)}</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td colspan="5" class="text-right text-muted-foreground">Closing Balance</td>
+      <td class="text-right">${footer.balancingDebit > 0 ? formatRs(footer.balancingDebit) : ""}</td>
+      <td class="text-right">${footer.balancingCredit > 0 ? formatRs(footer.balancingCredit) : ""}</td>
+      <td class="text-right font-medium">${formatRs(report.closingBalance)} ${report.closingSide}</td>
+    </tr>
+    <tr class="grand-total">
+      <td colspan="5" class="text-right">Grand Total</td>
+      <td class="text-right">${formatRs(footer.equalizedDebit)}</td>
+      <td class="text-right">${formatRs(footer.equalizedCredit)}</td>
+      <td></td>
+    </tr>`
+      : ""
+
   const closingSummary =
-    report && report.rows.length > 0
+    report && showBody
       ? `<div>
       <div class="label">Closing Balance</div>
       <div class="value text-green">Rs. ${formatRs(report.closingBalance)} ${report.closingSide}</div>
@@ -241,7 +317,7 @@ export function buildLedgerPrintHtml(
     </div>
     <table>
       <thead><tr>${headerCells}</tr></thead>
-      <tbody>${rows}${totalRow}</tbody>
+      <tbody>${emptyRow}${openingRow}${entryRows}${totalRows}</tbody>
     </table>
     <div class="summary-grid">
       <div>
@@ -250,11 +326,11 @@ export function buildLedgerPrintHtml(
       </div>
       <div>
         <div class="label">Total Debit</div>
-        <div class="value text-green">Rs. ${formatRs(report?.totalDebit ?? 0)}</div>
+        <div class="value text-green">Rs. ${formatRs(footer?.periodDebit ?? report?.totalDebit ?? 0)}</div>
       </div>
       <div>
         <div class="label">Total Credit</div>
-        <div class="value text-red">Rs. ${formatRs(report?.totalCredit ?? 0)}</div>
+        <div class="value text-red">Rs. ${formatRs(footer?.periodCredit ?? report?.totalCredit ?? 0)}</div>
       </div>
       ${closingSummary}
     </div>

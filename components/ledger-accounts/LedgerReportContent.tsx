@@ -4,7 +4,7 @@ import LedgerEntryTableHeader from "@/components/ledger-accounts/LedgerEntryTabl
 import {
   formatRs,
   getAccountTypeLabel,
-  getEqualizedTotals,
+  getLedgerFooterTotals,
   type LedgerReport,
 } from "@/components/ledger-accounts/utils"
 import DataPagination from "@/components/ui/data-pagination"
@@ -25,6 +25,7 @@ export default function LedgerReportContent({
 }: LedgerReportContentProps) {
   const columnCount = 8
   const rows = report?.rows ?? []
+  const hasOpening = account.openingBalance > 0
   const {
     page,
     setPage,
@@ -40,9 +41,10 @@ export default function LedgerReportContent({
     resetKey: `${account.id}|${rows.length}`,
   })
 
-  const equalizedTotals =
-    report && rows.length > 0
-      ? getEqualizedTotals(
+  const showLedgerBody = hasOpening || rows.length > 0
+  const footerTotals =
+    report && showLedgerBody
+      ? getLedgerFooterTotals(
           account.openingBalance,
           account.openingBalanceType,
           report.totalDebit,
@@ -51,6 +53,9 @@ export default function LedgerReportContent({
           report.closingSide,
         )
       : null
+
+  const isFirstPage = page === 1
+  const isLastPage = page === totalPages || totalPages === 0
 
   return (
     <div className="ledger-report-content border rounded-lg p-4 bg-white dark:bg-gray-900 text-sm space-y-2">
@@ -76,11 +81,27 @@ export default function LedgerReportContent({
         <Table>
           <LedgerEntryTableHeader />
           <TableBody>
-            {rows.length === 0 && (
+            {!showLedgerBody && (
               <TableRow>
                 <TableCell colSpan={columnCount} className="text-center text-muted-foreground">
                   No entries found.
                 </TableCell>
+              </TableRow>
+            )}
+            {isFirstPage && hasOpening && (
+              <TableRow>
+                <TableCell />
+                <TableCell>Opening</TableCell>
+                <TableCell />
+                <TableCell />
+                <TableCell>Opening Balance</TableCell>
+                <TableCell className="text-right">
+                  {account.openingBalanceType === "Dr" ? formatRs(account.openingBalance) : ""}
+                </TableCell>
+                <TableCell className="text-right">
+                  {account.openingBalanceType === "Cr" ? formatRs(account.openingBalance) : ""}
+                </TableCell>
+                <TableCell />
               </TableRow>
             )}
             {paginatedItems.map((row) => (
@@ -101,13 +122,51 @@ export default function LedgerReportContent({
                 </TableCell>
               </TableRow>
             ))}
-            {equalizedTotals && (
-              <TableRow className="font-bold border-t-2">
-                <TableCell colSpan={5} />
-                <TableCell className="text-right">{formatRs(equalizedTotals.debit)}</TableCell>
-                <TableCell className="text-right">{formatRs(equalizedTotals.credit)}</TableCell>
-                <TableCell />
-              </TableRow>
+            {footerTotals && isLastPage && (
+              <>
+                <TableRow className="border-t-2">
+                  <TableCell colSpan={5} className="text-right font-medium">
+                    Total
+                  </TableCell>
+                  <TableCell className="text-right font-medium">
+                    {formatRs(footerTotals.periodDebit)}
+                  </TableCell>
+                  <TableCell className="text-right font-medium">
+                    {formatRs(footerTotals.periodCredit)}
+                  </TableCell>
+                  <TableCell />
+                </TableRow>
+                <TableRow>
+                  <TableCell colSpan={5} className="text-right text-muted-foreground">
+                    Closing Balance
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {footerTotals.balancingDebit > 0
+                      ? formatRs(footerTotals.balancingDebit)
+                      : ""}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {footerTotals.balancingCredit > 0
+                      ? formatRs(footerTotals.balancingCredit)
+                      : ""}
+                  </TableCell>
+                  <TableCell className="text-right font-medium">
+                    {formatRs(report!.closingBalance)} {report!.closingSide}
+                  </TableCell>
+                </TableRow>
+                <TableRow className="font-bold border-t-2 border-b-4 border-double">
+                  <TableCell colSpan={5} className="text-right">
+                    Grand Total
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {formatRs(footerTotals.equalizedDebit)}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {formatRs(footerTotals.equalizedCredit)}
+                  </TableCell>
+                  <TableCell />
+                </TableRow>
+              </>
             )}
           </TableBody>
         </Table>
@@ -135,16 +194,16 @@ export default function LedgerReportContent({
         <div className="rounded-lg border bg-muted/30 p-3">
           <p className="text-xs text-muted-foreground mb-1">Total Debit</p>
           <p className="font-semibold text-green-700 dark:text-green-400">
-            Rs. {formatRs(report?.totalDebit ?? 0)}
+            Rs. {formatRs(footerTotals?.periodDebit ?? report?.totalDebit ?? 0)}
           </p>
         </div>
         <div className="rounded-lg border bg-muted/30 p-3">
           <p className="text-xs text-muted-foreground mb-1">Total Credit</p>
           <p className="font-semibold text-red-700 dark:text-red-400">
-            Rs. {formatRs(report?.totalCredit ?? 0)}
+            Rs. {formatRs(footerTotals?.periodCredit ?? report?.totalCredit ?? 0)}
           </p>
         </div>
-        {report && report.rows.length > 0 && (
+        {report && showLedgerBody && (
           <div className="rounded-lg border bg-green-50 dark:bg-green-950/30 p-3">
             <p className="text-xs text-muted-foreground mb-1">Closing Balance</p>
             <p className="font-semibold text-green-700 dark:text-green-400">

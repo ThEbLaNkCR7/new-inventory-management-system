@@ -192,6 +192,42 @@ export function getAccountClosingBalance(
   return { value: report.closingBalance, side: report.closingSide }
 }
 
+/**
+ * Classic ledger footer (like Tally):
+ * 1) Period totals = opening + entry debits/credits
+ * 2) Closing balance as balancing figure on the opposite side
+ * 3) Equalized grand totals (debit === credit)
+ */
+export function getLedgerFooterTotals(
+  openingBalance: number,
+  openingType: BalanceSide,
+  totalDebit: number,
+  totalCredit: number,
+  closingBalance: number,
+  closingSide: BalanceSide,
+): {
+  periodDebit: number
+  periodCredit: number
+  balancingDebit: number
+  balancingCredit: number
+  equalizedDebit: number
+  equalizedCredit: number
+} {
+  const periodDebit = totalDebit + (openingType === "Dr" ? openingBalance : 0)
+  const periodCredit = totalCredit + (openingType === "Cr" ? openingBalance : 0)
+  const balancingDebit = closingSide === "Cr" ? closingBalance : 0
+  const balancingCredit = closingSide === "Dr" ? closingBalance : 0
+
+  return {
+    periodDebit,
+    periodCredit,
+    balancingDebit,
+    balancingCredit,
+    equalizedDebit: periodDebit + balancingDebit,
+    equalizedCredit: periodCredit + balancingCredit,
+  }
+}
+
 /** Totals with opening + closing on opposite sides so debit === credit. */
 export function getEqualizedTotals(
   openingBalance: number,
@@ -201,16 +237,15 @@ export function getEqualizedTotals(
   closingBalance: number,
   closingSide: BalanceSide,
 ): { debit: number; credit: number } {
-  return {
-    debit:
-      totalDebit +
-      (openingType === "Dr" ? openingBalance : 0) +
-      (closingSide === "Cr" ? closingBalance : 0),
-    credit:
-      totalCredit +
-      (openingType === "Cr" ? openingBalance : 0) +
-      (closingSide === "Dr" ? closingBalance : 0),
-  }
+  const footer = getLedgerFooterTotals(
+    openingBalance,
+    openingType,
+    totalDebit,
+    totalCredit,
+    closingBalance,
+    closingSide,
+  )
+  return { debit: footer.equalizedDebit, credit: footer.equalizedCredit }
 }
 
 export function validateLedgerAccountForm(data: {
