@@ -14,15 +14,38 @@ export default function DashboardHome() {
     clients,
     suppliers,
     getLowStockProducts,
-    getTotalSales,
     getTotalPurchases,
-    getProfit,
   } = useInventory()
 
   const lowStockProducts = getLowStockProducts()
-  const totalSales = getTotalSales()
   const totalPurchases = getTotalPurchases()
-  const profit = getProfit()
+
+  const getSaleAmount = (sale: (typeof sales)[number]) =>
+    (sale.items || []).reduce(
+      (sum, item) => sum + (item.quantitySold || 0) * (item.salePrice || 0),
+      0,
+    )
+
+  const isSiteSale = (sale: (typeof sales)[number]) =>
+    (sale.saleType || "client") === "site"
+
+  // Site sales with pending payment only
+  const projectChemicalExpenses = sales
+    .filter(
+      (sale) =>
+        isSiteSale(sale) && (sale.paymentStatus || "Pending") === "Pending",
+    )
+    .reduce((total, sale) => total + getSaleAmount(sale), 0)
+
+  // Total sales excludes pending site sales; when received they are included
+  const totalSales = sales
+    .filter((sale) => {
+      if (!isSiteSale(sale)) return true
+      return (sale.paymentStatus || "Pending") === "Received"
+    })
+    .reduce((total, sale) => total + getSaleAmount(sale), 0)
+
+  const profit = totalSales - totalPurchases
 
   // Calculate additional metrics
   const totalProducts = new Set(products.map(p => p.name)).size
@@ -155,7 +178,15 @@ export default function DashboardHome() {
       icon: TrendingUp,
       color: "text-gray-800 dark:text-gray-100",
       bgColor: "bg-white dark:bg-gray-800",
-      description: "All time revenue",
+      description: "Client sales + received site payments",
+    },
+    {
+      title: "Project Chemical Expenses",
+      value: `Rs ${projectChemicalExpenses.toLocaleString()}`,
+      icon: DollarSign,
+      color: "text-gray-800 dark:text-gray-100",
+      bgColor: "bg-white dark:bg-gray-800",
+      description: "Pending site sales only",
     },
     {
       title: "Total Purchases",
@@ -335,6 +366,24 @@ export default function DashboardHome() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Total Sales */}
           {stats.filter(s => s.title === "Total Sales").map((stat, index) => {
+            const Icon = stat.icon
+            return (
+              <Card key={index} className="shadow-sm hover:shadow-md transition-shadow duration-200 border-0 bg-white/90 dark:bg-gray-800 dark:border-gray-700">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-semibold text-gray-900 dark:text-gray-200">{stat.title}</CardTitle>
+                  <div className={`p-2 rounded-full ${stat.bgColor} shadow-md transition-all duration-300 hover:scale-110`}>
+                    <Icon className={`h-5 w-5 ${stat.color}`} />
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className={`text-xl font-bold ${stat.color}`}>{stat.value}</div>
+                  <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">{stat.description}</p>
+                </CardContent>
+              </Card>
+            )
+          })}
+          {/* Project Chemical Expenses */}
+          {stats.filter(s => s.title === "Project Chemical Expenses").map((stat, index) => {
             const Icon = stat.icon
             return (
               <Card key={index} className="shadow-sm hover:shadow-md transition-shadow duration-200 border-0 bg-white/90 dark:bg-gray-800 dark:border-gray-700">
