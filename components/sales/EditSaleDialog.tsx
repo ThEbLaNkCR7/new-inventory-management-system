@@ -74,7 +74,7 @@ export default function EditSaleDialog({
     if (formData.items?.length) {
       const updatedItems = [...formData.items];
       updatedItems[0] = { ...updatedItems[0], ...updates };
-      onFormChange({ ...formData, items: updatedItems, ...updates });
+      onFormChange({ ...formData, items: updatedItems });
       return;
     }
     onFormChange({ ...formData, ...updates });

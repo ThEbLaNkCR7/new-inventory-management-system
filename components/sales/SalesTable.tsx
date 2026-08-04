@@ -31,7 +31,12 @@ import { usePagination } from "@/hooks/usePagination";
 import { Building2, Edit, Eye, Filter, Search, Trash2, TrendingUp, Users, X } from "lucide-react";
 import React from "react";
 import DataPagination from "@/components/ui/data-pagination";
-import { formatSaleTotal } from "./utils";
+import { formatSaleTotal, getSaleTotal } from "./utils";
+
+type SaleGroup = {
+  client: string;
+  sales: any[];
+};
 
 interface SalesTableProps {
   filteredSales: any[];
@@ -71,9 +76,11 @@ export default function SalesTable({
   onView,
   onEdit,
   onDelete,
-  onProductClick,
-  onClientClick,
+  onProductClick: _onProductClick,
+  onClientClick: _onClientClick,
 }: SalesTableProps) {
+  const [selectedSales, setSelectedSales] = React.useState<Record<string, string>>({});
+
   const tabSales = React.useMemo(() => {
     if (activeTab === "individual") {
       return filteredSales.filter((s) => s.clientType === "Individual");
@@ -85,6 +92,22 @@ export default function SalesTable({
 
     return filteredSales;
   }, [filteredSales, activeTab]);
+
+  const groupedSales = React.useMemo(() => {
+    const groups = new Map<string, any[]>();
+
+    tabSales.forEach((sale) => {
+      const clientKey = sale.client || "Unknown";
+      const existing = groups.get(clientKey) || [];
+      existing.push(sale);
+      groups.set(clientKey, existing);
+    });
+
+    return Array.from(groups.entries()).map(([client, sales]) => ({
+      client,
+      sales,
+    })) as SaleGroup[];
+  }, [tabSales]);
 
   const hasActiveFilters =
     searchTerm.trim() !== "" ||
@@ -104,10 +127,10 @@ export default function SalesTable({
     setPageSize,
     totalItems,
     totalPages,
-    paginatedItems: paginatedSales,
+    paginatedItems: paginatedGroups,
     startItem,
     endItem,
-  } = usePagination(tabSales, {
+  } = usePagination(groupedSales, {
     resetKey: `${searchTerm}|${activeTab}|${saleTypeFilter}|${paymentStatusFilter}`,
   });
 
@@ -131,63 +154,118 @@ export default function SalesTable({
     );
   };
 
+  const formatSaleOptionLabel = (sale: any) => {
+    const date = formatNepaliDateForTable(sale.saleDate);
+    const type = formatSaleType(sale.saleType);
+    const status = sale.paymentStatus || "Pending";
+    const total = formatSaleTotal(sale);
+    return `${date} · ${type} · ${status} · Rs ${total}`;
+  };
+
+  const getSelectedSale = (group: SaleGroup) => {
+    const selectedId = selectedSales[group.client] || group.sales[0]?.id;
+    return group.sales.find((sale) => sale.id === selectedId) || group.sales[0];
+  };
+
   const renderSaleRows = () =>
-    paginatedSales.map((sale) => (
-      <TableRow
-        key={sale.id}
-        className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-150"
-      >
-        <TableCell className="font-medium">{sale.items?.length || 0}</TableCell>
-        <TableCell className="font-medium">
-          <span
-            className="text-gray-700 dark:text-gray-100 cursor-pointer hover:text-teal-600 dark:hover:text-teal-400 transition-colors"
-            onClick={() => onClientClick(sale.client)}
-          >
-            {toTitleCase(sale.client)}
-          </span>
-        </TableCell>
-        <TableCell className="font-medium">{formatSaleType(sale.saleType)}</TableCell>
-        <TableCell>{paymentStatusBadge(sale.paymentStatus)}</TableCell>
-        <TableCell className="font-medium">
-          {sale.items?.reduce(
-            (total: number, item: any) => total + (item.quantitySold || 0),
-            0,
-          ) || 0}
-        </TableCell>
-        <TableCell className="text-gray-700">Rs {formatSaleTotal(sale)}</TableCell>
-        <TableCell className="text-gray-700">
-          {formatNepaliDateForTable(sale.saleDate)}
-        </TableCell>
-        <TableCell>
-          <div className="flex space-x-2">
-            <Button
-              size="sm"
-              variant="neutralOutline"
-              onClick={() => onView(sale)}
-              className="hover:bg-blue-50 hover:border-blue-300 dark:hover:bg-blue-900/20 dark:hover:border-blue-600 text-blue-600 dark:text-blue-400 transition-colors"
-            >
-              <Eye className="h-4 w-4" />
-            </Button>
-            <Button
-              size="sm"
-              variant="neutralOutline"
-              onClick={() => onEdit(sale)}
-              className="hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
-            >
-              <Edit className="h-4 w-4" />
-            </Button>
-            <Button
-              size="sm"
-              variant="neutralOutline"
-              onClick={() => onDelete(sale)}
-              className="hover:bg-red-50 hover:border-red-300 dark:hover:bg-red-900/20 dark:hover:border-red-600 text-red-600 dark:text-red-400 transition-colors"
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          </div>
-        </TableCell>
-      </TableRow>
-    ));
+    paginatedGroups.map((group) => {
+      const selectedSale = getSelectedSale(group);
+      if (!selectedSale) return null;
+
+      const itemCount = selectedSale.items?.length || 0;
+      const quantity =
+        selectedSale.items?.reduce(
+          (total: number, item: any) => total + (item.quantitySold || 0),
+          0,
+        ) || 0;
+
+      return (
+        <TableRow
+          key={group.client}
+          className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-150"
+        >
+          <TableCell className="font-medium">{itemCount}</TableCell>
+          <TableCell className="font-medium">
+            <div className="space-y-2 min-w-[180px]">
+              <span className="text-gray-700 dark:text-gray-100">
+                {toTitleCase(group.client)}
+              </span>
+              {group.sales.length > 1 ? (
+                <Select
+                  value={selectedSale.id}
+                  onValueChange={(value) =>
+                    setSelectedSales((prev) => ({
+                      ...prev,
+                      [group.client]: value,
+                    }))
+                  }
+                >
+                  <SelectTrigger className="h-8 w-full text-xs border-gray-200 dark:border-gray-600 dark:bg-gray-700/50 dark:text-gray-200">
+                    <SelectValue placeholder="Select sale">
+                      {formatSaleOptionLabel(selectedSale)}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent className="dark:bg-gray-800 dark:border-gray-700">
+                    {group.sales.map((sale) => (
+                      <SelectItem key={sale.id} value={sale.id}>
+                        {formatSaleOptionLabel(sale)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : null}
+              {group.sales.length > 1 && (
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  {group.sales.length} sales · Total Rs{" "}
+                  {group.sales
+                    .reduce((sum, sale) => sum + getSaleTotal(sale), 0)
+                    .toLocaleString()}
+                </p>
+              )}
+            </div>
+          </TableCell>
+          <TableCell className="font-medium">
+            {formatSaleType(selectedSale.saleType)}
+          </TableCell>
+          <TableCell>{paymentStatusBadge(selectedSale.paymentStatus)}</TableCell>
+          <TableCell className="font-medium">{quantity}</TableCell>
+          <TableCell className="text-gray-700">
+            Rs {formatSaleTotal(selectedSale)}
+          </TableCell>
+          <TableCell className="text-gray-700">
+            {formatNepaliDateForTable(selectedSale.saleDate)}
+          </TableCell>
+          <TableCell>
+            <div className="flex space-x-2">
+              <Button
+                size="sm"
+                variant="neutralOutline"
+                onClick={() => onView(selectedSale)}
+                className="hover:bg-blue-50 hover:border-blue-300 dark:hover:bg-blue-900/20 dark:hover:border-blue-600 text-blue-600 dark:text-blue-400 transition-colors"
+              >
+                <Eye className="h-4 w-4" />
+              </Button>
+              <Button
+                size="sm"
+                variant="neutralOutline"
+                onClick={() => onEdit(selectedSale)}
+                className="hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+              >
+                <Edit className="h-4 w-4" />
+              </Button>
+              <Button
+                size="sm"
+                variant="neutralOutline"
+                onClick={() => onDelete(selectedSale)}
+                className="hover:bg-red-50 hover:border-red-300 dark:hover:bg-red-900/20 dark:hover:border-red-600 text-red-600 dark:text-red-400 transition-colors"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+          </TableCell>
+        </TableRow>
+      );
+    });
 
   const tableHeader = (
     <TableHeader>
@@ -349,7 +427,7 @@ export default function SalesTable({
                 {tableHeader}
                 <TableBody>{renderSaleRows()}</TableBody>
               </Table>
-              {tabSales.length === 0 && (
+              {groupedSales.length === 0 && (
                 <div className="text-center py-8 animate-in fade-in-0 duration-300">
                   <p className="text-gray-500">No sales found</p>
                 </div>
@@ -366,7 +444,7 @@ export default function SalesTable({
                 {tableHeader}
                 <TableBody>{renderSaleRows()}</TableBody>
               </Table>
-              {tabSales.length === 0 && (
+              {groupedSales.length === 0 && (
                 <div className="text-center py-8 animate-in fade-in-0 duration-300">
                   <p className="text-gray-500">No individual sales found</p>
                 </div>
@@ -383,7 +461,7 @@ export default function SalesTable({
                 {tableHeader}
                 <TableBody>{renderSaleRows()}</TableBody>
               </Table>
-              {tabSales.length === 0 && (
+              {groupedSales.length === 0 && (
                 <div className="text-center py-8 animate-in fade-in-0 duration-300">
                   <p className="text-gray-500">No company sales found</p>
                 </div>

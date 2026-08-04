@@ -29,12 +29,9 @@ export default function DashboardHome() {
   const isSiteSale = (sale: (typeof sales)[number]) =>
     (sale.saleType || "client") === "site"
 
-  // Site sales with pending payment only
+  // All site sales count as project chemical expenses and stay even after payment is received
   const projectChemicalExpenses = sales
-    .filter(
-      (sale) =>
-        isSiteSale(sale) && (sale.paymentStatus || "Pending") === "Pending",
-    )
+    .filter(isSiteSale)
     .reduce((total, sale) => total + getSaleAmount(sale), 0)
 
   // Total sales excludes pending site sales; when received they are included
@@ -186,7 +183,7 @@ export default function DashboardHome() {
       icon: DollarSign,
       color: "text-gray-800 dark:text-gray-100",
       bgColor: "bg-white dark:bg-gray-800",
-      description: "Pending site sales only",
+      description: "Site sales total (not reduced when received)",
     },
     {
       title: "Total Purchases",

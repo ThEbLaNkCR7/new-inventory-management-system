@@ -559,21 +559,40 @@ export default function SalesPage() {
 
   const handleEdit = (sale: any) => {
     setEditingSale(sale)
-    const product = products.find((p) => p.name === sale.productName)
 
-    const formattedDate = new Date(sale.saleDate).toISOString().split("T")[0]
+    const formattedDate = sale.saleDate
+      ? new Date(sale.saleDate).toISOString().split("T")[0]
+      : ""
+
+    const items =
+      Array.isArray(sale.items) && sale.items.length > 0
+        ? sale.items.map((item: any) => {
+            const productId = String(item.productId?._id || item.productId || "")
+            const product =
+              products.find((p) => p.id === productId) ||
+              products.find((p) => p.name === item.productName)
+
+            return {
+              productId: product?.id || productId,
+              quantitySold: Number(item.quantitySold) || 0,
+              salePrice: Number(item.salePrice) || 0,
+            }
+          })
+        : [
+            {
+              productId:
+                products.find((p) => p.name === sale.productName)?.id || "",
+              quantitySold: Number(sale.quantitySold) || 0,
+              salePrice: Number(sale.salePrice) || 0,
+            },
+          ]
 
     updateForm({
-      items: [
-        {
-          productId: product?.id || "",
-          quantitySold: sale.quantitySold ?? 0,
-          salePrice: sale.salePrice ?? 0,
-        },
-      ],
+      batchId: sale.batchId ? String(sale.batchId) : "",
+      items,
       saleType: sale.saleType || "client",
-      client: sale.client,
-      clientType: sale.clientType,
+      client: sale.client || "",
+      clientType: sale.clientType || "Company",
       customClient: "",
       projectName: sale.projectName || "",
       paymentStatus: sale.paymentStatus || "Pending",
@@ -582,6 +601,7 @@ export default function SalesPage() {
     })
     setBillUrl(sale.billUrl || "")
     setBillImage(null)
+    setEditReason("")
     clearFieldErrors()
     setIsEditDialogOpen(true)
   }
@@ -1219,20 +1239,24 @@ export default function SalesPage() {
         isOpen={isEditDialogOpen}
         onOpenChange={setIsEditDialogOpen}
         formData={formData}
-        onFormChange={updateForm}
+        onFormChange={(data) => {
+          const { productId, quantitySold, salePrice, ...rest } = data
+          updateForm(rest)
+        }}
         editReason={editReason}
         onEditReasonChange={setEditReason}
         billUrl={billUrl}
         onBillImageChange={setBillImage}
-        filteredProducts={filteredProducts}
+        filteredProducts={products}
         selectedProductWeights={selectedProductWeights}
-        clients={clients}
+        clients={clientOptions}
         fieldErrors={mapSaleItemErrorsToEditFields(fieldErrors)}
         userRole={user?.role}
         onSubmit={handleEditSubmit}
         onCancel={() => {
           clearFieldErrors()
           resetForm()
+          setEditingSale(null)
           setIsEditDialogOpen(false)
         }}
       />
