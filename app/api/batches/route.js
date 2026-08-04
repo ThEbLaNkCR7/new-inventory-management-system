@@ -44,7 +44,7 @@ async function dbConnect() {
 export async function GET(request) {
   try {
     await dbConnect();
-    const batches = await Batch.find({}).sort({ arrivalDate: -1 }).lean();
+    const batches = await Batch.find({}).sort({ createdAt: -1 }).lean();
     return NextResponse.json({ batches });
   } catch (error) {
     console.error("Error fetching batches:", error);

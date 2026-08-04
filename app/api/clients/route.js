@@ -121,7 +121,7 @@ const Client = mongoose.models.Client || mongoose.model("Client", clientSchema);
 export async function GET(request) {
   try {
     await dbConnect();
-    const clients = await Client.find({ isActive: true });
+    const clients = await Client.find({ isActive: true }).sort({ createdAt: -1 });
     return NextResponse.json({ clients });
   } catch (error) {
     console.error("Error fetching clients:", error);

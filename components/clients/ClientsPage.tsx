@@ -114,17 +114,24 @@ export default function ClientsPage() {
     return true
   }
 
-  const filteredClients = clients.filter((client) => {
-    const matchesSearch =
-      client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      client.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      client.email.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredClients = clients
+    .filter((client) => {
+      const matchesSearch =
+        client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        client.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        client.email.toLowerCase().includes(searchTerm.toLowerCase())
 
-    const matchesPayment =
-      paymentFilter === "All" || client.paymentStatus === paymentFilter
+      const matchesPayment =
+        paymentFilter === "All" || client.paymentStatus === paymentFilter
 
-    return matchesSearch && matchesPayment
-  })
+      return matchesSearch && matchesPayment
+    })
+    .slice()
+    .sort((a, b) => {
+      const aTime = new Date((a as any).createdAt || 0).getTime()
+      const bTime = new Date((b as any).createdAt || 0).getTime()
+      return bTime - aTime
+    })
 
   const {
     page,

@@ -224,12 +224,19 @@ export default function PurchasesPage() {
     }
   }, [showSuccessAlert])
 
-  // Filter purchases based on search term (tab filter handled in PurchasesTable)
-  const filteredPurchases = purchases.filter(
-    (p) =>
-      (p.items?.map(i => i.productName).join(" ") || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (p?.supplier || "").toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  // Filter purchases based on search term (tab filter handled in PurchasesTable), newest created first
+  const filteredPurchases = purchases
+    .filter(
+      (p) =>
+        (p.items?.map(i => i.productName).join(" ") || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (p?.supplier || "").toLowerCase().includes(searchTerm.toLowerCase())
+    )
+    .slice()
+    .sort((a, b) => {
+      const aTime = new Date((a as any).createdAt || a.purchaseDate || 0).getTime()
+      const bTime = new Date((b as any).createdAt || b.purchaseDate || 0).getTime()
+      return bTime - aTime
+    })
 
   const uploadBillToCloudinary = async (file: File): Promise<string> => {
     const formData = new FormData();

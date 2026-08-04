@@ -136,9 +136,11 @@ export default function SuppliersPage() {
         supplier.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
         supplier.email.toLowerCase().includes(searchTerm.toLowerCase()),
     )
-    .sort((a, b) =>
-      getSupplierTotalSpent(b.name) - getSupplierTotalSpent(a.name)
-    )
+    .sort((a, b) => {
+      const aTime = new Date((a as any).createdAt || 0).getTime()
+      const bTime = new Date((b as any).createdAt || 0).getTime()
+      return bTime - aTime
+    })
 
   const {
     page,

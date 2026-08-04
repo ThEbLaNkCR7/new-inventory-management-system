@@ -84,11 +84,18 @@ export default function LedgerAccountsPage() {
 
   const isCarryForward = accountForm.existingAccountId !== "none"
 
-  const filteredAccounts = ledgerAccounts.filter((account) => {
-    const matchesSearch = account.name.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesType = typeFilter === "all" || account.accountType === typeFilter
-    return matchesSearch && matchesType
-  })
+  const filteredAccounts = ledgerAccounts
+    .filter((account) => {
+      const matchesSearch = account.name.toLowerCase().includes(searchTerm.toLowerCase())
+      const matchesType = typeFilter === "all" || account.accountType === typeFilter
+      return matchesSearch && matchesType
+    })
+    .slice()
+    .sort((a, b) => {
+      const aTime = new Date((a as any).createdAt || 0).getTime()
+      const bTime = new Date((b as any).createdAt || 0).getTime()
+      return bTime - aTime
+    })
 
   const {
     page,

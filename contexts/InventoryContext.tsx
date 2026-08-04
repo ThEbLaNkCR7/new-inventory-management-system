@@ -54,7 +54,11 @@ export type Sale = {
   id: string
   client: string
   clientType: string
+  saleType?: "client" | "site"
+  projectName?: string
+  paymentStatus?: "Pending" | "Received"
   saleDate: string
+  createdAt?: string
   billUrl?: string
   isActive?: boolean
   batchId?: string
@@ -211,6 +215,9 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
         id: String(s._id || s.id),
         batchId: s.batchId ? String(s.batchId) : undefined,
         batchNumber: s.batchNumber || undefined,
+        saleType: s.saleType === "site" ? "site" : "client",
+        paymentStatus: s.paymentStatus === "Received" ? "Received" : "Pending",
+        projectName: s.projectName || undefined,
         items: (s.items || []).map((item: any) => ({
           ...item,
           productId: String(item.productId?._id || item.productId),
@@ -418,6 +425,9 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
         id: String(newSale._id || newSale.id),
         batchId: newSale.batchId ? String(newSale.batchId) : undefined,
         batchNumber: newSale.batchNumber || undefined,
+        saleType: newSale.saleType || sale.saleType || "client",
+        paymentStatus: newSale.paymentStatus || sale.paymentStatus || "Pending",
+        projectName: newSale.projectName || sale.projectName,
         items: (newSale.items || []).map((item: any) => ({
           ...item,
           productId: String(item.productId?._id || item.productId),

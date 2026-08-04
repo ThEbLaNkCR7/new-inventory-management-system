@@ -5,7 +5,7 @@ import { NextResponse } from "next/server"
 export async function GET() {
   try {
     await dbConnect()
-    const accounts = await LedgerAccount.find({ isActive: true }).sort({ name: 1 })
+    const accounts = await LedgerAccount.find({ isActive: true }).sort({ createdAt: -1 })
     return NextResponse.json({ accounts })
   } catch (error) {
     console.error("Error fetching ledger accounts:", error)

@@ -78,6 +78,32 @@ export default function ViewSaleDialog({
             </div>
             <div className="space-y-2">
               <Label className="text-sm font-medium text-gray-900 dark:text-gray-100 uppercase tracking-wide">
+                Sale Type
+              </Label>
+              <p className="text-gray-600 dark:text-gray-500 text-base">
+                {sale.saleType === "site" ? "Site" : "Client"}
+              </p>
+            </div>
+            {sale.saleType === "site" && sale.projectName && (
+              <div className="space-y-2">
+                <Label className="text-sm font-medium text-gray-900 dark:text-gray-100 uppercase tracking-wide">
+                  Project Name
+                </Label>
+                <p className="text-gray-600 dark:text-gray-500 text-base">
+                  {sale.projectName}
+                </p>
+              </div>
+            )}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-gray-900 dark:text-gray-100 uppercase tracking-wide">
+                Payment Status
+              </Label>
+              <p className="text-gray-600 dark:text-gray-500 text-base">
+                {sale.paymentStatus || "Pending"}
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-gray-900 dark:text-gray-100 uppercase tracking-wide">
                 Sale Date
               </Label>
               <p className="text-gray-600 dark:text-gray-500 text-base">

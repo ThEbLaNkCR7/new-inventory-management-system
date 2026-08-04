@@ -13,6 +13,23 @@ const saleSchema = new mongoose.Schema(
       default: "Company",
     },
 
+    saleType: {
+      type: String,
+      enum: ["client", "site"],
+      default: "client",
+    },
+
+    projectName: {
+      type: String,
+      trim: true,
+    },
+
+    paymentStatus: {
+      type: String,
+      enum: ["Pending", "Received"],
+      default: "Pending",
+    },
+
     items: [
       {
         productId: {
@@ -67,4 +84,10 @@ const saleSchema = new mongoose.Schema(
   },
   { timestamps: true },
 );
-export default mongoose.models.Sale || mongoose.model("Sale", saleSchema);
+
+// Next.js hot-reload can keep a stale compiled model without new fields
+if (mongoose.models.Sale) {
+  delete mongoose.models.Sale;
+}
+
+export default mongoose.model("Sale", saleSchema);

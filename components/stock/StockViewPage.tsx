@@ -90,7 +90,11 @@ export default function StockViewPage() {
       filtered = filtered.filter((product) => product.batchId === selectedBatch)
     }
 
-    return filtered
+    return filtered.sort((a, b) => {
+      const aTime = new Date(a.createdAt || 0).getTime()
+      const bTime = new Date(b.createdAt || 0).getTime()
+      return bTime - aTime
+    })
   }
 
   const filteredRemainingItems = filterProducts(remainingItems)

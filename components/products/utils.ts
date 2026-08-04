@@ -107,15 +107,21 @@ export function filterProducts(
 ): Product[] {
   const search = searchTerm.toLowerCase()
 
-  return products.filter((product) => {
-    const matchesSearch =
-      !search ||
-      (product.name ?? "").toLowerCase().includes(search) ||
-      (product.category ?? "").toLowerCase().includes(search) ||
-      (product.supplier ?? "").toLowerCase().includes(search)
-    const matchesCategory = categoryFilter === "all" || product.category === categoryFilter
-    return matchesSearch && matchesCategory
-  })
+  return products
+    .filter((product) => {
+      const matchesSearch =
+        !search ||
+        (product.name ?? "").toLowerCase().includes(search) ||
+        (product.category ?? "").toLowerCase().includes(search) ||
+        (product.supplier ?? "").toLowerCase().includes(search)
+      const matchesCategory = categoryFilter === "all" || product.category === categoryFilter
+      return matchesSearch && matchesCategory
+    })
+    .sort((a, b) => {
+      const aTime = new Date(a.createdAt || 0).getTime()
+      const bTime = new Date(b.createdAt || 0).getTime()
+      return bTime - aTime
+    })
 }
 
 export function groupProductsByName(filteredProducts: Product[]): ProductGroup[] {

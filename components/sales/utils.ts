@@ -27,12 +27,17 @@ export type SaleFormData = {
   client: string
   clientType: string
   customClient?: string
+  saleType?: "client" | "site"
+  projectName?: string
+  paymentStatus?: "Pending" | "Received"
   saleDate: string
   isVat?: boolean
 }
 
 export function validateSaleFormData(formData: SaleFormData): Record<string, string> {
   const errors: Record<string, string> = {}
+  const saleType = formData.saleType || "client"
+  const paymentStatus = formData.paymentStatus || "Pending"
 
   if (!formData.items?.length) {
     errors["items.0.productId"] = "Please add at least one product"
@@ -52,6 +57,10 @@ export function validateSaleFormData(formData: SaleFormData): Record<string, str
     }
   })
 
+  if (saleType !== "client" && saleType !== "site") {
+    errors.saleType = "Please select a sale type"
+  }
+
   if (!formData.client?.trim()) {
     errors.client = "Please select a client from the dropdown"
   } else if (formData.client === "custom" && !formData.customClient?.trim()) {
@@ -60,6 +69,14 @@ export function validateSaleFormData(formData: SaleFormData): Record<string, str
 
   if (!formData.clientType?.trim()) {
     errors.clientType = "Please select a client type from the dropdown"
+  }
+
+  if (saleType === "site" && !formData.projectName?.trim()) {
+    errors.projectName = "Project name is required for site sales"
+  }
+
+  if (paymentStatus !== "Pending" && paymentStatus !== "Received") {
+    errors.paymentStatus = "Please select a payment status"
   }
 
   if (!formData.saleDate?.trim()) {
@@ -77,9 +94,12 @@ export function mapSaleItemErrorsToEditFields(
     ["productId", "items.0.productId"],
     ["quantitySold", "items.0.quantitySold"],
     ["salePrice", "items.0.salePrice"],
+    ["saleType", "saleType"],
     ["client", "client"],
     ["customClient", "customClient"],
     ["clientType", "clientType"],
+    ["projectName", "projectName"],
+    ["paymentStatus", "paymentStatus"],
     ["saleDate", "saleDate"],
   ]
 

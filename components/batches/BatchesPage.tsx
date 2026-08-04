@@ -111,11 +111,18 @@ export default function BatchesPage() {
     }
   }, [showSuccessAlert])
 
-  const filteredBatches = batches.filter(
-    (batch) =>
-      batch.batchNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      batch.supplier.toLowerCase().includes(searchTerm.toLowerCase()),
-  )
+  const filteredBatches = batches
+    .filter(
+      (batch) =>
+        batch.batchNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        batch.supplier.toLowerCase().includes(searchTerm.toLowerCase()),
+    )
+    .slice()
+    .sort((a, b) => {
+      const aTime = new Date((a as any).createdAt || a.arrivalDate || 0).getTime()
+      const bTime = new Date((b as any).createdAt || b.arrivalDate || 0).getTime()
+      return bTime - aTime
+    })
 
 
   const {

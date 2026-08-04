@@ -43,7 +43,7 @@ async function dbConnect() {
 export async function GET(request) {
   try {
     await dbConnect();
-    const sales = await Sale.find({ isActive: true });
+    const sales = await Sale.find({ isActive: true }).sort({ createdAt: -1 });
     return NextResponse.json({ sales });
   } catch (error) {
     console.error("Error fetching sales:", error);
@@ -56,7 +56,14 @@ export async function POST(request) {
     await dbConnect();
     const body = await request.json();
     console.log(JSON.stringify(body, null, 2));
-    const sale = new Sale(body);
+    const sale = new Sale({
+      ...body,
+      saleType: body.saleType === "site" ? "site" : "client",
+      paymentStatus: body.paymentStatus === "Received" ? "Received" : "Pending",
+      ...(body.saleType === "site" && body.projectName
+        ? { projectName: String(body.projectName).trim() }
+        : { projectName: undefined }),
+    });
     await sale.save();
 
     // Update stock for each item

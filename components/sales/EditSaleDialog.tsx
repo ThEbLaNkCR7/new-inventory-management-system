@@ -105,6 +105,29 @@ export default function EditSaleDialog({
         )}
         <form onSubmit={onSubmit} className="space-y-4">
           <div className="space-y-2">
+            <Label htmlFor="edit-saleType">Sale Type *</Label>
+            <Select
+              value={formData.saleType || "client"}
+              onValueChange={(value) =>
+                onFormChange({
+                  ...formData,
+                  saleType: value as "client" | "site",
+                  ...(value === "client" ? { projectName: "" } : {}),
+                })
+              }
+            >
+              <SelectTrigger className={cn(selectTriggerClass, fieldErrorClass("saleType"))}>
+                <SelectValue placeholder="Select sale type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="client">Client</SelectItem>
+                <SelectItem value="site">Site</SelectItem>
+              </SelectContent>
+            </Select>
+            {renderFieldError("saleType")}
+          </div>
+
+          <div className="space-y-2">
             <Label htmlFor="edit-product">Product *</Label>
             <Select
               value={firstItem.productId || undefined}
@@ -208,6 +231,44 @@ export default function EditSaleDialog({
               </SelectContent>
             </Select>
             {renderFieldError("clientType")}
+          </div>
+
+          {formData.saleType === "site" && (
+            <div className="space-y-2">
+              <Label htmlFor="edit-projectName">Project Name *</Label>
+              <Input
+                id="edit-projectName"
+                placeholder="Enter project name"
+                value={formData.projectName || ""}
+                onChange={(e) =>
+                  onFormChange({ ...formData, projectName: e.target.value })
+                }
+                className={cn(inputClass, fieldErrorClass("projectName"))}
+              />
+              {renderFieldError("projectName")}
+            </div>
+          )}
+
+          <div className="space-y-2">
+            <Label htmlFor="edit-paymentStatus">Payment Status *</Label>
+            <Select
+              value={formData.paymentStatus || "Pending"}
+              onValueChange={(value) =>
+                onFormChange({
+                  ...formData,
+                  paymentStatus: value as "Pending" | "Received",
+                })
+              }
+            >
+              <SelectTrigger className={cn(selectTriggerClass, fieldErrorClass("paymentStatus"))}>
+                <SelectValue placeholder="Select payment status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Pending">Pending</SelectItem>
+                <SelectItem value="Received">Received</SelectItem>
+              </SelectContent>
+            </Select>
+            {renderFieldError("paymentStatus")}
           </div>
 
           <div className="grid grid-cols-2 gap-4">

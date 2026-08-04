@@ -11,6 +11,13 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Table,
   TableBody,
   TableCell,
@@ -21,7 +28,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatNepaliDateForTable, toTitleCase } from "@/lib/utils";
 import { usePagination } from "@/hooks/usePagination";
-import { Building2, Edit, Eye, Search, Trash2, TrendingUp, Users, X } from "lucide-react";
+import { Building2, Edit, Eye, Filter, Search, Trash2, TrendingUp, Users, X } from "lucide-react";
 import React from "react";
 import DataPagination from "@/components/ui/data-pagination";
 import { formatSaleTotal } from "./utils";
@@ -38,6 +45,10 @@ interface SalesTableProps {
   products: any[];
   searchTerm: string;
   onSearchTermChange: (value: string) => void;
+  saleTypeFilter: "all" | "client" | "site";
+  onSaleTypeFilterChange: (value: "all" | "client" | "site") => void;
+  paymentStatusFilter: "all" | "Pending" | "Received";
+  onPaymentStatusFilterChange: (value: "all" | "Pending" | "Received") => void;
   onView: (sale: any) => void;
   onEdit: (sale: any) => void;
   onDelete: (sale: any) => void;
@@ -53,6 +64,10 @@ export default function SalesTable({
   products,
   searchTerm,
   onSearchTermChange,
+  saleTypeFilter,
+  onSaleTypeFilterChange,
+  paymentStatusFilter,
+  onPaymentStatusFilterChange,
   onView,
   onEdit,
   onDelete,
@@ -71,6 +86,17 @@ export default function SalesTable({
     return filteredSales;
   }, [filteredSales, activeTab]);
 
+  const hasActiveFilters =
+    searchTerm.trim() !== "" ||
+    saleTypeFilter !== "all" ||
+    paymentStatusFilter !== "all";
+
+  const clearFilters = () => {
+    onSearchTermChange("");
+    onSaleTypeFilterChange("all");
+    onPaymentStatusFilterChange("all");
+  };
+
   const {
     page,
     setPage,
@@ -82,8 +108,117 @@ export default function SalesTable({
     startItem,
     endItem,
   } = usePagination(tabSales, {
-    resetKey: `${searchTerm}|${activeTab}`,
+    resetKey: `${searchTerm}|${activeTab}|${saleTypeFilter}|${paymentStatusFilter}`,
   });
+
+  const formatSaleType = (saleType?: string) =>
+    saleType === "site" ? "Site" : "Client";
+
+  const paymentStatusBadge = (paymentStatus?: string) => {
+    const status = paymentStatus || "Pending";
+    const isReceived = status === "Received";
+    return (
+      <Badge
+        variant="secondary"
+        className={
+          isReceived
+            ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400"
+            : "bg-amber-100 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400"
+        }
+      >
+        {status}
+      </Badge>
+    );
+  };
+
+  const renderSaleRows = () =>
+    paginatedSales.map((sale) => (
+      <TableRow
+        key={sale.id}
+        className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-150"
+      >
+        <TableCell className="font-medium">{sale.items?.length || 0}</TableCell>
+        <TableCell className="font-medium">
+          <span
+            className="text-gray-700 dark:text-gray-100 cursor-pointer hover:text-teal-600 dark:hover:text-teal-400 transition-colors"
+            onClick={() => onClientClick(sale.client)}
+          >
+            {toTitleCase(sale.client)}
+          </span>
+        </TableCell>
+        <TableCell className="font-medium">{formatSaleType(sale.saleType)}</TableCell>
+        <TableCell>{paymentStatusBadge(sale.paymentStatus)}</TableCell>
+        <TableCell className="font-medium">
+          {sale.items?.reduce(
+            (total: number, item: any) => total + (item.quantitySold || 0),
+            0,
+          ) || 0}
+        </TableCell>
+        <TableCell className="text-gray-700">Rs {formatSaleTotal(sale)}</TableCell>
+        <TableCell className="text-gray-700">
+          {formatNepaliDateForTable(sale.saleDate)}
+        </TableCell>
+        <TableCell>
+          <div className="flex space-x-2">
+            <Button
+              size="sm"
+              variant="neutralOutline"
+              onClick={() => onView(sale)}
+              className="hover:bg-blue-50 hover:border-blue-300 dark:hover:bg-blue-900/20 dark:hover:border-blue-600 text-blue-600 dark:text-blue-400 transition-colors"
+            >
+              <Eye className="h-4 w-4" />
+            </Button>
+            <Button
+              size="sm"
+              variant="neutralOutline"
+              onClick={() => onEdit(sale)}
+              className="hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+            >
+              <Edit className="h-4 w-4" />
+            </Button>
+            <Button
+              size="sm"
+              variant="neutralOutline"
+              onClick={() => onDelete(sale)}
+              className="hover:bg-red-50 hover:border-red-300 dark:hover:bg-red-900/20 dark:hover:border-red-600 text-red-600 dark:text-red-400 transition-colors"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
+        </TableCell>
+      </TableRow>
+    ));
+
+  const tableHeader = (
+    <TableHeader>
+      <TableRow className="bg-gray-50 dark:bg-gray-700">
+        <TableHead className="font-semibold text-sm text-gray-700 dark:text-gray-300">
+          Items
+        </TableHead>
+        <TableHead className="font-semibold text-sm text-gray-700 dark:text-gray-300">
+          Client
+        </TableHead>
+        <TableHead className="font-semibold text-sm text-gray-700 dark:text-gray-300">
+          Sale Type
+        </TableHead>
+        <TableHead className="font-semibold text-sm text-gray-700 dark:text-gray-300">
+          Payment Status
+        </TableHead>
+        <TableHead className="font-semibold text-sm text-gray-700 dark:text-gray-300">
+          Quantity
+        </TableHead>
+        <TableHead className="font-semibold text-sm text-gray-700 dark:text-gray-300">
+          Total
+        </TableHead>
+        <TableHead className="font-semibold text-sm text-gray-700 dark:text-gray-300">
+          Date
+        </TableHead>
+        <TableHead className="font-semibold text-sm text-gray-700 dark:text-gray-300">
+          Actions
+        </TableHead>
+      </TableRow>
+    </TableHeader>
+  );
 
   return (
     <Card className="dark:bg-gray-800 dark:border-gray-700 overflow-hidden">
@@ -105,18 +240,56 @@ export default function SalesTable({
               className="h-10 pl-10 border-gray-200 dark:border-gray-600 dark:bg-gray-700/50 dark:text-gray-200 focus:border-slate-400"
             />
           </div>
-          {searchTerm.trim() !== "" && (
-            <Button
-              type="button"
-              variant="neutralOutline"
-              size="sm"
-              onClick={() => onSearchTermChange("")}
-              className="h-10 shrink-0 gap-1.5 text-gray-600 dark:text-gray-300"
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <Select
+              value={saleTypeFilter}
+              onValueChange={(value: "all" | "client" | "site") =>
+                onSaleTypeFilterChange(value)
+              }
             >
-              <X className="h-4 w-4" />
-              Clear
-            </Button>
-          )}
+              <SelectTrigger className="h-10 w-full sm:w-40 border-gray-200 dark:border-gray-600 dark:bg-gray-700/50 dark:text-gray-200">
+                <div className="flex items-center gap-2">
+                  <Filter className="h-4 w-4 shrink-0 text-gray-400" />
+                  <SelectValue placeholder="Sale type" />
+                </div>
+              </SelectTrigger>
+              <SelectContent className="dark:bg-gray-800 dark:border-gray-700">
+                <SelectItem value="all">All Types</SelectItem>
+                <SelectItem value="client">Client</SelectItem>
+                <SelectItem value="site">Site</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select
+              value={paymentStatusFilter}
+              onValueChange={(value: "all" | "Pending" | "Received") =>
+                onPaymentStatusFilterChange(value)
+              }
+            >
+              <SelectTrigger className="h-10 w-full sm:w-44 border-gray-200 dark:border-gray-600 dark:bg-gray-700/50 dark:text-gray-200">
+                <div className="flex items-center gap-2">
+                  <Filter className="h-4 w-4 shrink-0 text-gray-400" />
+                  <SelectValue placeholder="Payment status" />
+                </div>
+              </SelectTrigger>
+              <SelectContent className="dark:bg-gray-800 dark:border-gray-700">
+                <SelectItem value="all">All Payments</SelectItem>
+                <SelectItem value="Pending">Pending</SelectItem>
+                <SelectItem value="Received">Received</SelectItem>
+              </SelectContent>
+            </Select>
+            {hasActiveFilters && (
+              <Button
+                type="button"
+                variant="neutralOutline"
+                size="sm"
+                onClick={clearFilters}
+                className="h-10 shrink-0 gap-1.5 text-gray-600 dark:text-gray-300"
+              >
+                <X className="h-4 w-4" />
+                Clear
+              </Button>
+            )}
+          </div>
         </div>
       </CardHeader>
       <CardContent>
@@ -167,97 +340,14 @@ export default function SalesTable({
             </TabsTrigger>
           </TabsList>
 
-          {/* all */}
           <TabsContent
             value="all"
             className="space-y-4 animate-in fade-in-0 slide-in-from-left-2 duration-300"
           >
             <div className="overflow-x-auto">
               <Table>
-                <TableHeader>
-                  <TableRow className="bg-gray-50 dark:bg-gray-700">
-                    <TableHead className="font-semibold text-sm text-gray-700 dark:text-gray-300">
-                      Items
-                    </TableHead>
-                    <TableHead className="font-semibold text-sm text-gray-700 dark:text-gray-300">
-                      Client
-                    </TableHead>
-                    <TableHead className="font-semibold text-sm text-gray-700 dark:text-gray-300">
-                      Quantity
-                    </TableHead>
-                    <TableHead className="font-semibold text-sm text-gray-700 dark:text-gray-300">
-                      Total
-                    </TableHead>
-                    <TableHead className="font-semibold text-sm text-gray-700 dark:text-gray-300">
-                      Date
-                    </TableHead>
-                    <TableHead className="font-semibold text-sm text-gray-700 dark:text-gray-300">
-                      Actions
-                    </TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {paginatedSales.map((sale) => (
-                    <TableRow
-                      key={sale.id}
-                      className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-150"
-                    >
-                      <TableCell className="font-medium">
-                        {sale.items?.length || 0}
-                      </TableCell>
-                      <TableCell className="font-medium">
-                        <span
-                          className="text-gray-700 dark:text-gray-100 cursor-pointer hover:text-teal-600 dark:hover:text-teal-400 transition-colors"
-                          onClick={() => {
-                            onClientClick(sale.client);
-                          }}
-                        >
-                          {toTitleCase(sale.client)}
-                        </span>
-                      </TableCell>
-                      <TableCell className="font-medium">
-                        {sale.items?.reduce(
-                          (total: number, item: any) => total + (item.quantitySold || 0),
-                          0
-                        ) || 0}
-                      </TableCell>
-                      <TableCell className="text-gray-700">
-                        Rs {formatSaleTotal(sale)}
-                      </TableCell>
-                      <TableCell className="text-gray-700">
-                        {formatNepaliDateForTable(sale.saleDate)}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex space-x-2">
-                          <Button
-                            size="sm"
-                            variant="neutralOutline"
-                            onClick={() => onView(sale)}
-                            className="hover:bg-blue-50 hover:border-blue-300 dark:hover:bg-blue-900/20 dark:hover:border-blue-600 text-blue-600 dark:text-blue-400 transition-colors"
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="neutralOutline"
-                            onClick={() => onEdit(sale)}
-                            className="hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="neutralOutline"
-                            onClick={() => onDelete(sale)}
-                            className="hover:bg-red-50 hover:border-red-300 dark:hover:bg-red-900/20 dark:hover:border-red-600 text-red-600 dark:text-red-400 transition-colors"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
+                {tableHeader}
+                <TableBody>{renderSaleRows()}</TableBody>
               </Table>
               {tabSales.length === 0 && (
                 <div className="text-center py-8 animate-in fade-in-0 duration-300">
@@ -267,97 +357,14 @@ export default function SalesTable({
             </div>
           </TabsContent>
 
-          {/* individual */}
           <TabsContent
             value="individual"
             className="space-y-4 animate-in fade-in-0 slide-in-from-left-2 duration-300"
           >
             <div className="overflow-x-auto">
               <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="font-semibold text-sm text-gray-700 dark:text-gray-300">
-                      Items
-                    </TableHead>
-                    <TableHead className="font-semibold text-sm text-gray-700 dark:text-gray-300">
-                      Client
-                    </TableHead>
-                    <TableHead className="font-semibold text-sm text-gray-700 dark:text-gray-300">
-                      Quantity
-                    </TableHead>
-                    <TableHead className="font-semibold text-sm text-gray-700 dark:text-gray-300">
-                      Total
-                    </TableHead>
-                    <TableHead className="font-semibold text-sm text-gray-700 dark:text-gray-300">
-                      Date
-                    </TableHead>
-                    <TableHead className="font-semibold text-sm text-gray-700 dark:text-gray-300">
-                      Actions
-                    </TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {paginatedSales.map((sale) => (
-                    <TableRow
-                      key={sale.id}
-                      className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-150"
-                    >
-                      <TableCell className="font-medium">
-                        {sale.items?.length || 0}
-                      </TableCell>
-                      <TableCell className="font-medium">
-                        <span
-                          className="text-gray-700 dark:text-gray-100 cursor-pointer hover:text-teal-600 dark:hover:text-teal-400 transition-colors"
-                          onClick={() => {
-                            onClientClick(sale.client);
-                          }}
-                        >
-                          {toTitleCase(sale.client)}
-                        </span>
-                      </TableCell>
-                      <TableCell className="font-medium">
-                        {sale.items?.reduce(
-                          (total: number, item: any) => total + (item.quantitySold || 0),
-                          0
-                        ) || 0}
-                      </TableCell>
-                      <TableCell>
-                        Rs {formatSaleTotal(sale)}
-                      </TableCell>
-                      <TableCell className="text-gray-700">
-                        {formatNepaliDateForTable(sale.saleDate)}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex space-x-2">
-                          <Button
-                            size="sm"
-                            variant="neutralOutline"
-                            onClick={() => onView(sale)}
-                            className="hover:bg-blue-50 hover:border-blue-300 dark:hover:bg-blue-900/20 dark:hover:border-blue-600 text-blue-600 dark:text-blue-400 transition-colors"
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="neutralOutline"
-                            onClick={() => onEdit(sale)}
-                            className="hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="neutralOutline"
-                            onClick={() => onDelete(sale)}
-                            className="hover:bg-red-50 hover:border-red-300 dark:hover:bg-red-900/20 dark:hover:border-red-600 text-red-600 dark:text-red-400 transition-colors"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
+                {tableHeader}
+                <TableBody>{renderSaleRows()}</TableBody>
               </Table>
               {tabSales.length === 0 && (
                 <div className="text-center py-8 animate-in fade-in-0 duration-300">
@@ -367,97 +374,14 @@ export default function SalesTable({
             </div>
           </TabsContent>
 
-          {/* company */}
           <TabsContent
             value="company"
             className="space-y-4 animate-in fade-in-0 slide-in-from-left-2 duration-300"
           >
             <div className="overflow-x-auto">
               <Table>
-                <TableHeader>
-                  <TableRow className="bg-gray-50 dark:bg-gray-700">
-                    <TableHead className="font-semibold text-sm text-gray-700 dark:text-gray-300">
-                      Items
-                    </TableHead>
-                    <TableHead className="font-semibold text-sm text-gray-700 dark:text-gray-300">
-                      Client
-                    </TableHead>
-                    <TableHead className="font-semibold text-sm text-gray-700 dark:text-gray-300">
-                      Quantity
-                    </TableHead>
-                    <TableHead className="font-semibold text-sm text-gray-700 dark:text-gray-300">
-                      Total
-                    </TableHead>
-                    <TableHead className="font-semibold text-sm text-gray-700 dark:text-gray-300">
-                      Date
-                    </TableHead>
-                    <TableHead className="font-semibold text-sm text-gray-700 dark:text-gray-300">
-                      Actions
-                    </TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {paginatedSales.map((sale) => (
-                    <TableRow
-                      key={sale.id}
-                      className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-150"
-                    >
-                      <TableCell className="font-medium">
-                        {sale.items?.length || 0}
-                      </TableCell>
-                      <TableCell className="font-medium">
-                        <span
-                          className="text-gray-700 dark:text-gray-100 cursor-pointer hover:text-teal-600 dark:hover:text-teal-400 transition-colors"
-                          onClick={() => {
-                            onClientClick(sale.client);
-                          }}
-                        >
-                          {toTitleCase(sale.client)}
-                        </span>
-                      </TableCell>
-                      <TableCell className="font-medium">
-                        {sale.items?.reduce(
-                          (total: number, item: any) => total + (item.quantitySold || 0),
-                          0
-                        ) || 0}
-                      </TableCell>
-                      <TableCell>
-                        Rs {formatSaleTotal(sale)}
-                      </TableCell>
-                      <TableCell className="text-gray-700">
-                        {formatNepaliDateForTable(sale.saleDate)}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex space-x-2">
-                          <Button
-                            size="sm"
-                            variant="neutralOutline"
-                            onClick={() => onView(sale)}
-                            className="hover:bg-blue-50 hover:border-blue-300 dark:hover:bg-blue-900/20 dark:hover:border-blue-600 text-blue-600 dark:text-blue-400 transition-colors"
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="neutralOutline"
-                            onClick={() => onEdit(sale)}
-                            className="hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="neutralOutline"
-                            onClick={() => onDelete(sale)}
-                            className="hover:bg-red-50 hover:border-red-300 dark:hover:bg-red-900/20 dark:hover:border-red-600 text-red-600 dark:text-red-400 transition-colors"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
+                {tableHeader}
+                <TableBody>{renderSaleRows()}</TableBody>
               </Table>
               {tabSales.length === 0 && (
                 <div className="text-center py-8 animate-in fade-in-0 duration-300">

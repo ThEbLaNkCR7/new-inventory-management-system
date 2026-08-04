@@ -42,7 +42,7 @@ async function dbConnect() {
 export async function GET(request) {
   try {
     await dbConnect();
-    const products = await Product.find({ isActive: true });
+    const products = await Product.find({ isActive: true }).sort({ createdAt: -1 });
     return NextResponse.json({ products });
   } catch (error) {
     console.error("Error fetching products:", error);

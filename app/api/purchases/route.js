@@ -43,7 +43,7 @@ async function dbConnect() {
 export async function GET(request) {
  try {
   await dbConnect();
-  const purchases = await Purchase.find({ isActive: true });
+  const purchases = await Purchase.find({ isActive: true }).sort({ createdAt: -1 });
   return NextResponse.json({ purchases });
  } catch (error) {
   console.error("Error fetching purchases:", error);

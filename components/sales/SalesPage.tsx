@@ -56,6 +56,8 @@ export default function SalesPage() {
   const { requestSaleChange } = useSaleChange()
   const { toast } = useToast()
   const [searchTerm, setSearchTerm] = useState("")
+  const [saleTypeFilter, setSaleTypeFilter] = useState<"all" | "client" | "site">("all")
+  const [paymentStatusFilter, setPaymentStatusFilter] = useState<"all" | "Pending" | "Received">("all")
   const [activeTab, setActiveTab] = useState("all")
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [isAddClientDialogOpen, setIsAddClientDialogOpen] = useState(false)
@@ -79,9 +81,12 @@ export default function SalesPage() {
         salePrice: 0,
       },
     ],
+    saleType: "client" as "client" | "site",
     client: "",
     clientType: "Company",
     customClient: "",
+    projectName: "",
+    paymentStatus: "Pending" as "Pending" | "Received",
     saleDate: new Date().toISOString().split("T")[0],
     isVat: false,
   }
@@ -205,14 +210,30 @@ export default function SalesPage() {
     }
   }, [showSuccessAlert])
 
-  // Filter sales based on search term and active tab
-  const filteredSales = sales.filter(
-    (sale) =>
-      ((sale.items?.map((i) => i.productName).join(" ") || "")
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase()) || "") ||
-      (sale?.client || "").toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  // Filter sales based on search term, sale type, payment status; newest created first
+  const filteredSales = sales
+    .filter((sale) => {
+      const matchesSearch =
+        ((sale.items?.map((i) => i.productName).join(" ") || "")
+          .toLowerCase()
+          .includes(searchTerm.toLowerCase()) || "") ||
+        (sale?.client || "").toLowerCase().includes(searchTerm.toLowerCase())
+
+      const saleType = sale.saleType || "client"
+      const matchesSaleType = saleTypeFilter === "all" || saleType === saleTypeFilter
+
+      const paymentStatus = sale.paymentStatus || "Pending"
+      const matchesPayment =
+        paymentStatusFilter === "all" || paymentStatus === paymentStatusFilter
+
+      return matchesSearch && matchesSaleType && matchesPayment
+    })
+    .slice()
+    .sort((a, b) => {
+      const aTime = new Date(a.createdAt || a.saleDate || 0).getTime()
+      const bTime = new Date(b.createdAt || b.saleDate || 0).getTime()
+      return bTime - aTime
+    })
 
   // Get counts for each tab
   const getSalesCounts = () => {
@@ -463,6 +484,11 @@ export default function SalesPage() {
       const payload: Omit<Sale, "id"> = {
         client: clientName,
         clientType: formData.clientType,
+        saleType: formData.saleType || "client",
+        paymentStatus: formData.paymentStatus || "Pending",
+        ...(formData.saleType === "site" && formData.projectName
+          ? { projectName: formData.projectName.trim() }
+          : {}),
         saleDate: formData.saleDate,
         billUrl: uploadedBillUrl,
         ...(formData.batchId
@@ -545,9 +571,12 @@ export default function SalesPage() {
           salePrice: sale.salePrice ?? 0,
         },
       ],
+      saleType: sale.saleType || "client",
       client: sale.client,
       clientType: sale.clientType,
       customClient: "",
+      projectName: sale.projectName || "",
+      paymentStatus: sale.paymentStatus || "Pending",
       saleDate: formattedDate,
       isVat: sale.isVat ?? false,
     })
@@ -786,6 +815,10 @@ export default function SalesPage() {
               <Button
                 onClick={() => {
                   clearFieldErrors()
+                  updateForm({
+                    saleType: formData.saleType || "client",
+                    paymentStatus: formData.paymentStatus || "Pending",
+                  })
                   setIsAddDialogOpen(true)
                 }}
                 variant="neutral"
@@ -811,6 +844,28 @@ export default function SalesPage() {
                 </DialogDescription>
               </DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="saleType">Sale Type *</Label>
+                  <Select
+                    value={formData.saleType || "client"}
+                    onValueChange={(value) =>
+                      updateForm({
+                        saleType: value as "client" | "site",
+                        ...(value === "client" ? { projectName: "" } : {}),
+                      })
+                    }
+                  >
+                    <SelectTrigger className={cn(selectTriggerClass, fieldErrorClass("saleType"))}>
+                      <SelectValue placeholder="Select sale type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="client">Client</SelectItem>
+                      <SelectItem value="site">Site</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {renderFieldError("saleType")}
+                </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="batch">Batch (optional)</Label>
                   <Select
@@ -1022,6 +1077,39 @@ export default function SalesPage() {
                   {renderFieldError("clientType")}
                 </div>
 
+                {formData.saleType === "site" && (
+                  <div className="space-y-2">
+                    <Label htmlFor="projectName">Project Name *</Label>
+                    <Input
+                      id="projectName"
+                      placeholder="Enter project name"
+                      value={formData.projectName || ""}
+                      onChange={(e) => updateForm({ projectName: e.target.value })}
+                      className={cn(inputClass, fieldErrorClass("projectName"))}
+                    />
+                    {renderFieldError("projectName")}
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  <Label htmlFor="paymentStatus">Payment Status *</Label>
+                  <Select
+                    value={formData.paymentStatus || "Pending"}
+                    onValueChange={(value) =>
+                      updateForm({ paymentStatus: value as "Pending" | "Received" })
+                    }
+                  >
+                    <SelectTrigger className={cn(selectTriggerClass, fieldErrorClass("paymentStatus"))}>
+                      <SelectValue placeholder="Select payment status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Pending">Pending</SelectItem>
+                      <SelectItem value="Received">Received</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {renderFieldError("paymentStatus")}
+                </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="date">Sale Date *</Label>
                   <MaterialDatePicker
@@ -1107,6 +1195,10 @@ export default function SalesPage() {
         products={products}
         searchTerm={searchTerm}
         onSearchTermChange={setSearchTerm}
+        saleTypeFilter={saleTypeFilter}
+        onSaleTypeFilterChange={setSaleTypeFilter}
+        paymentStatusFilter={paymentStatusFilter}
+        onPaymentStatusFilterChange={setPaymentStatusFilter}
         onView={handleView}
         onEdit={handleEdit}
         onDelete={handleDelete}

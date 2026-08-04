@@ -63,10 +63,25 @@ export async function PUT(request, { params }) {
     if (!originalSale)
       return NextResponse.json({ message: "Sale not found" }, { status: 404 });
 
-    const sale = await Sale.findByIdAndUpdate(params.id, body, {
-      new: true,
-      runValidators: true,
-    });
+    const sale = await Sale.findByIdAndUpdate(
+      params.id,
+      {
+        ...body,
+        ...(body.saleType !== undefined
+          ? { saleType: body.saleType === "site" ? "site" : "client" }
+          : {}),
+        ...(body.paymentStatus !== undefined
+          ? {
+              paymentStatus:
+                body.paymentStatus === "Received" ? "Received" : "Pending",
+            }
+          : {}),
+      },
+      {
+        new: true,
+        runValidators: true,
+      },
+    );
     if (!sale)
       return NextResponse.json({ message: "Sale not found" }, { status: 404 });
 
