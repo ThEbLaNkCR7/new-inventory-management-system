@@ -109,13 +109,13 @@ export function NepaliDatePicker({
                   variant="ghost"
                   size="sm"
                   onClick={handleClear}
-                  className="h-6 w-6 p-0 hover:bg-gray-100 dark:hover:bg-gray-700"
+                  className="h-6 w-6 p-0 hover:bg-muted dark:hover:bg-muted"
                   disabled={disabled}
                 >
                   <X className="h-3 w-3" />
                 </Button>
               )}
-              <CalendarIcon className="h-4 w-4 text-gray-400" />
+              <CalendarIcon className="h-4 w-4 text-muted-foreground" />
             </div>
           </div>
         </PopoverTrigger>

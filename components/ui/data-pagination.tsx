@@ -40,18 +40,18 @@ export default function DataPagination({
 
   return (
     <div
-      className={`flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-t border-gray-100 dark:border-gray-700 px-4 py-3 ${className}`}
+      className={`flex flex-col gap-3 border-t border-border px-4 py-3 sm:flex-row sm:items-center sm:justify-between ${className}`}
     >
-      <div className="flex flex-wrap items-center gap-3 text-sm text-gray-600 dark:text-gray-400">
+      <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
         <span>
-          Showing <span className="font-medium text-gray-900 dark:text-gray-200">{startItem}</span>
+          Showing <span className="font-medium text-navy">{startItem}</span>
           –
-          <span className="font-medium text-gray-900 dark:text-gray-200">{endItem}</span> of{" "}
-          <span className="font-medium text-gray-900 dark:text-gray-200">{totalItems}</span>
+          <span className="font-medium text-navy">{endItem}</span> of{" "}
+          <span className="font-medium text-navy">{totalItems}</span>
         </span>
         {onPageSizeChange && (
           <div className="flex items-center gap-2">
-            <span className="text-xs text-gray-500 dark:text-gray-500">Rows</span>
+            <span className="text-xs text-muted-foreground">Rows</span>
             <Select
               value={String(pageSize)}
               onValueChange={(value) => onPageSizeChange(Number(value))}
@@ -83,7 +83,7 @@ export default function DataPagination({
           <ChevronLeft className="h-4 w-4 mr-1" />
           Prev
         </Button>
-        <span className="min-w-[4.5rem] text-center text-sm text-gray-600 dark:text-gray-400">
+        <span className="min-w-[4.5rem] text-center text-sm text-muted-foreground">
           {page} / {totalPages}
         </span>
         <Button

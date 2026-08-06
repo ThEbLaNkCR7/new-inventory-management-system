@@ -1,5 +1,4 @@
 import { formatProductNetWeight } from "@/components/products/utils";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -18,14 +17,29 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { AlertTriangle, Edit } from "lucide-react";
+import { AlertTriangle, CheckCircle, Clock, ImagePlus, Package, Tags } from "lucide-react";
 import React from "react";
 import { cn } from "@/lib/utils";
+import {
+  formDescriptionClass,
+  formDialogBodyClass,
+  formDialogClass,
+  formDialogFooterClass,
+  formDialogHeaderClass,
+  formErrorTextClass,
+  formFieldClass,
+  formGridClass,
+  formInputClass,
+  formLabelClass,
+  formSectionClass,
+  formSectionTitleClass,
+  formSelectTriggerClass,
+  formTitleClass,
+} from "@/lib/form-styles";
 
-const inputClass =
-  "border-2 focus:border-slate-500 transition-colors dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200";
-const selectTriggerClass = inputClass;
-const errorTextClass = "text-sm text-red-600 dark:text-red-400";
+const inputClass = formInputClass;
+const selectTriggerClass = formSelectTriggerClass;
+const errorTextClass = formErrorTextClass;
 
 interface EditSaleDialogProps {
   isOpen: boolean;
@@ -82,82 +96,86 @@ export default function EditSaleDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle className="flex items-center space-x-2">
-            <Edit className="h-5 w-5" />
-            <span>Edit Sale</span>
+      <DialogContent className={formDialogClass}>
+        <DialogHeader className={formDialogHeaderClass}>
+          <DialogTitle className={formTitleClass}>
+            Edit Sale
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription className={formDescriptionClass}>
             {userRole === "admin"
-              ? "Edit sale transaction"
+              ? "Update sale transaction details"
               : "Submit sale changes for admin approval"}
+            {userRole !== "admin" && (
+              <span className="mt-2 flex items-center gap-2 rounded-md bg-muted px-3 py-2 font-sans text-sm font-medium leading-5 text-navy">
+                <AlertTriangle className="h-4 w-4 shrink-0 text-navy" />
+                Changes require admin approval
+              </span>
+            )}
           </DialogDescription>
         </DialogHeader>
-        {userRole !== "admin" && (
-          <Alert className="border-amber-200 bg-amber-50">
-            <AlertTriangle className="h-4 w-4 text-amber-600" />
-            <AlertDescription className="text-amber-800">
-              Your changes will be submitted for admin approval before being
-              applied.
-            </AlertDescription>
-          </Alert>
-        )}
-        <form onSubmit={onSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="edit-saleType">Sale Type *</Label>
-            <Select
-              value={formData.saleType || "client"}
-              onValueChange={(value) =>
-                onFormChange({
-                  ...formData,
-                  saleType: value as "client" | "site",
-                  ...(value === "client" ? { projectName: "" } : {}),
-                })
-              }
-            >
-              <SelectTrigger className={cn(selectTriggerClass, fieldErrorClass("saleType"))}>
-                <SelectValue placeholder="Select sale type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="client">Client</SelectItem>
-                <SelectItem value="site">Site</SelectItem>
-              </SelectContent>
-            </Select>
-            {renderFieldError("saleType")}
-          </div>
+        <form onSubmit={onSubmit}>
+          <div className={formDialogBodyClass}>
+          <section className={formSectionClass}>
+            <h3 className={formSectionTitleClass}>
+              <Tags className="h-4 w-4 text-navy/70" />
+              Sale details
+            </h3>
+          <div className={formGridClass}>
+            <div className={formFieldClass}>
+              <Label htmlFor="edit-saleType" className={formLabelClass}>Sale Type *</Label>
+              <Select
+                value={formData.saleType || "client"}
+                onValueChange={(value) =>
+                  onFormChange({
+                    ...formData,
+                    saleType: value as "client" | "site",
+                    ...(value === "client" ? { projectName: "" } : {}),
+                  })
+                }
+              >
+                <SelectTrigger className={cn(selectTriggerClass, fieldErrorClass("saleType"))}>
+                  <SelectValue placeholder="Select sale type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="client">Client</SelectItem>
+                  <SelectItem value="site">Site</SelectItem>
+                </SelectContent>
+              </Select>
+              {renderFieldError("saleType")}
+            </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="edit-product">Product *</Label>
-            <Select
-              value={firstItem.productId || undefined}
-              onValueChange={(value) => {
-                updateFirstItem({ productId: value });
-              }}
-            >
-              <SelectTrigger className={cn(selectTriggerClass, fieldErrorClass("productId"))}>
-                <SelectValue placeholder="Select product" />
-              </SelectTrigger>
-              <SelectContent>
-                {filteredProducts.map((product) => (
-                  <SelectItem key={product.id} value={product.id}>
-                    <div className="flex flex-col">
-                      <span className="font-medium">
-                        {product.name} ({formatProductNetWeight(product)})
-                      </span>
-                      <span className="text-sm text-gray-500">
-                        Stock: {product.stockQuantity}
-                      </span>
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {renderFieldError("productId")}
+            <div className={formFieldClass}>
+              <Label htmlFor="edit-product" className={formLabelClass}>Product *</Label>
+              <Select
+                value={firstItem.productId || undefined}
+                onValueChange={(value) => {
+                  updateFirstItem({ productId: value });
+                }}
+              >
+                <SelectTrigger className={cn(selectTriggerClass, fieldErrorClass("productId"))}>
+                  <SelectValue placeholder="Select product" />
+                </SelectTrigger>
+                <SelectContent>
+                  {filteredProducts.map((product) => (
+                    <SelectItem key={product.id} value={product.id}>
+                      <div className="flex flex-col">
+                        <span className="font-medium">
+                          {product.name} ({formatProductNetWeight(product)})
+                        </span>
+                        <span className="text-sm text-muted-foreground">
+                          Stock: {product.stockQuantity}
+                        </span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {renderFieldError("productId")}
+            </div>
           </div>
 
           {firstItem.productId && selectedProductWeights.length > 1 && (
-            <div className="space-y-2">
+            <div className={formFieldClass}>
               <Label htmlFor="edit-netWeight">Net Weight (kg) *</Label>
               <Select
                 value={String(formData.netWeight)}
@@ -180,61 +198,63 @@ export default function EditSaleDialog({
             </div>
           )}
 
-          <div className="space-y-2">
-            <Label htmlFor="edit-client">Client *</Label>
-            <Select
-              value={formData.client || undefined}
-              onValueChange={(value) =>
-                onFormChange({ ...formData, client: value })
-              }
-            >
-              <SelectTrigger className={cn(selectTriggerClass, fieldErrorClass("client"))}>
-                <SelectValue placeholder="Select client or enter custom name" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="custom">+ Add Custom Client</SelectItem>
-                {clients.map((client) => (
-                  <SelectItem key={client.id} value={client.name}>
-                    {client.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {formData.client === "custom" && (
-              <Input
-                placeholder="Enter custom client name"
-                value={formData.customClient || ""}
-                onChange={(e) =>
-                  onFormChange({ ...formData, customClient: e.target.value })
+          <div className={formGridClass}>
+            <div className={formFieldClass}>
+              <Label htmlFor="edit-client" className={formLabelClass}>Client *</Label>
+              <Select
+                value={formData.client || undefined}
+                onValueChange={(value) =>
+                  onFormChange({ ...formData, client: value })
                 }
-                className={cn("mt-2", inputClass, fieldErrorClass("customClient"))}
-              />
-            )}
-            {renderFieldError("client")}
-            {renderFieldError("customClient")}
-          </div>
+              >
+                <SelectTrigger className={cn(selectTriggerClass, fieldErrorClass("client"))}>
+                  <SelectValue placeholder="Select client or enter custom name" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="custom">+ Add Custom Client</SelectItem>
+                  {clients.map((client) => (
+                    <SelectItem key={client.id} value={client.name}>
+                      {client.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {formData.client === "custom" && (
+                <Input
+                  placeholder="Enter custom client name"
+                  value={formData.customClient || ""}
+                  onChange={(e) =>
+                    onFormChange({ ...formData, customClient: e.target.value })
+                  }
+                  className={cn("mt-2", inputClass, fieldErrorClass("customClient"))}
+                />
+              )}
+              {renderFieldError("client")}
+              {renderFieldError("customClient")}
+            </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="edit-clientType">Client Type *</Label>
-            <Select
-              value={formData.clientType || undefined}
-              onValueChange={(value) =>
-                onFormChange({ ...formData, clientType: value })
-              }
-            >
-              <SelectTrigger className={cn(selectTriggerClass, fieldErrorClass("clientType"))}>
-                <SelectValue placeholder="Select client type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Individual">Individual</SelectItem>
-                <SelectItem value="Company">Company</SelectItem>
-              </SelectContent>
-            </Select>
-            {renderFieldError("clientType")}
+            <div className={formFieldClass}>
+              <Label htmlFor="edit-clientType">Client Type *</Label>
+              <Select
+                value={formData.clientType || undefined}
+                onValueChange={(value) =>
+                  onFormChange({ ...formData, clientType: value })
+                }
+              >
+                <SelectTrigger className={cn(selectTriggerClass, fieldErrorClass("clientType"))}>
+                  <SelectValue placeholder="Select client type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Individual">Individual</SelectItem>
+                  <SelectItem value="Company">Company</SelectItem>
+                </SelectContent>
+              </Select>
+              {renderFieldError("clientType")}
+            </div>
           </div>
 
           {formData.saleType === "site" && (
-            <div className="space-y-2">
+            <div className={formFieldClass}>
               <Label htmlFor="edit-projectName">Project Name *</Label>
               <Input
                 id="edit-projectName"
@@ -249,31 +269,60 @@ export default function EditSaleDialog({
             </div>
           )}
 
-          <div className="space-y-2">
-            <Label htmlFor="edit-paymentStatus">Payment Status *</Label>
-            <Select
-              value={formData.paymentStatus || "Pending"}
-              onValueChange={(value) =>
-                onFormChange({
-                  ...formData,
-                  paymentStatus: value as "Pending" | "Received",
-                })
-              }
-            >
-              <SelectTrigger className={cn(selectTriggerClass, fieldErrorClass("paymentStatus"))}>
-                <SelectValue placeholder="Select payment status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Pending">Pending</SelectItem>
-                <SelectItem value="Received">Received</SelectItem>
-              </SelectContent>
-            </Select>
-            {renderFieldError("paymentStatus")}
+          <div className={formGridClass}>
+            <div className={formFieldClass}>
+              <Label htmlFor="edit-paymentStatus" className={formLabelClass}>Payment Status *</Label>
+              <Select
+                value={formData.paymentStatus || "Pending"}
+                onValueChange={(value) =>
+                  onFormChange({
+                    ...formData,
+                    paymentStatus: value as "Pending" | "Received",
+                  })
+                }
+              >
+                <SelectTrigger className={cn(selectTriggerClass, fieldErrorClass("paymentStatus"))}>
+                  <SelectValue placeholder="Select payment status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Pending">
+                    <span className="inline-flex items-center gap-2">
+                      <Clock className="h-3.5 w-3.5 text-navy" />
+                      Pending
+                    </span>
+                  </SelectItem>
+                  <SelectItem value="Received">
+                    <span className="inline-flex items-center gap-2">
+                      <CheckCircle className="h-3.5 w-3.5 text-brand" />
+                      Received
+                    </span>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+              {renderFieldError("paymentStatus")}
+            </div>
+
+            <div className={formFieldClass}>
+              <Label htmlFor="date" className={formLabelClass}>Sale Date *</Label>
+              <MaterialDatePicker
+                className={inputClass}
+                value={
+                  formData.saleDate ? new Date(formData.saleDate) : undefined
+                }
+                onChange={(date) =>
+                  onFormChange({
+                    ...formData,
+                    saleDate: date ? date.toISOString().split("T")[0] : "",
+                  })
+                }
+              />
+              {renderFieldError("saleDate")}
+            </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="edit-quantity">Quantity *</Label>
+          <div className="grid grid-cols-2 gap-3">
+            <div className={formFieldClass}>
+              <Label htmlFor="edit-quantity" className={formLabelClass}>Quantity *</Label>
               <Input
                 id="edit-quantity"
                 type="number"
@@ -289,8 +338,8 @@ export default function EditSaleDialog({
               />
               {renderFieldError("quantitySold")}
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-price">Unit Price (Rs) *</Label>
+            <div className={formFieldClass}>
+              <Label htmlFor="edit-price" className={formLabelClass}>Unit Price (Rs) *</Label>
               <Input
                 id="edit-price"
                 type="number"
@@ -308,61 +357,53 @@ export default function EditSaleDialog({
               {renderFieldError("salePrice")}
             </div>
           </div>
+          </section>
 
-          <div className="space-y-2">
-            <Label htmlFor="date">Sale Date *</Label>
-            <MaterialDatePicker
-              value={
-                formData.saleDate ? new Date(formData.saleDate) : undefined
-              }
-              onChange={(date) =>
-                onFormChange({
-                  ...formData,
-                  saleDate: date ? date.toISOString().split("T")[0] : "",
-                })
-              }
-            />
-            {renderFieldError("saleDate")}
-          </div>
-
-          <div className="space-y-2">
-            <Label>Bill Image</Label>
-
-            <Input
-              type="file"
-              accept="image/*"
-              onChange={(e) => {
-                if (e.target.files?.[0]) {
-                  onBillImageChange(e.target.files[0]);
-                }
-              }}
-            />
-
-            {billUrl && (
-              <a
-                href={billUrl}
-                target="_blank"
-                className="text-blue-600 text-sm underline"
-              >
-                View Existing Bill
-              </a>
-            )}
-          </div>
+          <section className={formSectionClass}>
+            <h3 className={formSectionTitleClass}>
+              <ImagePlus className="h-4 w-4 text-navy/70" />
+              Bill
+            </h3>
+            <div className={formFieldClass}>
+              <Label className={formLabelClass}>Bill Image</Label>
+              <Input
+                type="file"
+                accept="image/*"
+                onChange={(e) => {
+                  if (e.target.files?.[0]) {
+                    onBillImageChange(e.target.files[0]);
+                  }
+                }}
+                className={inputClass}
+              />
+              {billUrl && (
+                <a
+                  href={billUrl}
+                  target="_blank"
+                  className="font-sans text-sm font-medium text-navy underline-offset-4 transition-colors hover:underline hover:text-navy/80"
+                >
+                  View Existing Bill
+                </a>
+              )}
+            </div>
+          </section>
 
           {userRole !== "admin" && (
-            <div className="space-y-2">
-              <Label htmlFor="edit-reason">Reason for Changes *</Label>
+            <div className={formFieldClass}>
+              <Label htmlFor="edit-reason" className={formLabelClass}>Reason for Changes *</Label>
               <Input
                 id="edit-reason"
                 value={editReason}
                 onChange={(e) => onEditReasonChange(e.target.value)}
                 placeholder="Explain the changes..."
                 required
+                className={inputClass}
               />
             </div>
           )}
+          </div>
 
-          <div className="flex justify-end space-x-2">
+          <div className={formDialogFooterClass}>
             <Button type="button" variant="neutralOutline" onClick={onCancel}>
               Cancel
             </Button>

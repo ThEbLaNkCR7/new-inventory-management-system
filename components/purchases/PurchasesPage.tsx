@@ -6,7 +6,6 @@ import AddSupplierDialog from "@/components/suppliers/AddSupplierDialog"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
 import {
   Dialog,
   DialogContent,
@@ -27,7 +26,39 @@ import type { Product, Purchase } from "@/contexts/InventoryContext"
 import { useInventory } from "@/contexts/InventoryContext"
 import { usePurchaseChange } from "@/hooks/usePurchaseChange"
 import { cn, formatNepaliDateForTable } from "@/lib/utils"
-import { AlertTriangle, CheckCircle, Clock, Loader2, Plus } from "lucide-react"
+import {
+  formActionLinkClass,
+  formDescriptionClass,
+  formDialogBodyClass,
+  formDialogClass,
+  formDialogFooterClass,
+  formDialogHeaderClass,
+  formErrorTextClass,
+  formFieldClass,
+  formFileInputClass,
+  formGridClass,
+  formHintClass,
+  formInputClass,
+  formItemCardClass,
+  formItemLabelClass,
+  formLabelClass,
+  formSectionClass,
+  formSectionTitleClass,
+  formSelectTriggerClass,
+  formTitleClass,
+} from "@/lib/form-styles"
+import {
+  AlertTriangle,
+  CheckCircle,
+  Clock,
+  ImagePlus,
+  Loader2,
+  Package,
+  Plus,
+  Receipt,
+  Trash2,
+  Truck,
+} from "lucide-react"
 import { useEffect, useMemo, useState, type FormEvent } from "react"
 import DeletePurchaseDialog from "./DeletePurchaseDialog"
 import EditPurchaseDialog from "./EditPurchaseDialog"
@@ -59,10 +90,9 @@ const shouldPreventPurchaseDialogClose = (
 ) =>
   isPortaledSelectClick(target) || isAddSupplierDialogOpen || isQuickAddProductOpen
 
-const inputClass =
-  "border-2 focus:border-slate-500 transition-colors dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
-const selectTriggerClass = inputClass
-const errorTextClass = "text-sm text-red-600 dark:text-red-400"
+const inputClass = formInputClass
+const selectTriggerClass = formSelectTriggerClass
+const errorTextClass = formErrorTextClass
 
 const getEmptyPurchaseForm = () => ({
   items: [
@@ -634,23 +664,23 @@ export default function PurchasesPage() {
     <div className="space-y-4 min-h-screen transition-colors duration-300">
       {isLoading && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-xl max-w-md w-full mx-4">
+          <div className="bg-card rounded-lg p-6 shadow-xl max-w-md w-full mx-4">
             <div className="flex items-center justify-center mb-4">
               <Loader2 className="h-8 w-8 animate-spin text-primary mr-3" />
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+              <h3 className="text-base font-semibold text-navy">
                 Processing Purchase...
               </h3>
             </div>
 
             <div className="space-y-3">
-              <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400">
+              <div className="flex justify-between text-sm text-muted-foreground">
                 <span>{currentStep}</span>
                 <span>{Math.round(progress)}%</span>
               </div>
 
               <Progress value={progress} className="h-2" />
 
-              <div className="text-xs text-gray-500 dark:text-gray-400 text-center">
+              <div className="text-xs text-muted-foreground text-center">
                 Step {Math.ceil((progress / 100) * totalSteps)} of {totalSteps}
               </div>
             </div>
@@ -659,9 +689,9 @@ export default function PurchasesPage() {
       )}
       {/* Success/Info Alert */}
       {showSuccessAlert && (
-        <Alert className="border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20 p-3 mb-0">
-          <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
-          <AlertDescription className="text-green-800 dark:text-green-200">{alertMessage}</AlertDescription>
+        <Alert className="border-border bg-muted p-3 mb-0">
+          <CheckCircle className="h-4 w-4 text-navy" />
+          <AlertDescription className="text-navy">{alertMessage}</AlertDescription>
         </Alert>
       )}
 
@@ -670,10 +700,10 @@ export default function PurchasesPage() {
           <h1 className="section-title">
             Purchases
           </h1>
-          <p className="text-gray-600 dark:text-gray-300">Manage purchase orders and inventory restocking</p>
+          <p className="page-desc">Manage purchase orders and inventory restocking</p>
           {user?.role !== "admin" && (
             <div className="mt-2">
-              <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-700">
+              <Badge variant="outline" className="bg-blue-50 text-navy border-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-700">
                 <Clock className="h-3 w-3 mr-1" />
                 Changes require admin approval
               </Badge>
@@ -696,14 +726,13 @@ export default function PurchasesPage() {
                   setIsAddDialogOpen(true)
                 }}
                 variant="neutral"
-                className="shadow-lg hover:shadow-xl transition-all"
               >
                 <Plus className="h-4 w-4" />
                 Add Purchase
               </Button>
             </DialogTrigger>
             <DialogContent
-              className="max-w-md"
+              className={formDialogClass}
               onPointerDownOutside={(event) => {
                 if (shouldPreventPurchaseDialogClose(event.target, isAddSupplierDialogOpen, isQuickAddProductOpen)) {
                   event.preventDefault()
@@ -715,45 +744,54 @@ export default function PurchasesPage() {
                 }
               }}
             >
-              <DialogHeader>
-                <DialogTitle>Add New Purchase</DialogTitle>
-                <DialogDescription>
-                  Enter purchase information to record a new purchase
+              <DialogHeader className={formDialogHeaderClass}>
+                <DialogTitle className={formTitleClass}>
+                  Add New Purchase
+                </DialogTitle>
+                <DialogDescription className={formDescriptionClass}>
+                  Record a new purchase order
                   {user?.role !== "admin" && (
-                    <div className="mt-2 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
-                      <div className="flex items-center text-amber-800 dark:text-amber-200">
-                        <Clock className="h-4 w-4 mr-2" />
-                        <span className="text-sm font-medium">Changes require admin approval</span>
-                      </div>
-                    </div>
+                    <span className="mt-2 flex items-center gap-2 rounded-md bg-muted px-3 py-2 font-sans text-sm font-medium leading-5 text-navy">
+                      <Clock className="h-4 w-4 shrink-0 text-navy" />
+                      Changes require admin approval
+                    </span>
                   )}
                 </DialogDescription>
               </DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="space-y-3">
-                  <Label>Products *</Label>
+              <form onSubmit={handleSubmit}>
+                <div className={formDialogBodyClass}>
+                <section className={formSectionClass}>
+                  <h3 className={formSectionTitleClass}>
+                    <Package className="h-4 w-4 text-navy/70" />
+                    Products *
+                  </h3>
 
                   {formData.items.map((item: any, index: number) => {
                     const selectedProduct = products.find(p => p.id === item.productId)
 
                     return (
-                      <Card key={index} className="p-3 space-y-3">
+                      <div key={index} className={formItemCardClass}>
                         <div className="flex justify-between items-center">
-                          <span className="font-semibold">Item #{index + 1}</span>
+                          <span className={formItemLabelClass}>
+                            Item #{index + 1}
+                          </span>
 
                           {formData.items.length > 1 && (
                             <Button
                               type="button"
-                              variant="neutralOutline"
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 gap-1 px-2 text-xs text-red-600 hover:bg-red-50 hover:text-red-700 dark:hover:bg-red-900/20"
                               onClick={() => removeItem(index)}
                             >
+                              <Trash2 className="h-3.5 w-3.5" />
                               Remove
                             </Button>
                           )}
                         </div>
 
                         {/* PRODUCT SELECT */}
-                        <div className="space-y-2">
+                        <div className={formFieldClass}>
                           <Select
                             value={item.productId || undefined}
                             onValueChange={(value) => {
@@ -798,7 +836,7 @@ export default function PurchasesPage() {
 
                         {/* QUANTITY + PRICE */}
                         <div className="grid grid-cols-2 gap-3">
-                          <div className="space-y-1">
+                          <div className={formFieldClass}>
                             <Input
                               type="number"
                               min={1}
@@ -822,7 +860,7 @@ export default function PurchasesPage() {
                             {renderFieldError(`items.${index}.quantityPurchased`)}
                           </div>
 
-                          <div className="space-y-1">
+                          <div className={formFieldClass}>
                             <Input
                               type="number"
                               min={0}
@@ -841,9 +879,9 @@ export default function PurchasesPage() {
                         {selectedProduct &&
                           item.quantityPurchased > 0 &&
                           item.quantityPurchased > selectedProduct.stockQuantity && (
-                            <Alert className="border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-900/20 py-2">
-                              <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-                              <AlertDescription className="text-amber-800 dark:text-amber-200 text-xs">
+                            <Alert className="border-border bg-muted py-2">
+                              <AlertTriangle className="h-4 w-4 text-navy" />
+                              <AlertDescription className="text-navy text-xs">
                                 Quantity ({item.quantityPurchased}) exceeds current stock (
                                 {selectedProduct.stockQuantity}).
                               </AlertDescription>
@@ -853,115 +891,141 @@ export default function PurchasesPage() {
                         {selectedProduct &&
                           item.quantityPurchased > 0 &&
                           item.quantityPurchased <= selectedProduct.stockQuantity && (
-                            <p className="text-xs text-gray-500">
+                            <p className={formHintClass}>
                               Stock: {selectedProduct.stockQuantity}
                             </p>
                           )}
-                      </Card>
+                      </div>
                     )
                   })}
 
-                  <Button type="button" onClick={addItem}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Another Product
+                  <Button type="button" variant="ghost" size="sm" className={formActionLinkClass} onClick={addItem}>
+                    <Plus className="h-4 w-4 mr-1.5" />
+                    Add another product
                   </Button>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="supplier">Supplier *</Label>
-                  <div className="space-y-2">
-                    <Select
-                      value={formData.supplier || undefined}
-                      onValueChange={handleSupplierChange}
-                    >
-                      <SelectTrigger className={cn(selectTriggerClass, fieldErrorClass("supplier"))}>
-                        <SelectValue placeholder="Select supplier" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {supplierOptions.map((supplier) => (
-                          <SelectItem key={supplier.id} value={supplier.name}>
-                            {supplier.name}
-                          </SelectItem>
-                        ))}
-                        <SelectItem value="__new__">Add new supplier...</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    {renderFieldError("supplier")}
-                  </div>
-                </div>
+                </section>
 
-                <div className="space-y-2">
-                  <Label htmlFor="supplierType">Supplier Type *</Label>
-                  <Select
-                    value={formData.supplierType || undefined}
-                    onValueChange={(value) => updateForm({ supplierType: value })}
-                  >
-                    <SelectTrigger className={cn(selectTriggerClass, fieldErrorClass("supplierType"))}>
-                      <SelectValue placeholder="Select supplier type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Individual">Individual</SelectItem>
-                      <SelectItem value="Company">Company</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  {renderFieldError("supplierType")}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="date">Purchase Date *</Label>
-                  <MaterialDatePicker
-                    value={formData.purchaseDate ? new Date(formData.purchaseDate) : undefined}
-                    onChange={(date: Date | undefined) =>
-                      updateForm({ purchaseDate: date ? date.toISOString().split("T")[0] : "" })
-                    }
-                  />
-                  {renderFieldError("purchaseDate")}
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Include VAT? *</Label>
-                  <div className="flex items-center space-x-6">
-                    <div className="flex items-center">
-                      <input
-                        type="radio"
-                        id="vatYes"
-                        name="isVat"
-                        value="yes"
-                        checked={formData.isVat === true}
-                        onChange={() => updateForm({ isVat: true })}
-                        className="w-4 h-4 cursor-pointer"
-                      />
-                      <label htmlFor="vatYes" className="ml-2 cursor-pointer text-sm">
-                        Yes
-                      </label>
+                <section className={formSectionClass}>
+                  <h3 className={formSectionTitleClass}>
+                    <Truck className="h-4 w-4 text-navy/70" />
+                    Supplier & details
+                  </h3>
+                  <div className={formGridClass}>
+                    <div className={formFieldClass}>
+                      <Label htmlFor="supplier" className={formLabelClass}>Supplier *</Label>
+                      <Select
+                        value={formData.supplier || undefined}
+                        onValueChange={handleSupplierChange}
+                      >
+                        <SelectTrigger className={cn(selectTriggerClass, fieldErrorClass("supplier"))}>
+                          <SelectValue placeholder="Select supplier" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {supplierOptions.map((supplier) => (
+                            <SelectItem key={supplier.id} value={supplier.name}>
+                              {supplier.name}
+                            </SelectItem>
+                          ))}
+                          <SelectItem value="__new__">Add new supplier...</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      {renderFieldError("supplier")}
                     </div>
-                    <div className="flex items-center">
-                      <input
-                        type="radio"
-                        id="vatNo"
-                        name="isVat"
-                        value="no"
-                        checked={formData.isVat === false}
-                        onChange={() => updateForm({ isVat: false })}
-                        className="w-4 h-4 cursor-pointer"
-                      />
-                      <label htmlFor="vatNo" className="ml-2 cursor-pointer text-sm">
-                        No
-                      </label>
+
+                    <div className={formFieldClass}>
+                      <Label htmlFor="supplierType" className={formLabelClass}>Supplier Type *</Label>
+                      <Select
+                        value={formData.supplierType || undefined}
+                        onValueChange={(value) => updateForm({ supplierType: value })}
+                      >
+                        <SelectTrigger className={cn(selectTriggerClass, fieldErrorClass("supplierType"))}>
+                          <SelectValue placeholder="Select supplier type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Individual">Individual</SelectItem>
+                          <SelectItem value="Company">Company</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      {renderFieldError("supplierType")}
                     </div>
                   </div>
+
+                  <div className={formGridClass}>
+                    <div className={formFieldClass}>
+                      <Label htmlFor="date" className={formLabelClass}>Purchase Date *</Label>
+                      <MaterialDatePicker
+                        className={inputClass}
+                        value={formData.purchaseDate ? new Date(formData.purchaseDate) : undefined}
+                        onChange={(date: Date | undefined) =>
+                          updateForm({ purchaseDate: date ? date.toISOString().split("T")[0] : "" })
+                        }
+                      />
+                      {renderFieldError("purchaseDate")}
+                    </div>
+                  </div>
+                </section>
+
+                <section className={formSectionClass}>
+                  <h3 className={formSectionTitleClass}>
+                    <Receipt className="h-4 w-4 text-navy/70" />
+                    Options
+                  </h3>
+                  <div className={formGridClass}>
+                    <div className={formFieldClass}>
+                      <Label className={formLabelClass}>Include VAT? *</Label>
+                      <div className="flex h-10 items-center gap-5">
+                        <div className="flex items-center">
+                          <input
+                            type="radio"
+                            id="vatYes"
+                            name="isVat"
+                            value="yes"
+                            checked={formData.isVat === true}
+                            onChange={() => updateForm({ isVat: true })}
+                            className="h-4 w-4 cursor-pointer accent-navy"
+                          />
+                          <label htmlFor="vatYes" className="ml-2 cursor-pointer font-sans text-sm font-normal leading-5 text-navy">
+                            Yes
+                          </label>
+                        </div>
+                        <div className="flex items-center">
+                          <input
+                            type="radio"
+                            id="vatNo"
+                            name="isVat"
+                            value="no"
+                            checked={formData.isVat === false}
+                            onChange={() => updateForm({ isVat: false })}
+                            className="h-4 w-4 cursor-pointer accent-navy"
+                          />
+                          <label htmlFor="vatNo" className="ml-2 cursor-pointer font-sans text-sm font-normal leading-5 text-navy">
+                            No
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className={formFieldClass}>
+                      <Label htmlFor="bill" className={formLabelClass}>
+                        <span className="inline-flex items-center gap-1.5">
+                          <ImagePlus className="h-3.5 w-3.5 text-muted-foreground" />
+                          Upload Bill Image
+                        </span>
+                      </Label>
+                      <input
+                        key={billInputKey}
+                        type="file"
+                        id="bill"
+                        accept="image/*"
+                        onChange={(e) => setBillImage(e.target.files?.[0] || null)}
+                        className={formFileInputClass}
+                      />
+                    </div>
+                  </div>
+                </section>
                 </div>
 
-                <div className="mb-4">
-                  <label htmlFor="bill">Upload Bill Image</label>
-                  <input
-                    key={billInputKey}
-                    type="file"
-                    id="bill"
-                    accept="image/*"
-                    onChange={(e) => setBillImage(e.target.files?.[0] || null)}
-                  />
-                </div>
-                <div className="flex justify-end space-x-2">
+                <div className={formDialogFooterClass}>
                   <Button type="button" variant="neutralOutline" onClick={clearForm}>
                     Cancel
                   </Button>

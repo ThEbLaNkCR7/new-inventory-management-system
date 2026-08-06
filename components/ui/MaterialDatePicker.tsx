@@ -104,21 +104,23 @@ export function MaterialDatePicker({
       <div className="material-picker">
         <button
           type="button"
-          className={cn("w-full border rounded px-3 py-2 text-left", className)}
-          style={{ color: tempDate ? PRIMARY : undefined }}
+          className={cn(
+            "flex h-10 w-full items-center rounded-md border border-border bg-card px-3 text-left text-sm text-navy",
+            className,
+          )}
           onClick={() => setOpen(true)}
         >
           {tempDate ? format(tempDate, dateFormat) : placeholder}
         </button>
         {open && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20">
-            <div className="bg-white rounded-lg shadow-lg w-[340px] transition-all duration-300 transform scale-95 opacity-0 animate-material-fade-in">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+            <div className="w-[340px] scale-95 transform rounded-lg border border-border bg-popover opacity-0 shadow-lg transition-all duration-300 animate-material-fade-in">
               {/* Header */}
-              <div className="px-6 pt-4 pb-3 rounded-t-lg bg-gray-900 dark:bg-gray-950">
-                <div className="text-xs tracking-widest text-white/80 mb-1">SELECT DATE</div>
+              <div className="rounded-t-lg bg-navy px-6 pb-3 pt-4 text-navy-foreground">
+                <div className="mb-1 text-xs tracking-widest text-navy-foreground/80">SELECT DATE</div>
                 <div className="flex items-center justify-between">
-                  <div className="text-2xl font-semibold text-white">{tempDate ? format(tempDate, "EEE, MMM d") : "---"}</div>
-                  <Pencil className="h-5 w-5 text-white/80 cursor-pointer" />
+                  <div className="text-2xl font-semibold text-navy-foreground">{tempDate ? format(tempDate, "EEE, MMM d") : "---"}</div>
+                  <Pencil className="h-5 w-5 cursor-pointer text-navy-foreground/80" />
                 </div>
               </div>
               {/* Month/Year Dropdown and Navigation */}
@@ -128,41 +130,41 @@ export function MaterialDatePicker({
                     <select
                       value={month.getMonth()}
                       onChange={handleMonthChange}
-                      className="appearance-none bg-none border-none text-gray-700 font-medium text-base focus:outline-none cursor-pointer pr-6"
+                      className="cursor-pointer appearance-none border-none bg-none pr-6 text-sm font-medium text-navy focus:outline-none"
                       style={{ padding: 0, minWidth: '120px' }}
                     >
                       {months.map((m, idx) => (
                         <option key={m} value={idx}>{m}</option>
                       ))}
                     </select>
-                    <span className="pointer-events-none absolute right-1 top-1/2 transform -translate-y-1/2 text-gray-500 text-xs">▼</span>
+                    <span className="pointer-events-none absolute right-1 top-1/2 -translate-y-1/2 transform text-xs text-muted-foreground">▼</span>
                   </div>
                   <div className="relative">
                     <select
                       value={month.getFullYear()}
                       onChange={handleYearChange}
-                      className="appearance-none bg-none border-none text-gray-700 font-medium text-base focus:outline-none cursor-pointer pr-6"
+                      className="cursor-pointer appearance-none border-none bg-none pr-6 text-sm font-medium text-navy focus:outline-none"
                       style={{ padding: 0, minWidth: '90px' }}
                     >
                       {years.map(y => (
                         <option key={y} value={y}>{y}</option>
                       ))}
                     </select>
-                    <span className="pointer-events-none absolute right-1 top-1/2 transform -translate-y-1/2 text-gray-500 text-xs">▼</span>
+                    <span className="pointer-events-none absolute right-1 top-1/2 -translate-y-1/2 transform text-xs text-muted-foreground">▼</span>
                   </div>
                 </div>
                 <div className="flex items-center gap-1">
-                  <button type="button" onClick={handlePrevMonth} className="rounded border border-transparent hover:border-gray-900 dark:hover:border-gray-950 p-1 transition-colors">
-                    <ChevronLeft className="h-5 w-5 text-gray-700" />
+                  <button type="button" onClick={handlePrevMonth} className="rounded border border-transparent p-1 transition-colors hover:border-border">
+                    <ChevronLeft className="h-5 w-5 text-navy" />
                   </button>
-                  <button type="button" onClick={handleNextMonth} className="rounded border border-transparent hover:border-gray-900 dark:hover:border-gray-950 p-1 transition-colors">
-                    <ChevronRight className="h-5 w-5 text-gray-700" />
+                  <button type="button" onClick={handleNextMonth} className="rounded border border-transparent p-1 transition-colors hover:border-border">
+                    <ChevronRight className="h-5 w-5 text-navy" />
                   </button>
                 </div>
               </div>
               {/* Calendar Grid */}
-              <div className="px-6 pt-2 pb-2">
-                <div className="flex justify-between mb-1 text-gray-500 text-xs font-medium">
+              <div className="px-6 pb-2 pt-2">
+                <div className="mb-1 flex justify-between text-xs font-medium text-muted-foreground">
                   {WEEKDAYS.map(d => <div key={d} className="w-9 text-center">{d}</div>)}
                 </div>
                 <div className="flex flex-wrap">
@@ -180,12 +182,12 @@ export function MaterialDatePicker({
                           className={
                             "w-8 h-8 rounded-full flex items-center justify-center transition-all " +
                             (isSelected
-                              ? "bg-gray-900 dark:bg-gray-950 text-white font-bold"
+                              ? "bg-navy font-semibold text-navy-foreground"
                               : isToday
-                              ? "border-2 border-gray-900 dark:border-gray-950 text-gray-900 dark:text-gray-950 font-semibold"
+                              ? "border-2 border-navy font-semibold text-navy"
                               : inMonth
-                              ? "text-gray-800 hover:bg-gray-100"
-                              : "text-gray-300")
+                              ? "text-navy hover:bg-muted"
+                              : "text-muted-foreground/40")
                           }
                           style={{ outline: "none" }}
                           onClick={() => inMonth && handleDayClick(day)}
@@ -200,8 +202,8 @@ export function MaterialDatePicker({
               </div>
               {/* Footer */}
               <div className="flex justify-end items-center gap-4 px-6 pb-4 pt-2">
-                <button type="button" ref={cancelBtnRef} onClick={handleCancel} className="uppercase text-gray-900 dark:text-gray-950 text-sm font-medium tracking-wider px-2 py-1 rounded hover:bg-gray-100">Cancel</button>
-                <button type="button" onClick={handleOk} className="uppercase text-gray-900 dark:text-gray-950 text-sm font-medium tracking-wider px-2 py-1 rounded hover:bg-gray-100">OK</button>
+                <button type="button" ref={cancelBtnRef} onClick={handleCancel} className="rounded px-2 py-1 text-sm font-medium uppercase tracking-wider text-navy hover:bg-muted">Cancel</button>
+                <button type="button" onClick={handleOk} className="rounded px-2 py-1 text-sm font-medium uppercase tracking-wider text-navy hover:bg-muted">OK</button>
               </div>
             </div>
           </div>

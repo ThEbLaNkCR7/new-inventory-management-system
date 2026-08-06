@@ -31,19 +31,19 @@ export function ComparisonCard({ title, originalData, proposedData, action }: Co
 
   if (action === "create") {
     return (
-      <Card className="border-green-200 bg-green-50">
+      <Card className="border-border bg-card">
         <CardHeader>
-          <CardTitle className="text-green-800 flex items-center">
-            <Plus className="h-5 w-5 mr-2" />
+          <CardTitle className="flex items-center text-navy">
+            <Plus className="mr-2 h-5 w-5" />
             New {title}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
             {Object.entries(proposedData).map(([key, value]) => (
-              <div key={key} className="flex justify-between items-center p-2 bg-white rounded border border-green-200">
-                <span className="font-medium text-green-700">{formatKey(key)}:</span>
-                <span className="text-green-900 font-semibold">{formatValue(key, value)}</span>
+              <div key={key} className="flex items-center justify-between rounded border border-border bg-muted/50 p-2">
+                <span className="font-medium text-muted-foreground">{formatKey(key)}:</span>
+                <span className="font-semibold text-navy">{formatValue(key, value)}</span>
               </div>
             ))}
           </div>
@@ -54,10 +54,10 @@ export function ComparisonCard({ title, originalData, proposedData, action }: Co
 
   if (action === "delete") {
     return (
-      <Card className="border-red-200 bg-red-50">
+      <Card className="border-border bg-card">
         <CardHeader>
-          <CardTitle className="text-red-800 flex items-center">
-            <Minus className="h-5 w-5 mr-2" />
+          <CardTitle className="flex items-center text-navy">
+            <Minus className="mr-2 h-5 w-5" />
             Delete {title}
           </CardTitle>
         </CardHeader>
@@ -65,9 +65,9 @@ export function ComparisonCard({ title, originalData, proposedData, action }: Co
           <div className="space-y-3">
             {originalData &&
               Object.entries(originalData).map(([key, value]) => (
-                <div key={key} className="flex justify-between items-center p-2 bg-white rounded border border-red-200">
-                  <span className="font-medium text-red-700">{formatKey(key)}:</span>
-                  <span className="text-red-900 line-through">{formatValue(key, value)}</span>
+                <div key={key} className="flex items-center justify-between rounded border border-border bg-muted/50 p-2">
+                  <span className="font-medium text-muted-foreground">{formatKey(key)}:</span>
+                  <span className="text-navy line-through">{formatValue(key, value)}</span>
                 </div>
               ))}
           </div>
@@ -80,17 +80,14 @@ export function ComparisonCard({ title, originalData, proposedData, action }: Co
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-center">
-        <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-          Update {title}
-        </Badge>
+        <Badge variant="outline">Update {title}</Badge>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Current Data */}
-        <Card className="border-red-200 bg-red-50">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <Card className="border-border bg-card">
           <CardHeader>
-            <CardTitle className="text-red-800 flex items-center text-lg">
-              <Minus className="h-4 w-4 mr-2" />
+            <CardTitle className="flex items-center text-lg text-navy">
+              <Minus className="mr-2 h-4 w-4" />
               Current
             </CardTitle>
           </CardHeader>
@@ -100,21 +97,20 @@ export function ComparisonCard({ title, originalData, proposedData, action }: Co
                 Object.entries(originalData).map(([key, value]) => (
                   <div
                     key={key}
-                    className="flex justify-between items-center p-2 bg-white rounded border border-red-200"
+                    className="flex items-center justify-between rounded border border-border bg-muted/50 p-2"
                   >
-                    <span className="font-medium text-red-700 text-sm">{formatKey(key)}:</span>
-                    <span className="text-red-900 text-sm">{formatValue(key, value)}</span>
+                    <span className="text-sm font-medium text-muted-foreground">{formatKey(key)}:</span>
+                    <span className="text-sm text-navy">{formatValue(key, value)}</span>
                   </div>
                 ))}
             </div>
           </CardContent>
         </Card>
 
-        {/* Proposed Data */}
-        <Card className="border-green-200 bg-green-50">
+        <Card className="border-border bg-card">
           <CardHeader>
-            <CardTitle className="text-green-800 flex items-center text-lg">
-              <Plus className="h-4 w-4 mr-2" />
+            <CardTitle className="flex items-center text-lg text-navy">
+              <Plus className="mr-2 h-4 w-4" />
               Proposed
             </CardTitle>
           </CardHeader>
@@ -123,10 +119,10 @@ export function ComparisonCard({ title, originalData, proposedData, action }: Co
               {Object.entries(proposedData).map(([key, value]) => (
                 <div
                   key={key}
-                  className="flex justify-between items-center p-2 bg-white rounded border border-green-200"
+                  className="flex items-center justify-between rounded border border-border bg-muted/50 p-2"
                 >
-                  <span className="font-medium text-green-700 text-sm">{formatKey(key)}:</span>
-                  <span className="text-green-900 text-sm font-semibold">{formatValue(key, value)}</span>
+                  <span className="text-sm font-medium text-muted-foreground">{formatKey(key)}:</span>
+                  <span className="text-sm font-semibold text-navy">{formatValue(key, value)}</span>
                 </div>
               ))}
             </div>

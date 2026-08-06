@@ -34,15 +34,15 @@ export default function ViewSupplierDialog({
 }: ViewSupplierDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-white dark:bg-gray-800 border dark:border-gray-700">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto border-border">
         <DialogHeader className="pb-6">
-          <DialogTitle className="text-2xl font-bold text-gray-800 dark:text-gray-200 flex items-center space-x-3">
+          <DialogTitle className="flex items-center gap-3">
             <div className="p-2 bg-blue-100 dark:bg-blue-900/20 rounded-lg">
-              <Eye className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+              <Eye className="h-6 w-6 text-navy" />
             </div>
             <span>Supplier Details</span>
           </DialogTitle>
-          <DialogDescription className="text-gray-600 dark:text-gray-400">
+          <DialogDescription className="text-sm text-muted-foreground">
             Complete information about the selected supplier
           </DialogDescription>
         </DialogHeader>
@@ -50,58 +50,58 @@ export default function ViewSupplierDialog({
         {supplier && (
           <div className="space-y-6">
             {/* Basic Information */}
-            <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-6">
-              <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center space-x-2">
+            <div className="bg-muted rounded-xl p-6">
+              <h3 className="form-section-title">
                 <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
                 <span>Basic Information</span>
               </h3>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Contact Name</Label>
-                  <p className="text-gray-900 dark:text-gray-100 font-medium text-base">{supplier.name}</p>
+                  <Label className="text-sm font-medium text-muted-foreground uppercase tracking-wide">Contact Name</Label>
+                  <p className="text-navy text-sm font-medium">{supplier.name}</p>
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Company Type</Label>
-                  <p className="text-gray-900 dark:text-gray-100 font-medium text-base">{supplier.company}</p>
+                  <Label className="text-sm font-medium text-muted-foreground uppercase tracking-wide">Company Type</Label>
+                  <p className="text-navy text-sm font-medium">{supplier.company}</p>
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Status</Label>
+                  <Label className="text-sm font-medium text-muted-foreground uppercase tracking-wide">Status</Label>
                   <Badge
                     variant="secondary"
                     className={`px-3 py-1 text-sm font-medium ${supplier.status === 'Active' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-400' :
-                      supplier.status === 'Inactive' ? 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-400' :
-                        supplier.status === 'Pending' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-400' :
-                          'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-400'
-                      }`}
+ supplier.status === 'Inactive' ? 'bg-gray-100 text-navy dark:bg-background ' :
+ supplier.status === 'Pending' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-400' :
+ 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-400'
+ }`}
                   >
                     {supplier.status || 'Active'}
                   </Badge>
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Supplier ID</Label>
-                  <p className="text-gray-700 dark:text-gray-300 font-mono text-base">{supplier.id}</p>
+                  <Label className="text-sm font-medium text-muted-foreground uppercase tracking-wide">Supplier ID</Label>
+                  <p className="text-navy font-mono text-base">{supplier.id}</p>
                 </div>
               </div>
             </div>
 
             {/* Contact Information */}
-            <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-6">
-              <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center space-x-2">
+            <div className="bg-muted rounded-xl p-6">
+              <h3 className="form-section-title">
                 <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                 <span>Contact Information</span>
               </h3>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Email</Label>
-                  <p className="text-gray-900 dark:text-gray-100 font-medium text-base">{supplier.email}</p>
+                  <Label className="text-sm font-medium text-muted-foreground uppercase tracking-wide">Email</Label>
+                  <p className="text-navy text-sm font-medium">{supplier.email}</p>
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Phone</Label>
-                  <p className="text-gray-900 dark:text-gray-100 font-medium text-base">{supplier.phone}</p>
+                  <Label className="text-sm font-medium text-muted-foreground uppercase tracking-wide">Phone</Label>
+                  <p className="text-navy text-sm font-medium">{supplier.phone}</p>
                 </div>
                 <div className="space-y-2 lg:col-span-2">
-                  <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Address</Label>
-                  <p className="text-gray-700 dark:text-gray-300 font-medium text-base bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-600">
+                  <Label className="text-sm font-medium text-muted-foreground uppercase tracking-wide">Address</Label>
+                  <p className="text-navy text-sm font-medium bg-card p-3 rounded-lg border border-border">
                     {supplier.address || "Address not specified"}
                   </p>
                 </div>
@@ -109,27 +109,27 @@ export default function ViewSupplierDialog({
             </div>
 
             {/* Business Information */}
-            <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-6">
-              <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center space-x-2">
+            <div className="bg-muted rounded-xl p-6">
+              <h3 className="form-section-title">
                 <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
                 <span>Business Information</span>
               </h3>
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Total Orders</Label>
-                  <p className="text-gray-900 dark:text-gray-100 font-semibold text-lg">
+                  <Label className="text-sm font-medium text-muted-foreground uppercase tracking-wide">Total Orders</Label>
+                  <p className="text-navy text-lg font-semibold tracking-tight tabular-nums">
                     {getSupplierOrderCount(supplier.name)} orders
                   </p>
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Total Spent</Label>
-                  <p className="font-semibold text-lg text-blue-600 dark:text-blue-400">
+                  <Label className="text-sm font-medium text-muted-foreground uppercase tracking-wide">Total Spent</Label>
+                  <p className="text-lg font-semibold tracking-tight tabular-nums text-navy">
                     Rs {getSupplierTotalSpent(supplier.name).toLocaleString()}
                   </p>
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Last Order</Label>
-                  <p className="text-gray-700 dark:text-gray-300 font-medium text-base">
+                  <Label className="text-sm font-medium text-muted-foreground uppercase tracking-wide">Last Order</Label>
+                  <p className="text-navy text-sm font-medium">
                     {getSupplierLastOrder(supplier.name) ? formatNepaliDateForTable(getSupplierLastOrder(supplier.name)!) : 'No orders yet'}
                   </p>
                 </div>
@@ -137,21 +137,21 @@ export default function ViewSupplierDialog({
             </div>
 
             {/* Timestamps */}
-            <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-6">
-              <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center space-x-2">
+            <div className="bg-muted rounded-xl p-6">
+              <h3 className="form-section-title">
                 <div className="w-2 h-2 bg-indigo-500 rounded-full"></div>
                 <span>Timestamps</span>
               </h3>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Created</Label>
-                  <p className="text-gray-700 dark:text-gray-300 font-medium text-base">
+                  <Label className="text-sm font-medium text-muted-foreground uppercase tracking-wide">Created</Label>
+                  <p className="text-navy text-sm font-medium">
                     {formatNepaliDateForTable(supplier.createdAt)}
                   </p>
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Last Updated</Label>
-                  <p className="text-gray-700 dark:text-gray-300 font-medium text-base">
+                  <Label className="text-sm font-medium text-muted-foreground uppercase tracking-wide">Last Updated</Label>
+                  <p className="text-navy text-sm font-medium">
                     {formatNepaliDateForTable(supplier.updatedAt || supplier.createdAt)}
                   </p>
                 </div>
@@ -159,15 +159,15 @@ export default function ViewSupplierDialog({
             </div>
 
             {/* Status */}
-            <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-6">
-              <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center space-x-2">
+            <div className="bg-muted rounded-xl p-6">
+              <h3 className="form-section-title">
                 <div className="w-2 h-2 bg-red-500 rounded-full"></div>
                 <span>Status</span>
               </h3>
               <div className="flex items-center space-x-6">
                 <div className="flex items-center space-x-3">
                   <div className={`w-4 h-4 rounded-full ${supplier.isActive !== false ? "bg-green-500" : "bg-red-500"}`}></div>
-                  <span className="text-gray-700 dark:text-gray-300 font-medium text-base">
+                  <span className="text-navy text-sm font-medium">
                     {supplier.isActive !== false ? "Active" : "Inactive"}
                   </span>
                 </div>
@@ -179,7 +179,7 @@ export default function ViewSupplierDialog({
           </div>
         )}
 
-        <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200 dark:border-gray-700">
+        <div className="flex justify-end space-x-3 pt-6 border-t border-border">
           <Button
             type="button"
             variant="neutralOutline"

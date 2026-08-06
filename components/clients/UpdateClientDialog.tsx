@@ -25,9 +25,9 @@ import { Clock } from "lucide-react"
 import type { ClientFormData } from "./utils"
 
 const inputClass =
-  "border-2 focus:border-slate-500 transition-colors dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
+  "border border-border bg-background focus:border-navy/50 focus-visible:ring-1 focus-visible:ring-navy/20"
 const selectTriggerClass = inputClass
-const errorTextClass = "text-sm text-red-600 dark:text-red-400"
+const errorTextClass = "text-sm text-navy"
 
 interface UpdateClientDialogProps {
   open: boolean
@@ -63,18 +63,13 @@ export default function UpdateClientDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto p-5 sm:p-6">
         <DialogHeader>
           <DialogTitle>Edit Client</DialogTitle>
           <DialogDescription>
             Update client information
             {!isAdmin && (
-              <div className="mt-2 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
-                <div className="flex items-center text-amber-800 dark:text-amber-200">
-                  <Clock className="h-4 w-4 mr-2" />
-                  <span className="text-sm font-medium">Changes require admin approval</span>
-                </div>
-              </div>
+              <p className="mt-1.5 text-xs text-amber-700 dark:text-amber-400">Changes require admin approval</p>
             )}
           </DialogDescription>
         </DialogHeader>
@@ -186,7 +181,7 @@ export default function UpdateClientDialog({
             {renderFieldError("paymentStatus")}
           </div>
           {!isAdmin && (
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label htmlFor="edit-reason">Reason for Changes *</Label>
               <Textarea
                 id="edit-reason"

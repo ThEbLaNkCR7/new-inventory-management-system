@@ -40,8 +40,8 @@ import DataPagination from "@/components/ui/data-pagination"
 import { usePagination } from "@/hooks/usePagination"
 
 const inputClass =
-  "border-2 focus:border-slate-500 transition-colors dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
-const errorTextClass = "text-sm text-red-600 dark:text-red-400"
+  "border border-border bg-background focus:border-navy/50 focus-visible:ring-1 focus-visible:ring-navy/20"
+const errorTextClass = "text-sm text-navy"
 
 export default function LedgerAccountsPage() {
   const {
@@ -237,8 +237,8 @@ export default function LedgerAccountsPage() {
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-xl font-semibold flex items-center gap-2">
-            <BookOpen className="h-7 w-7" />
+          <h1 className="section-title mb-0 flex items-center gap-2">
+            <BookOpen className="h-6 w-6" />
             Ledger Account
           </h1>
           <p className="text-muted-foreground mt-1">
@@ -400,10 +400,10 @@ export default function LedgerAccountsPage() {
 
       <Card className="overflow-hidden">
         <CardHeader className="pb-3">
-          <CardTitle className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+          <CardTitle>
             Ledger Accounts
           </CardTitle>
-          <CardDescription className="text-gray-600 dark:text-gray-400 mt-1">
+          <CardDescription className="text-muted-foreground mt-1">
             Manage accounts and record manual ledger transactions.
           </CardDescription>
           <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
@@ -451,7 +451,7 @@ export default function LedgerAccountsPage() {
             </div>
           </div>
         </CardHeader>
-        <CardContent className="border-t border-gray-100 dark:border-gray-700 pt-4">
+        <CardContent className="border-t border-border pt-4">
           {isRefreshing && (
             <div className="flex items-center gap-2 text-muted-foreground mb-4">
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -473,7 +473,7 @@ export default function LedgerAccountsPage() {
               <TableBody>
                 {filteredAccounts.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={6} className="py-8 text-center text-sm font-normal italic text-muted-foreground">
                       {ledgerAccounts.length === 0
                         ? 'No ledger accounts yet. Click "Add Ledger Account" to get started.'
                         : "No accounts match your search or filter."}

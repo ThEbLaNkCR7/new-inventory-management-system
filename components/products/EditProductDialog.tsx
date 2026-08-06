@@ -69,20 +69,15 @@ export default function EditProductDialog({
 }: EditProductDialogProps) {
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[95vw] max-w-2xl max-h-[85vh] overflow-y-auto bg-white dark:bg-gray-800 border dark:border-gray-700 p-4 sm:p-6">
+      <DialogContent className="w-[95vw] max-w-2xl max-h-[85vh] overflow-y-auto border-border p-5 sm:p-6">
         <DialogHeader>
-          <DialogTitle className="text-2xl font-bold text-gray-800 dark:text-gray-200">
+          <DialogTitle>
             Edit Product
           </DialogTitle>
-          <DialogDescription className="text-gray-600 dark:text-gray-400">
+          <DialogDescription className="text-sm text-muted-foreground">
             Update product information
             {userRole !== "admin" && (
-              <div className="mt-2 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
-                <div className="flex items-center text-amber-800 dark:text-amber-200">
-                  <Clock className="h-4 w-4 mr-2" />
-                  <span className="text-sm font-medium">Changes require admin approval</span>
-                </div>
-              </div>
+              <p className="mt-1.5 text-xs text-amber-700 dark:text-amber-400">Changes require admin approval</p>
             )}
           </DialogDescription>
         </DialogHeader>
@@ -110,7 +105,7 @@ export default function EditProductDialog({
             showWeightUnitSelector
             fieldErrors={fieldErrors}
           />
-          <div className="flex justify-end space-x-2 pt-4">
+          <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="neutralOutline" onClick={onCancel}>
               Cancel
             </Button>

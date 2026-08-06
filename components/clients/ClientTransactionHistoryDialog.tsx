@@ -73,9 +73,9 @@ export default function ClientTransactionHistoryDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto bg-white dark:bg-gray-800 border dark:border-gray-700">
+      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto border-border">
         <DialogHeader className="pb-4">
-          <DialogTitle className="text-xl font-bold text-gray-800 dark:text-gray-200 flex items-center space-x-3">
+          <DialogTitle className="flex items-center gap-3">
             <div className="p-2 bg-teal-100 dark:bg-teal-900/20 rounded-lg">
               <svg className="h-6 w-6 text-teal-600 dark:text-teal-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
@@ -83,54 +83,54 @@ export default function ClientTransactionHistoryDialog({
             </div>
             <span>Client Transaction History</span>
           </DialogTitle>
-          <DialogDescription className="text-gray-600 dark:text-gray-400">
-            All transactions with <span className="font-semibold text-gray-800 dark:text-gray-200">{toTitleCase(clientName)}</span>
+          <DialogDescription className="text-sm text-muted-foreground">
+            All transactions with <span className="font-semibold text-navy">{toTitleCase(clientName)}</span>
           </DialogDescription>
         </DialogHeader>
 
         {clientName && (
           <div className="space-y-4">
-            <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-4">
-              <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3 flex items-center space-x-2">
+            <div className="bg-muted rounded-xl p-4">
+              <h3 className="form-section-title">
                 <div className="w-2 h-2 bg-teal-500 rounded-full"></div>
                 <span>Client Summary</span>
               </h3>
               <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
                 <div className="space-y-1">
-                  <Label className="text-sm font-medium text-gray-600 dark:text-gray-400">Client Name</Label>
-                  <p className="text-gray-900 dark:text-gray-100 font-medium">{toTitleCase(clientName)}</p>
+                  <Label className="text-sm font-medium text-muted-foreground">Client Name</Label>
+                  <p className="text-navy font-medium">{toTitleCase(clientName)}</p>
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Sales</Label>
-                  <p className="text-gray-900 dark:text-gray-100 font-semibold text-lg">
+                  <Label className="text-sm font-medium text-muted-foreground">Total Sales</Label>
+                  <p className="text-navy text-lg font-semibold tracking-tight tabular-nums">
                     {clientSales.length} transactions
                   </p>
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Quantity</Label>
-                  <p className="text-gray-900 dark:text-gray-100 font-semibold text-lg">{totalQuantity} units</p>
+                  <Label className="text-sm font-medium text-muted-foreground">Total Quantity</Label>
+                  <p className="text-navy text-lg font-semibold tracking-tight tabular-nums">{totalQuantity} units</p>
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Value</Label>
-                  <p className="text-gray-900 dark:text-gray-100 font-semibold text-lg">
+                  <Label className="text-sm font-medium text-muted-foreground">Total Value</Label>
+                  <p className="text-navy text-lg font-semibold tracking-tight tabular-nums">
                     Rs {totalSpent.toLocaleString()}
                   </p>
                 </div>
               </div>
             </div>
 
-            <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-4">
-              <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3 flex items-center space-x-2">
+            <div className="bg-muted rounded-xl p-4">
+              <h3 className="form-section-title">
                 <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                 <span>Sales Transactions ({clientSales.length})</span>
               </h3>
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
-                    <TableRow className="bg-gray-100 dark:bg-gray-700">
-                      <TableHead className="font-semibold text-gray-700 dark:text-gray-300">Date</TableHead>
-                      <TableHead className="font-semibold text-gray-700 dark:text-gray-300">Item No.</TableHead>
-                      <TableHead className="font-semibold text-gray-700 dark:text-gray-300">Total Value</TableHead>
+                    <TableRow className="bg-muted">
+                      <TableHead>Date</TableHead>
+                      <TableHead>Item No.</TableHead>
+                      <TableHead>Total Value</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -145,14 +145,14 @@ export default function ClientTransactionHistoryDialog({
                           ) || 0
 
                         return (
-                          <TableRow key={sale.id} className="hover:bg-gray-100 dark:hover:bg-gray-700/50">
-                            <TableCell className="text-gray-700 dark:text-gray-300">
+                          <TableRow key={sale.id} className="hover:bg-muted/60">
+                            <TableCell className="text-navy">
                               {formatNepaliDateForTable(sale.saleDate)}
                             </TableCell>
-                            <TableCell className="font-medium text-gray-900 dark:text-gray-100">
+                            <TableCell className="font-medium text-navy">
                               {itemNo}
                             </TableCell>
-                            <TableCell className="font-semibold text-green-600 dark:text-green-400">
+                            <TableCell className="font-semibold tabular-nums text-navy">
                               Rs {saleTotal.toLocaleString()}
                             </TableCell>
                           </TableRow>
@@ -160,7 +160,7 @@ export default function ClientTransactionHistoryDialog({
                       })
                     ) : (
                       <TableRow>
-                        <TableCell colSpan={3} className="text-center py-8 text-gray-500 dark:text-gray-400">
+                        <TableCell colSpan={3} className="py-8 text-center text-sm font-normal italic text-muted-foreground">
                           No sales transactions found for this client
                         </TableCell>
                       </TableRow>
@@ -183,7 +183,7 @@ export default function ClientTransactionHistoryDialog({
           </div>
         )}
 
-        <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+        <div className="flex justify-end space-x-3 pt-4 border-t border-border">
           <Button
             type="button"
             variant="neutralOutline"

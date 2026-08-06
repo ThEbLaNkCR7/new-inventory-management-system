@@ -75,48 +75,48 @@ export default function ProductHistoryDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-white dark:bg-gray-800 border dark:border-gray-700">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto border-border">
         <DialogHeader className="pb-6">
-          <DialogTitle className="text-2xl font-bold text-gray-800 dark:text-gray-200 flex items-center space-x-3">
+          <DialogTitle className="flex items-center gap-3">
             <div className="p-2 bg-blue-100 dark:bg-blue-900/20 rounded-lg">
-              <TrendingUp className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+              <TrendingUp className="h-6 w-6 text-navy" />
             </div>
             <span>Product Transaction History</span>
           </DialogTitle>
-          <DialogDescription className="text-gray-600 dark:text-gray-400">
+          <DialogDescription className="text-sm text-muted-foreground">
             Complete transaction history for {product?.name}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6">
           {/* Product Summary */}
-          <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-6">
-            <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center space-x-2">
+          <div className="bg-muted rounded-xl p-6">
+            <h3 className="form-section-title">
               <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
               <span>Product Summary</span>
             </h3>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <div className="space-y-2">
-                <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">
+                <Label className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
                   Product Name
                 </Label>
-                <p className="text-gray-900 dark:text-gray-100 font-semibold text-lg">
+                <p className="text-navy text-lg font-semibold tracking-tight tabular-nums">
                   {product?.name}
                 </p>
               </div>
               <div className="space-y-2">
-                <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">
+                <Label className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
                   Current Stock
                 </Label>
-                <p className="text-gray-900 dark:text-gray-100 font-semibold text-lg">
+                <p className="text-navy text-lg font-semibold tracking-tight tabular-nums">
                   {product?.stockQuantity} units
                 </p>
               </div>
               <div className="space-y-2">
-                <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">
+                <Label className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
                   Unit Price
                 </Label>
-                <p className="text-gray-900 dark:text-gray-100 font-semibold text-lg">
+                <p className="text-navy text-lg font-semibold tracking-tight tabular-nums">
                   Rs {product?.unitPrice?.toLocaleString() || "N/A"}
                 </p>
               </div>
@@ -124,65 +124,65 @@ export default function ProductHistoryDialog({
           </div>
 
           {/* Year Statistics */}
-          <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-6">
-            <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center space-x-2">
+          <div className="bg-muted rounded-xl p-6">
+            <h3 className="form-section-title">
               <div className="w-2 h-2 bg-green-500 rounded-full"></div>
               <span>{currentYear} Statistics</span>
             </h3>
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
               <div className="space-y-2">
-                <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">
+                <Label className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
                   Total Sales
                 </Label>
-                <p className="font-semibold text-lg text-green-600 dark:text-green-400">
+                <p className="text-lg font-semibold tracking-tight tabular-nums text-navy">
                   {totalSalesQuantity} units
                 </p>
-                <p className="text-gray-700 dark:text-gray-300 text-sm">
+                <p className="text-navy text-sm">
                   Rs {totalSalesValue.toLocaleString()}
                 </p>
               </div>
               <div className="space-y-2">
-                <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">
+                <Label className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
                   Total Purchases
                 </Label>
-                <p className="font-semibold text-lg text-blue-600 dark:text-blue-400">
+                <p className="text-lg font-semibold tracking-tight tabular-nums text-navy">
                   {totalPurchaseQuantity} units
                 </p>
-                <p className="text-gray-700 dark:text-gray-300 text-sm">
+                <p className="text-navy text-sm">
                   Rs {totalPurchaseValue.toLocaleString()}
                 </p>
               </div>
               <div className="space-y-2">
-                <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">
+                <Label className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
                   Net Movement
                 </Label>
                 <p
-                  className={`font-semibold text-lg ${totalPurchaseQuantity - totalSalesQuantity >= 0
-                      ? "text-blue-600 dark:text-blue-400"
-                      : "text-red-600 dark:text-red-400"
-                    }`}
+                  className={`text-lg font-semibold tracking-tight tabular-nums ${totalPurchaseQuantity - totalSalesQuantity >= 0
+ ? "text-navy"
+ : "text-navy"
+ }`}
                 >
                   {totalPurchaseQuantity - totalSalesQuantity} units
                 </p>
-                <p className="text-gray-700 dark:text-gray-300 text-sm">
+                <p className="text-navy text-sm">
                   {totalPurchaseQuantity - totalSalesQuantity >= 0
                     ? "Net Inflow"
                     : "Net Outflow"}
                 </p>
               </div>
               <div className="space-y-2">
-                <Label className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">
+                <Label className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
                   Profit Margin
                 </Label>
                 <p
-                  className={`font-semibold text-lg ${totalSalesValue - totalPurchaseValue >= 0
-                      ? "text-green-600 dark:text-green-400"
-                      : "text-red-600 dark:text-red-400"
-                    }`}
+                  className={`text-lg font-semibold tracking-tight tabular-nums ${totalSalesValue - totalPurchaseValue >= 0
+ ? "text-navy"
+ : "text-navy"
+ }`}
                 >
                   Rs {(totalSalesValue - totalPurchaseValue).toLocaleString()}
                 </p>
-                <p className="text-gray-700 dark:text-gray-300 text-sm">
+                <p className="text-navy text-sm">
                   {totalPurchaseValue > 0
                     ? `${(((totalSalesValue - totalPurchaseValue) / totalPurchaseValue) * 100).toFixed(1)}% margin`
                     : "N/A"}
@@ -192,28 +192,28 @@ export default function ProductHistoryDialog({
           </div>
 
           {/* Sales Transactions */}
-          <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-6">
-            <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center space-x-2">
+          <div className="bg-muted rounded-xl p-6">
+            <h3 className="form-section-title">
               <div className="w-2 h-2 bg-green-500 rounded-full"></div>
               <span>Sales Transactions ({productSales.length})</span>
             </h3>
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
-                  <TableRow className="bg-gray-100 dark:bg-gray-700">
-                    <TableHead className="font-semibold text-gray-700 dark:text-gray-300">
+                  <TableRow className="bg-muted">
+                    <TableHead>
                       Date
                     </TableHead>
-                    <TableHead className="font-semibold text-gray-700 dark:text-gray-300">
+                    <TableHead>
                       Client
                     </TableHead>
-                    <TableHead className="font-semibold text-gray-700 dark:text-gray-300">
+                    <TableHead>
                       Quantity
                     </TableHead>
-                    <TableHead className="font-semibold text-gray-700 dark:text-gray-300">
+                    <TableHead>
                       Unit Price
                     </TableHead>
-                    <TableHead className="font-semibold text-gray-700 dark:text-gray-300">
+                    <TableHead>
                       Total
                     </TableHead>
                   </TableRow>
@@ -223,21 +223,21 @@ export default function ProductHistoryDialog({
                     productSales.map((sale) => (
                       <TableRow
                         key={sale.id}
-                        className="hover:bg-gray-100 dark:hover:bg-gray-700/50"
+                        className="hover:bg-muted/60"
                       >
-                        <TableCell className="text-gray-700 dark:text-gray-300">
+                        <TableCell className="text-navy">
                           {formatNepaliDateForTable(sale.saleDate)}
                         </TableCell>
-                        <TableCell className="font-medium text-gray-900 dark:text-gray-100">
+                        <TableCell className="font-medium text-navy">
                           {toTitleCase(sale.client)}
                         </TableCell>
-                        <TableCell className="text-gray-700 dark:text-gray-300">
+                        <TableCell className="text-navy">
                           {sale.quantitySold} units
                         </TableCell>
-                        <TableCell className="text-gray-700 dark:text-gray-300">
+                        <TableCell className="text-navy">
                           Rs {sale.salePrice.toLocaleString()}
                         </TableCell>
-                        <TableCell className="font-semibold text-green-600 dark:text-green-400">
+                        <TableCell className="font-semibold tabular-nums text-navy">
                           Rs{" "}
                           {(
                             sale.quantitySold * sale.salePrice
@@ -249,7 +249,7 @@ export default function ProductHistoryDialog({
                     <TableRow>
                       <TableCell
                         colSpan={5}
-                        className="text-center py-8 text-gray-500 dark:text-gray-400"
+                        className="py-8 text-center text-sm font-normal italic text-muted-foreground"
                       >
                         No sales transactions found for this product in{" "}
                         {currentYear}
@@ -262,28 +262,28 @@ export default function ProductHistoryDialog({
           </div>
 
           {/* Purchase Transactions */}
-          <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-6">
-            <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center space-x-2">
+          <div className="bg-muted rounded-xl p-6">
+            <h3 className="form-section-title">
               <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
               <span>Purchase Transactions ({productPurchases.length})</span>
             </h3>
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
-                  <TableRow className="bg-gray-100 dark:bg-gray-700">
-                    <TableHead className="font-semibold text-gray-700 dark:text-gray-300">
+                  <TableRow className="bg-muted">
+                    <TableHead>
                       Date
                     </TableHead>
-                    <TableHead className="font-semibold text-gray-700 dark:text-gray-300">
+                    <TableHead>
                       Supplier
                     </TableHead>
-                    <TableHead className="font-semibold text-gray-700 dark:text-gray-300">
+                    <TableHead>
                       Quantity
                     </TableHead>
-                    <TableHead className="font-semibold text-gray-700 dark:text-gray-300">
+                    <TableHead>
                       Unit Price
                     </TableHead>
-                    <TableHead className="font-semibold text-gray-700 dark:text-gray-300">
+                    <TableHead>
                       Total
                     </TableHead>
                   </TableRow>
@@ -293,21 +293,21 @@ export default function ProductHistoryDialog({
                     productPurchases.map((purchase) => (
                       <TableRow
                         key={purchase.id}
-                        className="hover:bg-gray-100 dark:hover:bg-gray-700/50"
+                        className="hover:bg-muted/60"
                       >
-                        <TableCell className="text-gray-700 dark:text-gray-300">
+                        <TableCell className="text-navy">
                           {formatNepaliDateForTable(purchase.purchaseDate)}
                         </TableCell>
-                        <TableCell className="font-medium text-gray-900 dark:text-gray-100">
+                        <TableCell className="font-medium text-navy">
                           {toTitleCase(purchase.supplier)}
                         </TableCell>
-                        <TableCell className="text-gray-700 dark:text-gray-300">
+                        <TableCell className="text-navy">
                           {purchase.quantityPurchased} units
                         </TableCell>
-                        <TableCell className="text-gray-700 dark:text-gray-300">
+                        <TableCell className="text-navy">
                           Rs {purchase.purchasePrice.toLocaleString()}
                         </TableCell>
-                        <TableCell className="font-semibold text-blue-600 dark:text-blue-400">
+                        <TableCell className="font-semibold text-navy">
                           Rs{" "}
                           {(
                             purchase.quantityPurchased * purchase.purchasePrice
@@ -319,7 +319,7 @@ export default function ProductHistoryDialog({
                     <TableRow>
                       <TableCell
                         colSpan={5}
-                        className="text-center py-8 text-gray-500 dark:text-gray-400"
+                        className="py-8 text-center text-sm font-normal italic text-muted-foreground"
                       >
                         No purchase transactions found for this product in{" "}
                         {currentYear}
@@ -332,7 +332,7 @@ export default function ProductHistoryDialog({
           </div>
         </div>
 
-        <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200 dark:border-gray-700">
+        <div className="flex justify-end space-x-3 pt-6 border-t border-border">
           <Button
             type="button"
             variant="neutralOutline"

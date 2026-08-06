@@ -5,7 +5,7 @@ export default function NepaliDateDemoPage() {
     <div className="container mx-auto py-8">
       <div className="max-w-4xl mx-auto">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Nepali Date Conversion Demo</h1>
+          <h1 className="text-3xl font-semibold mb-2">Nepali Date Conversion Demo</h1>
           <p className="text-muted-foreground">
             This page demonstrates the comprehensive Nepali date conversion system for the inventory management application.
           </p>

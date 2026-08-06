@@ -1,5 +1,5 @@
 import type React from "react"
-import { Outfit } from "next/font/google"
+import { IBM_Plex_Sans } from "next/font/google"
 import { AuthProvider } from "@/contexts/AuthContext"
 import { InventoryProvider } from "@/contexts/InventoryContext"
 import { BatchProvider } from "@/contexts/BatchContext"
@@ -10,11 +10,12 @@ import { FormPersistenceProvider } from "@/contexts/FormPersistenceContext"
 import { LedgerProvider } from "@/contexts/LedgerContext"
 import "./globals.css"
 
-const outfit = Outfit({
+const plexSans = IBM_Plex_Sans({
   subsets: ["latin"],
-  variable: "--font-outfit",
+  variable: "--font-plex",
   display: "swap",
-  weight: ["100", "200", "300", "400", "500", "600", "700", "800", "900"]
+  weight: ["400", "500", "600", "700"],
+  style: ["normal", "italic"],
 })
 
 export default function RootLayout({
@@ -24,7 +25,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${outfit.variable} font-outfit min-h-screen bg-background text-foreground transition-colors duration-300 antialiased`}>
+      <body className={`${plexSans.variable} font-sans min-h-screen bg-background text-foreground transition-colors duration-300 antialiased`}>
         <ThemeProvider>
           <AuthProvider>
             {/* inventory must exist before approval; approval applies inventory changes */}

@@ -110,44 +110,44 @@ export default function ProductTransactionHistoryDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[95vw] max-w-6xl max-h-[85vh] overflow-y-auto bg-white dark:bg-gray-800 border dark:border-gray-700 p-4 sm:p-6">
+      <DialogContent className="w-[95vw] max-w-6xl max-h-[85vh] overflow-y-auto border-border p-4 sm:p-6">
         <DialogHeader className="pb-6">
-          <DialogTitle className="text-2xl font-bold text-gray-800 dark:text-gray-200 flex items-center space-x-3">
+          <DialogTitle className="flex items-center gap-3">
             <div className="p-2 bg-green-100 dark:bg-green-900/20 rounded-lg">
-              <svg className="h-6 w-6 text-green-600 dark:text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="h-6 w-6 text-navy" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
               </svg>
             </div>
             <span>Transaction History</span>
           </DialogTitle>
-          <DialogDescription className="text-gray-600 dark:text-gray-400">
+          <DialogDescription className="text-sm text-muted-foreground">
             Sales and purchases for{" "}
-            <span className="font-semibold text-gray-800 dark:text-gray-200">{product.name}</span>
+            <span className="font-semibold text-navy">{product.name}</span>
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6">
-          <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-6">
-            <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center space-x-2">
+          <div className="bg-muted rounded-xl p-6">
+            <h3 className="form-section-title">
               <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
               <span>Product Summary</span>
             </h3>
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
               <div className="space-y-2">
-                <Label className="text-sm font-medium text-gray-900 dark:text-gray-100 uppercase tracking-wide">Product Name</Label>
-                <p className="text-gray-900 dark:text-gray-100 font-medium text-base">{product.name}</p>
+                <Label className="text-sm font-medium text-navy uppercase tracking-wide">Product Name</Label>
+                <p className="text-navy text-sm font-medium">{product.name}</p>
               </div>
               <div className="space-y-2">
-                <Label className="text-sm font-medium text-gray-900 dark:text-gray-100 uppercase tracking-wide">Current Stock</Label>
-                <p className="text-gray-900 dark:text-gray-100 font-semibold text-lg">{product.stockQuantity} units</p>
+                <Label className="text-sm font-medium text-navy uppercase tracking-wide">Current Stock</Label>
+                <p className="text-navy text-lg font-semibold tracking-tight tabular-nums">{product.stockQuantity} units</p>
               </div>
               <div className="space-y-2">
-                <Label className="text-sm font-medium text-gray-900 dark:text-gray-100 uppercase tracking-wide">Unit Price</Label>
-                <p className="text-gray-900 dark:text-gray-100 font-semibold text-lg">Rs {product.unitPrice.toLocaleString()}</p>
+                <Label className="text-sm font-medium text-navy uppercase tracking-wide">Unit Price</Label>
+                <p className="text-navy text-lg font-semibold tracking-tight tabular-nums">Rs {product.unitPrice.toLocaleString()}</p>
               </div>
               <div className="space-y-2">
-                <Label className="text-sm font-medium text-gray-900 dark:text-gray-100 uppercase tracking-wide">Total Value</Label>
-                <p className="font-semibold text-lg text-green-600 dark:text-green-400">
+                <Label className="text-sm font-medium text-navy uppercase tracking-wide">Total Value</Label>
+                <p className="text-lg font-semibold tracking-tight tabular-nums text-navy">
                   Rs {(product.stockQuantity * product.unitPrice).toLocaleString()}
                 </p>
               </div>
@@ -165,7 +165,7 @@ export default function ProductTransactionHistoryDialog({
             onPartyClick={(party, type) => {
               if (type === "client") onClientClick(party)
             }}
-            totalColorClass="text-green-600 dark:text-green-400"
+            totalColorClass="text-navy"
           />
 
           <TransactionTable
@@ -177,11 +177,11 @@ export default function ProductTransactionHistoryDialog({
             onPartyClick={(party, type) => {
               if (type === "supplier") onSupplierClick(party)
             }}
-            totalColorClass="text-blue-600 dark:text-blue-400"
+            totalColorClass="text-navy"
           />
         </div>
 
-        <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200 dark:border-gray-700">
+        <div className="flex justify-end space-x-3 pt-6 border-t border-border">
           <Button type="button" variant="neutralOutline" onClick={() => onOpenChange(false)} className="px-6 py-2">
             Close
           </Button>
@@ -241,37 +241,37 @@ function TransactionTable({
   } = usePagination(rows, { pageSize: 10, resetKey: rows.length })
 
   return (
-    <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-4">
-      <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3 flex items-center space-x-2">
+    <div className="bg-muted rounded-xl p-4">
+      <h3 className="form-section-title">
         <div className={`w-2 h-2 ${dotColor} rounded-full`}></div>
         <span>{title}</span>
       </h3>
       <div className="overflow-x-auto">
         <Table>
           <TableHeader>
-            <TableRow className="bg-gray-100 dark:bg-gray-700">
-              <TableHead className="font-semibold text-gray-700 dark:text-gray-300">Date</TableHead>
-              <TableHead className="font-semibold text-gray-700 dark:text-gray-300">{partyLabel}</TableHead>
-              <TableHead className="font-semibold text-gray-700 dark:text-gray-300">Item No.</TableHead>
-              <TableHead className="font-semibold text-gray-700 dark:text-gray-300">Total Value</TableHead>
+            <TableRow className="bg-muted">
+              <TableHead>Date</TableHead>
+              <TableHead>{partyLabel}</TableHead>
+              <TableHead>Item No.</TableHead>
+              <TableHead>Total Value</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {paginatedItems.length > 0 ? (
               paginatedItems.map((row) => (
-                <TableRow key={row.key} className="hover:bg-gray-100 dark:hover:bg-gray-700/50">
-                  <TableCell className="text-gray-700 dark:text-gray-300">
+                <TableRow key={row.key} className="hover:bg-muted/60">
+                  <TableCell className="text-navy">
                     {formatNepaliDateForTable(row.date)}
                   </TableCell>
-                  <TableCell className="font-medium text-gray-900 dark:text-gray-100">
+                  <TableCell className="font-medium text-navy">
                     <span
-                      className="cursor-pointer hover:text-teal-600 dark:hover:text-teal-400 transition-colors"
+                      className="cursor-pointer font-medium text-navy underline-offset-4 transition-colors hover:underline hover:text-navy/80"
                       onClick={() => onPartyClick(row.party, row.partyType)}
                     >
                       {toTitleCase(row.party)}
                     </span>
                   </TableCell>
-                  <TableCell className="text-gray-700 dark:text-gray-300">{row.quantity ?? 0}</TableCell>
+                  <TableCell className="text-navy">{row.quantity ?? 0}</TableCell>
                   <TableCell className={`font-semibold ${totalColorClass}`}>
                     Rs {row.total.toLocaleString()}
                   </TableCell>
@@ -279,7 +279,7 @@ function TransactionTable({
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={4} className="text-center py-8 text-gray-500 dark:text-gray-400">
+                <TableCell colSpan={4} className="py-8 text-center text-sm font-normal italic text-muted-foreground">
                   {emptyMessage}
                 </TableCell>
               </TableRow>

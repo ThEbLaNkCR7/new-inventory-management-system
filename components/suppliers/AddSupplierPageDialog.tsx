@@ -26,9 +26,9 @@ import { Clock, Plus } from "lucide-react"
 import type { SupplierFormData } from "./utils"
 
 const inputClass =
-  "border-2 focus:border-slate-500 transition-colors dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
+  "border border-border bg-background focus:border-navy/50 focus-visible:ring-1 focus-visible:ring-navy/20"
 const selectTriggerClass = inputClass
-const errorTextClass = "text-sm text-red-600 dark:text-red-400"
+const errorTextClass = "text-sm text-navy"
 
 interface AddSupplierPageDialogProps {
   open: boolean
@@ -79,29 +79,23 @@ export default function AddSupplierPageDialog({
           <Button
             onClick={() => { onResetForm(); onOpenChange(true); }}
             variant="neutral"
-            className="shadow-lg hover:shadow-xl transition-all"
           >
             <Plus className="h-4 w-4" />
             Add Supplier
           </Button>
         </DialogTrigger>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto p-5 sm:p-6">
           <DialogHeader>
             <DialogTitle>Add New Supplier</DialogTitle>
             <DialogDescription>
               Enter supplier information to add to your database
               {!isAdmin && (
-                <div className="mt-2 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
-                  <div className="flex items-center text-amber-800 dark:text-amber-200">
-                    <Clock className="h-4 w-4 mr-2" />
-                    <span className="text-sm font-medium">Changes require admin approval</span>
-                  </div>
-                </div>
+                <p className="mt-1.5 text-xs text-amber-700 dark:text-amber-400">Changes require admin approval</p>
               )}
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={onSubmit} className="space-y-4">
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label htmlFor="name">Full Name *</Label>
               <Input
                 id="name"
@@ -111,7 +105,7 @@ export default function AddSupplierPageDialog({
               />
               {renderFieldError("name")}
             </div>
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label htmlFor="email">Email *</Label>
               <Input
                 id="email"
@@ -122,7 +116,7 @@ export default function AddSupplierPageDialog({
               />
               {renderFieldError("email")}
             </div>
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label htmlFor="phone">Phone *</Label>
               <Input
                 id="phone"
@@ -132,7 +126,7 @@ export default function AddSupplierPageDialog({
               />
               {renderFieldError("phone")}
             </div>
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label htmlFor="company">Company Type *</Label>
               <div className="space-y-2">
                 <Select
@@ -163,7 +157,7 @@ export default function AddSupplierPageDialog({
                 {formData.company === "custom" && renderFieldError("customCompany")}
               </div>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label htmlFor="address">Address</Label>
               <Input
                 id="address"
@@ -173,7 +167,7 @@ export default function AddSupplierPageDialog({
                 className={inputClass}
               />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label htmlFor="status">Status *</Label>
               <Select value={formData.status} onValueChange={(value) => updateForm({ status: value })}>
                 <SelectTrigger className={cn(selectTriggerClass, fieldErrorClass("status"))}>
@@ -214,13 +208,13 @@ export default function AddSupplierPageDialog({
 
       {/* Approval Reason Dialog */}
       <Dialog open={showApprovalDialog} onOpenChange={onShowApprovalDialogChange}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto p-5 sm:p-6">
           <DialogHeader>
             <DialogTitle>Submit for Approval</DialogTitle>
             <DialogDescription>Please provide a reason for this supplier request</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label htmlFor="reason">Reason for Request</Label>
               <Textarea
                 id="reason"

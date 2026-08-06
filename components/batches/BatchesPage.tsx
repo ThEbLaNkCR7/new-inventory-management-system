@@ -386,16 +386,15 @@ export default function BatchesPage() {
     }
   }
 
-  const getStatusColor = (status: string) => {
+  const getStatusBadge = (status: string) => {
     switch (status) {
-      case "pending":
-        return "bg-yellow-100 text-yellow-800"
       case "received":
-        return "bg-green-100 text-green-800"
+        return { variant: "default" as const, className: "capitalize" }
       case "processed":
-        return "bg-blue-100 text-blue-800"
+        return { variant: "secondary" as const, className: "capitalize border border-border" }
+      case "pending":
       default:
-        return "bg-gray-100 text-gray-800"
+        return { variant: "outline" as const, className: "capitalize bg-card" }
     }
   }
 
@@ -440,24 +439,24 @@ export default function BatchesPage() {
   }
 
   return (
-    <div className="space-y-4 bg-white dark:bg-gray-900 min-h-screen transition-colors duration-300">
+    <div className="space-y-4 min-h-screen transition-colors duration-300">
       {isLoading && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-xl max-w-md w-full mx-4">
+          <div className="bg-card rounded-lg p-6 shadow-xl max-w-md w-full mx-4">
             <div className="flex items-center justify-center mb-4">
               <Loader2 className="h-8 w-8 animate-spin text-primary mr-3" />
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Processing Batch...</h3>
+              <h3>Processing Batch...</h3>
             </div>
 
             <div className="space-y-3">
-              <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400">
+              <div className="flex justify-between text-sm text-muted-foreground">
                 <span>{currentStep}</span>
                 <span>{Math.round(progress)}%</span>
               </div>
 
               <Progress value={progress} className="h-2" />
 
-              <div className="text-xs text-gray-500 dark:text-gray-400 text-center">
+              <div className="text-xs text-muted-foreground text-center">
                 Step {Math.ceil((progress / 100) * totalSteps)} of {totalSteps}
               </div>
             </div>
@@ -466,9 +465,9 @@ export default function BatchesPage() {
       )}
 
       {showSuccessAlert && (
-        <Alert className="border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20 p-3 mb-0">
-          <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
-          <AlertDescription className="text-green-800 dark:text-green-200">{alertMessage}</AlertDescription>
+        <Alert className="border-border bg-muted p-3 mb-0">
+          <CheckCircle className="h-4 w-4 text-navy" />
+          <AlertDescription className="text-navy">{alertMessage}</AlertDescription>
         </Alert>
       )}
 
@@ -477,7 +476,7 @@ export default function BatchesPage() {
           <h1 className="section-title">
             Batches
           </h1>
-          <p className="text-gray-600 dark:text-gray-300 text-sm">Track and manage product batches and lot numbers</p>
+          <p className="page-desc">Track and manage product batches and lot numbers</p>
         </div>
         <div className="absolute top-0 right-0 flex space-x-3">
           <Dialog open={isAddDialogOpen} onOpenChange={handleAddDialogOpenChange}>
@@ -485,7 +484,7 @@ export default function BatchesPage() {
               <Button
                 onClick={resetForm}
                 variant="neutral"
-                className="shadow-lg hover:shadow-xl transition-all"
+               
               >
                 <Plus className="h-4 w-4" />
                 Add Batch
@@ -557,15 +556,15 @@ export default function BatchesPage() {
                   </div>
                 </div>
 
-                <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/30 overflow-hidden">
-                  <div className="flex items-center justify-between gap-4 px-5 py-4 border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
+                <div className="rounded-xl border border-border bg-muted/50 overflow-hidden">
+                  <div className="flex items-center justify-between gap-4 px-5 py-4 border-b border-border bg-card">
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-800">
-                        <Layers className="h-4 w-4 text-slate-600 dark:text-slate-300" />
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted">
+                        <Layers className="h-4 w-4 text-muted-foreground" />
                       </div>
                       <div className="min-w-0">
-                        <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">Batch Items</h3>
-                        <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                        <h3 className="form-section-title mb-0">Batch Items</h3>
+                        <p className="text-xs text-muted-foreground truncate">
                           Add products, quantities, costs, and expiry details for this batch
                         </p>
                       </div>
@@ -592,12 +591,12 @@ export default function BatchesPage() {
                       return (
                         <Card
                           key={index}
-                          className="overflow-hidden border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-shadow"
+                          className="overflow-hidden border-border shadow-sm hover:shadow-md transition-shadow"
                         >
                           <div
-                            className={`flex items-center justify-between gap-3 px-4 py-3 bg-slate-50 dark:bg-slate-800/60 ${
-                              isCollapsed ? "" : "border-b border-slate-200 dark:border-slate-700"
-                            }`}
+                            className={`flex items-center justify-between gap-3 px-4 py-3 bg-muted ${
+ isCollapsed ? "" : "border-b border-border"
+ }`}
                           >
                             <button
                               type="button"
@@ -605,21 +604,21 @@ export default function BatchesPage() {
                               className="flex items-center gap-2 min-w-0 flex-1 text-left rounded-md hover:opacity-80 transition-opacity"
                             >
                               {isCollapsed ? (
-                                <ChevronDown className="h-4 w-4 shrink-0 text-slate-400" />
+                                <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
                               ) : (
-                                <ChevronUp className="h-4 w-4 shrink-0 text-slate-400" />
+                                <ChevronUp className="h-4 w-4 shrink-0 text-muted-foreground" />
                               )}
-                              <Badge variant="outline" className="font-mono text-xs px-2 py-0.5 bg-white dark:bg-slate-900 shrink-0">
+                              <Badge variant="outline" className="font-mono text-xs px-2 py-0.5 bg-card shrink-0">
                                 #{String(index + 1).padStart(2, "0")}
                               </Badge>
                               <div className="min-w-0">
-                                <span className="text-sm font-medium text-slate-700 dark:text-slate-200 truncate block">
+                                <span className="block truncate text-sm font-medium text-navy">
                                   {selectedProduct
                                     ? `${selectedProduct.name} (${formatProductNetWeight(selectedProduct)})`
                                     : item.productName || "Select product..."}
                                 </span>
                                 {isCollapsed && (
-                                  <span className="text-xs text-slate-500 dark:text-slate-400 truncate block">
+                                  <span className="text-xs text-muted-foreground truncate block">
                                     {item.quantity > 0 ? `${item.quantity} units` : "No quantity"}
                                     {item.unitCost > 0 && ` · Rs ${item.unitCost.toFixed(2)}/unit`}
                                     {item.manufactureDate && ` · Mfg: ${formatNepaliDateForTable(item.manufactureDate)}`}
@@ -630,7 +629,7 @@ export default function BatchesPage() {
                             </button>
                             <div className="flex items-center gap-2 shrink-0">
                               {lineTotal > 0 && (
-                                <span className="text-sm font-semibold text-emerald-700 dark:text-emerald-400">
+                                <span className="text-sm font-semibold text-navy">
                                   Rs {lineTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                 </span>
                               )}
@@ -658,7 +657,7 @@ export default function BatchesPage() {
                                 onClick={() => removeBatchItem(index)}
                                 variant="neutralOutline"
                                 size="sm"
-                                className="h-8 px-2 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/30"
+                                className="h-8 px-2 text-navy hover:bg-muted"
                               >
                                 <Trash2 className="h-4 w-4" />
                                 <span className="sr-only">Remove item</span>
@@ -669,7 +668,7 @@ export default function BatchesPage() {
                           {!isCollapsed && (
                           <CardContent className="p-4 space-y-4">
                             <div className="space-y-2">
-                              <Label className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                              <Label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                                 Product
                               </Label>
                               <Select
@@ -682,7 +681,7 @@ export default function BatchesPage() {
                                   updateBatchItem(index, "productId", value)
                                 }}
                               >
-                                <SelectTrigger className="h-10 bg-white dark:bg-slate-900">
+                                <SelectTrigger className="h-10 bg-card">
                                   <SelectValue placeholder="Select a product from inventory">
                                     {selectedProduct
                                       ? `${selectedProduct.name} (${formatProductNetWeight(selectedProduct)}) — Stock: ${selectedProduct.stockQuantity}`
@@ -699,23 +698,23 @@ export default function BatchesPage() {
                                 </SelectContent>
                               </Select>
                               {selectedProduct && (
-                                <p className="text-xs text-slate-500 dark:text-slate-400">
+                                <p className="text-xs text-muted-foreground">
                                   {formatProductNetWeight(selectedProduct)} — Current stock:{" "}
-                                  <span className="font-medium text-slate-700 dark:text-slate-300">{selectedProduct.stockQuantity}</span> units
+                                  <span className="font-medium text-navy">{selectedProduct.stockQuantity}</span> units
                                 </p>
                               )}
                             </div>
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                               <div className="space-y-2">
-                                <Label className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                                <Label className="text-xs font-medium uppercase tracking-wide text-muted-foreground flex items-center gap-1.5">
                                   <Hash className="h-3 w-3" />
                                   Quantity
                                 </Label>
                                 <Input
                                   type="number"
                                   min={1}
-                                  className="h-10 bg-white dark:bg-slate-900"
+                                  className="h-10 bg-card"
                                   value={item.quantity === 0 ? "" : item.quantity}
                                   onChange={(e) => {
                                     const value = e.target.value
@@ -725,7 +724,7 @@ export default function BatchesPage() {
                                 />
                               </div>
                               <div className="space-y-2">
-                                <Label className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                                <Label className="text-xs font-medium uppercase tracking-wide text-muted-foreground flex items-center gap-1.5">
                                   <IndianRupee className="h-3 w-3" />
                                   Unit Cost
                                 </Label>
@@ -733,7 +732,7 @@ export default function BatchesPage() {
                                   type="number"
                                   step="0.01"
                                   min={0}
-                                  className="h-10 bg-white dark:bg-slate-900"
+                                  className="h-10 bg-card"
                                   value={item.unitCost === 0 ? "" : item.unitCost}
                                   onChange={(e) => {
                                     const value = e.target.value
@@ -744,11 +743,11 @@ export default function BatchesPage() {
                               </div>
                             </div>
 
-                            <Separator className="bg-slate-200 dark:bg-slate-700" />
+                            <Separator className="bg-border" />
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                               <div className="space-y-2">
-                                <Label className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                                <Label className="text-xs font-medium uppercase tracking-wide text-muted-foreground flex items-center gap-1.5">
                                   <Calendar className="h-3 w-3" />
                                   Manufacture Date
                                 </Label>
@@ -768,7 +767,7 @@ export default function BatchesPage() {
                                 />
                               </div>
                               <div className="space-y-2">
-                                <Label className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                                <Label className="text-xs font-medium uppercase tracking-wide text-muted-foreground flex items-center gap-1.5">
                                   <CalendarClock className="h-3 w-3" />
                                   Expiry Date
                                 </Label>
@@ -795,12 +794,12 @@ export default function BatchesPage() {
                     })}
 
                     {batchItems.length === 0 && (
-                      <div className="text-center py-8 px-6 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900/50">
-                        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800">
-                          <Package className="h-7 w-7 text-slate-400" />
+                      <div className="text-center py-8 px-6 border-2 border-dashed border-border rounded-xl bg-card">
+                        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-muted">
+                          <Package className="h-7 w-7 text-muted-foreground" />
                         </div>
-                        <p className="text-sm font-medium text-slate-700 dark:text-slate-200">No batch items yet</p>
-                        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
+                        <p className="text-sm font-normal italic text-muted-foreground">No batch items yet</p>
+                        <p className="mt-1 max-w-sm mx-auto text-xs font-normal text-muted-foreground">
                           Add line items to define products, quantities, unit costs, and shelf-life dates for this batch.
                         </p>
                         <Button type="button" onClick={addBatchItem} variant="neutralOutline" size="sm" className="mt-4">
@@ -812,20 +811,20 @@ export default function BatchesPage() {
                   </div>
 
                   {batchItems.length > 0 && (
-                    <div className="px-5 py-4 border-t border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
+                    <div className="px-5 py-4 border-t border-border bg-card">
                       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                         <div>
-                          <p className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                             Batch Summary
                           </p>
-                          <p className="text-sm text-slate-600 dark:text-slate-300 mt-0.5">
+                          <p className="mt-0.5 text-sm text-muted-foreground">
                             {batchItems.length} line {batchItems.length === 1 ? "item" : "items"} ·{" "}
                             {batchItems.reduce((sum, item) => sum + item.quantity, 0).toLocaleString()} total units
                           </p>
                         </div>
                         <div className="flex items-baseline gap-2 sm:text-right">
-                          <span className="text-sm text-slate-500 dark:text-slate-400">Total Value</span>
-                          <span className="text-xl font-bold text-slate-900 dark:text-slate-100">
+                          <span className="text-sm text-muted-foreground">Total Value</span>
+                          <span className="text-2xl font-semibold tracking-tight tabular-nums text-navy">
                             Rs {batchItems.reduce((sum, item) => sum + item.quantity * item.unitCost, 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </span>
                         </div>
@@ -848,7 +847,7 @@ export default function BatchesPage() {
                       href={billUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-blue-600 text-sm underline"
+                      className="font-sans text-sm font-medium text-navy underline-offset-4 transition-colors hover:underline hover:text-navy/80"
                     >
                       View Current Bill
                     </a>
@@ -883,26 +882,26 @@ export default function BatchesPage() {
         </div>
       </div>
 
-      <Card className="dark:bg-gray-800 dark:border-gray-700 overflow-hidden">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+      <Card className="overflow-hidden border-border shadow-sm">
+        <CardHeader className="border-b border-border bg-card pb-3">
+          <CardTitle>
             Batches
-            <span className="ml-1.5 text-sm font-medium text-gray-500 dark:text-gray-400">
+            <span className="ml-1.5 text-sm font-medium text-muted-foreground">
               ({filteredBatches.length})
             </span>
           </CardTitle>
-          <CardDescription className="text-gray-600 dark:text-gray-400 mt-1">
+          <CardDescription className="mt-1 text-muted-foreground">
             Track incoming inventory batches and stock arrivals
           </CardDescription>
 
           <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 placeholder="Search by batch number or supplier..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="h-10 pl-10 border-gray-200 dark:border-gray-600 dark:bg-gray-700/50 dark:text-gray-200 focus:border-slate-400"
+                className="h-10 border-border bg-background pl-10 focus:border-navy/40"
               />
             </div>
             {searchTerm.trim() !== "" && (
@@ -911,7 +910,7 @@ export default function BatchesPage() {
                 variant="neutralOutline"
                 size="sm"
                 onClick={() => setSearchTerm("")}
-                className="h-10 shrink-0 gap-1.5 text-gray-600 dark:text-gray-300"
+                className="h-10 shrink-0 gap-1.5 text-muted-foreground"
               >
                 <X className="h-4 w-4" />
                 Clear
@@ -919,43 +918,47 @@ export default function BatchesPage() {
             )}
           </div>
         </CardHeader>
-        <CardContent className="border-t border-gray-100 dark:border-gray-700 pt-4">
+        <CardContent className="bg-muted pt-4">
           {filteredBatches.length === 0 ? (
-            <div className="text-center py-8">
-              <Package className="h-12 w-12 mx-auto text-gray-400 dark:text-gray-500 mb-3" />
-              <p className="text-gray-500 dark:text-gray-400">
+            <div className="rounded-lg border border-dashed border-border bg-card py-10 text-center">
+              <Package className="mx-auto mb-3 h-12 w-12 text-muted-foreground" />
+              <p className="text-sm font-normal italic text-muted-foreground">
                 {searchTerm.trim() ? "No batches match your search" : "No batches found"}
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {paginatedBatches.map((batch) => (
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {paginatedBatches.map((batch) => {
+                const statusBadge = getStatusBadge(batch.status)
+                return (
                 <Card
                   key={batch.id}
                   onClick={() => {
                     setSelectedBatch(batch)
                     setIsDetailOpen(true)
                   }}
-                  className="hover:shadow-lg transition-shadow cursor-pointer dark:bg-gray-800 dark:border-gray-700 overflow-hidden"
+                  className="cursor-pointer overflow-hidden border-border bg-card shadow-sm transition-all hover:border-navy/30 hover:shadow-md"
                 >
-                  <CardHeader className="pb-3">
-                    <div className="flex items-start justify-between gap-2 min-w-0">
+                  <CardHeader className="border-b border-border/80 bg-card pb-3">
+                    <div className="flex min-w-0 items-start justify-between gap-2">
                       <div className="min-w-0 flex-1">
-                        <CardTitle className="text-lg truncate">{batch.batchNumber}</CardTitle>
-                        <CardDescription className="flex items-center mt-1 min-w-0">
-                          <Truck className="h-4 w-4 mr-1 shrink-0" />
+                        <CardTitle className="truncate">{batch.batchNumber}</CardTitle>
+                        <CardDescription className="mt-1 flex min-w-0 items-center">
+                          <Truck className="mr-1 h-4 w-4 shrink-0" />
                           <span className="truncate">
                             {suppliers.find((s) => s.id === batch.supplier)?.name || batch.supplier}
                           </span>
                         </CardDescription>
                       </div>
                       <div className="flex shrink-0 items-center gap-1.5">
-                        <Badge className={`${getStatusColor(batch.status)} whitespace-nowrap`}>{batch.status}</Badge>
+                        <Badge variant={statusBadge.variant} className={`${statusBadge.className} whitespace-nowrap`}>
+                          {batch.status}
+                        </Badge>
                         <Button
                           type="button"
                           variant="neutralOutline"
                           size="sm"
-                          className="h-8 w-8 shrink-0 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                          className="h-8 w-8 shrink-0 p-0 text-navy hover:bg-muted"
                           onClick={(e) => {
                             e.stopPropagation()
                             handleDelete(batch)
@@ -966,26 +969,28 @@ export default function BatchesPage() {
                       </div>
                     </div>
                   </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4 text-sm">
+                  <CardContent className="space-y-4 bg-card pt-4">
+                    <div className="grid grid-cols-2 gap-4 text-sm text-navy">
                       <div className="flex items-center">
-                        <Calendar className="h-4 w-4 mr-2 text-gray-400" />
+                        <Calendar className="mr-2 h-4 w-4 text-muted-foreground" />
                         <span>{formatNepaliDateForTable(batch.arrivalDate)}</span>
                       </div>
                       <div className="flex items-center">
-                        <Package className="h-4 w-4 mr-2 text-gray-400" />
+                        <Package className="mr-2 h-4 w-4 text-muted-foreground" />
                         <span>{batch.items.length} items</span>
                       </div>
                     </div>
 
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <div className="flex items-center min-w-0">
-                        <span className="font-medium text-green-600 truncate">Rs {batch.totalValue.toLocaleString()}</span>
+                    <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border bg-muted/50 px-3 py-2">
+                      <div className="flex min-w-0 items-center">
+                        <span className="truncate text-sm font-semibold tabular-nums text-navy">
+                          Rs {batch.totalValue.toLocaleString()}
+                        </span>
                       </div>
                       {batch.status === "pending" && (
                         <Button
                           size="sm"
-                          className="shrink-0 bg-green-600 hover:bg-green-700"
+                          className="shrink-0"
                           onClick={(e) => {
                             e.stopPropagation()
                             updateBatchStatus(batch.id, "received")
@@ -997,8 +1002,8 @@ export default function BatchesPage() {
                     </div>
 
                     <div className="space-y-2">
-                      <h4 className="font-medium text-sm">Items:</h4>
-                      <div className="space-y-1">
+                      <h4 className="text-sm font-medium text-navy">Items</h4>
+                      <div className="space-y-1.5">
                         {batch.items.slice(0, 3).map((item, index) => {
                           const product = products.find((p) => p.id === item.productId)
                           const context = createBatchTrackingContext(batch.id, batch.batchNumber, batch.items, product)
@@ -1006,26 +1011,30 @@ export default function BatchesPage() {
                           const remaining = getBatchItemRemaining(sales, item.productId, item.quantity, context)
 
                           return (
-                            <div key={index} className="text-xs text-gray-600">
-                              <div className="flex justify-between">
-                                <span>{item.productName}</span>
-                                <span>×{item.quantity}</span>
+                            <div
+                              key={index}
+                              className="rounded-md border border-border bg-muted/40 px-2.5 py-2 text-xs"
+                            >
+                              <div className="flex justify-between gap-2 font-medium text-navy">
+                                <span className="truncate">{item.productName}</span>
+                                <span className="shrink-0 tabular-nums">×{item.quantity}</span>
                               </div>
-                              <div className="flex justify-between text-[11px] text-gray-500 mt-0.5">
-                                <span className="text-orange-600">{sold} sold</span>
-                                <span className="text-green-600">{remaining} in stock</span>
+                              <div className="mt-1 flex justify-between text-[11px] text-muted-foreground">
+                                <span>{sold} sold</span>
+                                <span>{remaining} in stock</span>
                               </div>
                             </div>
                           )
                         })}
                         {batch.items.length > 3 && (
-                          <div className="text-xs text-gray-500">+{batch.items.length - 3} more items</div>
+                          <div className="text-xs text-muted-foreground">+{batch.items.length - 3} more items</div>
                         )}
                       </div>
                     </div>
                   </CardContent>
                 </Card>
-              ))}
+                )
+              })}
             </div>
           )}
           <DataPagination
@@ -1081,35 +1090,35 @@ export default function BatchesPage() {
                     const remaining = getBatchItemRemaining(sales, item.productId, item.quantity, context)
 
                     return (
-                      <div key={idx} className="flex items-center space-x-4 p-3 rounded-lg border">
+                      <div key={idx} className="flex items-center space-x-4 rounded-lg border border-border bg-muted/40 p-3">
                         <div className="flex-1">
-                          <div className="font-medium">{item.productName}</div>
-                          <div className="text-sm text-gray-500">
+                          <div className="font-medium text-navy">{item.productName}</div>
+                          <div className="text-sm text-muted-foreground">
                             Original Qty: {item.quantity} • Unit Cost: Rs {item.unitCost}
                           </div>
-                          <div className="flex gap-3 mt-1">
-                            <Badge variant="outline" className="text-orange-700 border-orange-200 bg-orange-50">
+                          <div className="mt-1.5 flex gap-2">
+                            <Badge variant="outline" className="border-border bg-card capitalize">
                               {sold} sold
                             </Badge>
-                            <Badge variant="outline" className="text-green-700 border-green-200 bg-green-50">
+                            <Badge variant="secondary" className="capitalize">
                               {remaining} in stock
                             </Badge>
                           </div>
                           <div className="space-y-1 mt-2">
                             {item.manufactureDate && (
-                              <div className="text-xs text-gray-400">
+                              <div className="text-xs text-muted-foreground">
                                 Manufactured: {formatNepaliDateForTable(item.manufactureDate)}
                               </div>
                             )}
 
                             {item.expiryDate && (
-                              <div className="text-xs text-gray-400">
+                              <div className="text-xs text-muted-foreground">
                                 Expiry: {formatNepaliDateForTable(item.expiryDate)}
                               </div>
                             )}
                           </div>
                         </div>
-                        <div className="text-sm text-gray-600">Total: Rs {(item.quantity * item.unitCost).toLocaleString()}</div>
+                        <div className="text-sm text-muted-foreground">Total: Rs {(item.quantity * item.unitCost).toLocaleString()}</div>
                       </div>
                     )
                   })}
@@ -1130,17 +1139,20 @@ export default function BatchesPage() {
                       <h4 className="font-semibold mb-3">Sold Items</h4>
                       <div className="space-y-2">
                         {soldItems.map((entry, index) => (
-                          <div key={`${entry.saleId}-${entry.productId}-${index}`} className="flex items-center justify-between p-3 rounded-lg border bg-orange-50/50 dark:bg-orange-950/20">
+                          <div
+                            key={`${entry.saleId}-${entry.productId}-${index}`}
+                            className="flex items-center justify-between rounded-lg border border-border bg-card p-3 shadow-sm"
+                          >
                             <div>
-                              <div className="font-medium">{entry.productName}</div>
-                              <div className="text-sm text-gray-500">
+                              <div className="font-medium text-navy">{entry.productName}</div>
+                              <div className="text-sm text-muted-foreground">
                                 {entry.quantitySold} units · Client: {entry.client}
                               </div>
-                              <div className="text-xs text-gray-400">
+                              <div className="text-xs text-muted-foreground">
                                 {formatNepaliDateForTable(entry.saleDate)}
                               </div>
                             </div>
-                            <div className="text-sm font-medium text-orange-700">
+                            <div className="text-sm font-semibold tabular-nums text-navy">
                               Rs {(entry.quantitySold * entry.salePrice).toLocaleString()}
                             </div>
                           </div>
@@ -1183,8 +1195,8 @@ export default function BatchesPage() {
 
       {filteredBatches.length === 0 && (
         <div className="text-center py-8">
-          <Package className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-          <p className="text-gray-500">No batches found</p>
+          <Package className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+          <p className="text-sm font-normal italic text-muted-foreground">No batches found</p>
         </div>
       )}
     </div>

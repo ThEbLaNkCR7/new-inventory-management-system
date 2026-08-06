@@ -87,9 +87,9 @@ export default function ClientHistoryDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto bg-white dark:bg-gray-800 border dark:border-gray-700">
+      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto border-border">
         <DialogHeader className="pb-6">
-          <DialogTitle className="text-2xl font-bold flex items-center space-x-3">
+          <DialogTitle className="flex items-center gap-3">
             <div className="p-2 bg-teal-100 dark:bg-teal-900/20 rounded-lg">
               <Users className="h-6 w-6 text-teal-600 dark:text-teal-400" />
             </div>
@@ -107,8 +107,8 @@ export default function ClientHistoryDialog({
           <div className="space-y-6">
 
             {/* SUMMARY */}
-            <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-6">
-              <h3 className="text-lg font-semibold mb-4">
+            <div className="bg-muted rounded-xl p-6">
+              <h3 className="form-section-title">
                 Client Summary
               </h3>
 
@@ -142,15 +142,15 @@ export default function ClientHistoryDialog({
             </div>
 
             {/* TABLE */}
-            <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-6">
-              <h3 className="text-lg font-semibold mb-4">
+            <div className="bg-muted rounded-xl p-6">
+              <h3 className="form-section-title">
                 Sales Transactions ({clientItems.length})
               </h3>
 
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
-                    <TableRow className="bg-gray-100 dark:bg-gray-700">
+                    <TableRow className="bg-muted">
                       <TableHead>Date</TableHead>
                       <TableHead>Product</TableHead>
                       <TableHead>Quantity</TableHead>
@@ -179,7 +179,7 @@ export default function ClientHistoryDialog({
                             Rs {(item.salePrice || 0).toLocaleString()}
                           </TableCell>
 
-                          <TableCell className="font-semibold text-green-600">
+                          <TableCell className="font-semibold text-navy">
                             Rs{" "}
                             {(
                               (item.quantitySold || 0) *
@@ -192,7 +192,7 @@ export default function ClientHistoryDialog({
                       <TableRow>
                         <TableCell
                           colSpan={5}
-                          className="text-center py-8"
+                          className="py-8 text-center text-sm font-normal italic text-muted-foreground"
                         >
                           No sales found for this client in {currentYear}
                         </TableCell>

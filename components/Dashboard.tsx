@@ -42,12 +42,10 @@ export default function Dashboard() {
 useEffect(() => {
   const checkScreenSize = () => {
     const mobile = window.innerWidth < 1024
-    console.log('Screen size check:', { width: window.innerWidth, mobile, sidebarOpen })
     setIsMobile(mobile)
 
     // Only auto-close when switching from desktop → mobile
     if (!prevIsMobile.current && mobile) {
-      console.log('Auto-closing sidebar on mobile (desktop → mobile)')
       setSidebarOpen(false)
     }
 
@@ -84,7 +82,7 @@ useEffect(() => {
   const renderContent = () => {
     switch (activeTab) {
       case "dashboard":
-        return <DashboardHome />
+        return <DashboardHome onNavigate={setActiveTab} />
       case "products":
         return <ProductsPage />
       case "stock-view":
@@ -113,45 +111,43 @@ useEffect(() => {
   }
 
   return (
-    <div className="flex h-screen bg-white dark:bg-gray-900 transition-colors duration-300 print:h-auto print:block print:overflow-visible">
+    <div className="flex h-screen bg-background transition-colors duration-300 print:block print:h-auto print:overflow-visible">
       <div className="print:hidden">
-        <Sidebar 
-          activeTab={activeTab} 
-          setActiveTab={setActiveTab} 
-          isOpen={sidebarOpen} 
-          setIsOpen={setSidebarOpen} 
+        <Sidebar
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          isOpen={sidebarOpen}
+          setIsOpen={setSidebarOpen}
           isMobile={isMobile}
         />
       </div>
-      
-      <div className={`flex-1 flex flex-col overflow-hidden relative transition-all duration-300 print:ml-0 print:overflow-visible print:w-full ${
-        !isMobile && sidebarOpen ? 'ml-64' : 'ml-0'
-      }`}>
-        {/* Sidebar toggle button - only show on desktop when sidebar is closed */}
+
+      <div
+        className={`relative flex flex-1 flex-col overflow-hidden transition-all duration-300 print:ml-0 print:w-full print:overflow-visible ${
+ !isMobile && sidebarOpen ? "ml-64" : "ml-0"
+ }`}
+      >
         {!isMobile && !sidebarOpen && (
           <button
-            className="fixed top-4 left-4 z-50 flex items-center justify-center bg-gray-800 text-white rounded-full shadow-lg hover:shadow-xl p-2 hover:bg-gray-700 transition-all duration-300 hover:scale-110 transform print:hidden"
+            className="fixed left-3 top-3 z-50 flex h-9 w-9 items-center justify-center rounded-md border border-border bg-card text-navy transition-colors hover:bg-muted print:hidden"
             onClick={() => setSidebarOpen(true)}
             aria-label="Open sidebar"
           >
-            <ChevronRight className="h-6 w-6" />
+            <ChevronRight className="h-5 w-5" />
           </button>
         )}
-        
+
         <div className="print:hidden">
-          <Header 
-            onMenuClick={() => {
-              console.log('Header menu clicked!', { currentSidebarOpen: sidebarOpen, isMobile })
-              setSidebarOpen(!sidebarOpen)
-            }} 
+          <Header
+            onMenuClick={() => setSidebarOpen(!sidebarOpen)}
             sidebarOpen={sidebarOpen}
             isMobile={isMobile}
           />
         </div>
-        
-        <main 
+
+        <main
           ref={mainContentRef}
-          className="flex-1 overflow-x-hidden overflow-y-auto p-4 transition-colors duration-300 print:overflow-visible print:p-0"
+          className="flex-1 overflow-x-hidden overflow-y-auto p-4 sm:p-5 lg:p-6 print:overflow-visible print:p-0"
         >
           {renderContent()}
         </main>

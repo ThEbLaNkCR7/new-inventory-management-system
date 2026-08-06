@@ -20,23 +20,21 @@ export default function ProcessingOverlay({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-xl max-w-md w-full mx-4">
+      <div className="bg-card rounded-lg p-6 shadow-xl max-w-md w-full mx-4">
         <div className="flex items-center justify-center mb-4">
           <Loader2 className="h-8 w-8 animate-spin text-primary mr-3" />
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-            Processing...
-          </h3>
+          <h3 className="form-section-title mb-0">Processing...</h3>
         </div>
 
         <div className="space-y-3">
-          <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400">
+          <div className="flex justify-between text-sm text-muted-foreground">
             <span>{currentStep}</span>
             <span>{Math.round(progress)}%</span>
           </div>
 
           <Progress value={progress} className="h-2" />
 
-          <div className="text-xs text-gray-500 dark:text-gray-400 text-center">
+          <div className="text-xs text-muted-foreground text-center">
             Step {Math.ceil((progress / 100) * totalSteps)} of {totalSteps}
           </div>
         </div>

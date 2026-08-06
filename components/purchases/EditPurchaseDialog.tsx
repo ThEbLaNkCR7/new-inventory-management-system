@@ -1,5 +1,4 @@
 import { formatProductNetWeight } from "@/components/products/utils";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -20,13 +19,28 @@ import {
 } from "@/components/ui/select";
 import type { Product, Supplier } from "@/contexts/InventoryContext";
 import { cn } from "@/lib/utils";
-import { AlertTriangle, Edit } from "lucide-react";
+import {
+  formDescriptionClass,
+  formDialogBodyClass,
+  formDialogClass,
+  formDialogFooterClass,
+  formDialogHeaderClass,
+  formErrorTextClass,
+  formFieldClass,
+  formGridClass,
+  formInputClass,
+  formLabelClass,
+  formSectionClass,
+  formSectionTitleClass,
+  formSelectTriggerClass,
+  formTitleClass,
+} from "@/lib/form-styles";
+import { AlertTriangle, ImagePlus, Package, Receipt, Truck } from "lucide-react";
 import React from "react";
 
-const inputClass =
-  "border-2 focus:border-slate-500 transition-colors dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200";
-const selectTriggerClass = inputClass;
-const errorTextClass = "text-sm text-red-600 dark:text-red-400";
+const inputClass = formInputClass;
+const selectTriggerClass = formSelectTriggerClass;
+const errorTextClass = formErrorTextClass;
 
 export type PurchaseFormData = {
   productId?: string;
@@ -102,30 +116,32 @@ export default function EditPurchaseDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle className="flex items-center space-x-2">
-            <Edit className="h-5 w-5" />
-            <span>Edit Purchase</span>
+      <DialogContent className={formDialogClass}>
+        <DialogHeader className={formDialogHeaderClass}>
+          <DialogTitle className={formTitleClass}>
+            Edit Purchase
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription className={formDescriptionClass}>
             {userRole === "admin"
-              ? "Edit purchase order"
+              ? "Update purchase order details"
               : "Submit purchase changes for admin approval"}
+            {userRole !== "admin" && (
+              <span className="mt-2 flex items-center gap-2 rounded-md bg-muted px-3 py-2 font-sans text-sm font-medium leading-5 text-navy">
+                <AlertTriangle className="h-4 w-4 shrink-0 text-navy" />
+                Changes require admin approval
+              </span>
+            )}
           </DialogDescription>
         </DialogHeader>
-        {userRole !== "admin" && (
-          <Alert className="border-amber-200 bg-amber-50">
-            <AlertTriangle className="h-4 w-4 text-amber-600" />
-            <AlertDescription className="text-amber-800">
-              Your changes will be submitted for admin approval before being
-              applied.
-            </AlertDescription>
-          </Alert>
-        )}
-        <form onSubmit={onSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="edit-product">Product *</Label>
+        <form onSubmit={onSubmit}>
+          <div className={formDialogBodyClass}>
+          <section className={formSectionClass}>
+            <h3 className={formSectionTitleClass}>
+              <Package className="h-4 w-4 text-navy/70" />
+              Products
+            </h3>
+          <div className={formFieldClass}>
+            <Label htmlFor="edit-product" className={formLabelClass}>Product *</Label>
             <Select
               value={firstItem.productId || undefined}
               onValueChange={(value) => updateFirstItem({ productId: value })}
@@ -144,9 +160,61 @@ export default function EditPurchaseDialog({
             </Select>
             {renderFieldError("productId")}
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="edit-supplier">Supplier *</Label>
-            <div className="space-y-2">
+          <div className="grid grid-cols-2 gap-3">
+            <div className={formFieldClass}>
+              <Label htmlFor="edit-quantity" className={formLabelClass}>Quantity *</Label>
+              <Input
+                id="edit-quantity"
+                type="number"
+                min={1}
+                value={
+                  firstItem.quantityPurchased === 0
+                    ? ""
+                    : firstItem.quantityPurchased
+                }
+                onChange={(e) => {
+                  const value = e.target.value;
+                  updateFirstItem({
+                    quantityPurchased:
+                      value === "" ? 0 : Number.parseInt(value, 10),
+                  });
+                }}
+                className={cn(inputClass, fieldErrorClass("quantityPurchased"))}
+              />
+              {renderFieldError("quantityPurchased")}
+            </div>
+            <div className={formFieldClass}>
+              <Label htmlFor="edit-price" className={formLabelClass}>Unit Price (Rs) *</Label>
+              <Input
+                id="edit-price"
+                type="number"
+                step="0.01"
+                min={0}
+                value={
+                  firstItem.purchasePrice === 0 ? "" : firstItem.purchasePrice
+                }
+                onChange={(e) => {
+                  const value = e.target.value;
+                  updateFirstItem({
+                    purchasePrice:
+                      value === "" ? 0 : Number.parseFloat(value),
+                  });
+                }}
+                className={cn(inputClass, fieldErrorClass("purchasePrice"))}
+              />
+              {renderFieldError("purchasePrice")}
+            </div>
+          </div>
+          </section>
+
+          <section className={formSectionClass}>
+            <h3 className={formSectionTitleClass}>
+              <Truck className="h-4 w-4 text-navy/70" />
+              Supplier & details
+            </h3>
+          <div className={formGridClass}>
+            <div className={formFieldClass}>
+              <Label htmlFor="edit-supplier" className={formLabelClass}>Supplier *</Label>
               <Select
                 value={formData.supplier || undefined}
                 onValueChange={(value) => onFormChange({ supplier: value })}
@@ -176,119 +244,93 @@ export default function EditPurchaseDialog({
               {renderFieldError("supplier")}
               {renderFieldError("customSupplier")}
             </div>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="edit-supplierType">Supplier Type *</Label>
-            <Select
-              value={formData.supplierType || undefined}
-              onValueChange={(value) => onFormChange({ supplierType: value })}
-            >
-              <SelectTrigger className={cn(selectTriggerClass, fieldErrorClass("supplierType"))}>
-                <SelectValue placeholder="Select supplier type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Individual">Individual</SelectItem>
-                <SelectItem value="Company">Company</SelectItem>
-              </SelectContent>
-            </Select>
-            {renderFieldError("supplierType")}
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="edit-quantity">Quantity *</Label>
-              <Input
-                id="edit-quantity"
-                type="number"
-                min={1}
-                value={
-                  firstItem.quantityPurchased === 0
-                    ? ""
-                    : firstItem.quantityPurchased
-                }
-                onChange={(e) => {
-                  const value = e.target.value;
-                  updateFirstItem({
-                    quantityPurchased:
-                      value === "" ? 0 : Number.parseInt(value, 10),
-                  });
-                }}
-                className={cn(inputClass, fieldErrorClass("quantityPurchased"))}
-              />
-              {renderFieldError("quantityPurchased")}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-price">Unit Price (Rs) *</Label>
-              <Input
-                id="edit-price"
-                type="number"
-                step="0.01"
-                min={0}
-                value={
-                  firstItem.purchasePrice === 0 ? "" : firstItem.purchasePrice
-                }
-                onChange={(e) => {
-                  const value = e.target.value;
-                  updateFirstItem({
-                    purchasePrice:
-                      value === "" ? 0 : Number.parseFloat(value),
-                  });
-                }}
-                className={cn(inputClass, fieldErrorClass("purchasePrice"))}
-              />
-              {renderFieldError("purchasePrice")}
-            </div>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="edit-date">Purchase Date *</Label>
-            <MaterialDatePicker
-              value={
-                formData.purchaseDate
-                  ? new Date(formData.purchaseDate)
-                  : undefined
-              }
-              onChange={(date) =>
-                onFormChange({
-                  purchaseDate: date ? date.toISOString().split("T")[0] : "",
-                })
-              }
-            />
-            {renderFieldError("purchaseDate")}
-          </div>
-          <div className="space-y-2">
-            <Label>Bill Image</Label>
-            <Input
-              type="file"
-              accept="image/*"
-              onChange={(e) => {
-                if (e.target.files?.[0]) {
-                  onBillImageChange(e.target.files[0]);
-                }
-              }}
-            />
-            {billUrl && (
-              <a
-                href={billUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-blue-600 text-sm underline"
+            <div className={formFieldClass}>
+              <Label htmlFor="edit-supplierType" className={formLabelClass}>Supplier Type *</Label>
+              <Select
+                value={formData.supplierType || undefined}
+                onValueChange={(value) => onFormChange({ supplierType: value })}
               >
-                View Existing Bill
-              </a>
-            )}
+                <SelectTrigger className={cn(selectTriggerClass, fieldErrorClass("supplierType"))}>
+                  <SelectValue placeholder="Select supplier type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Individual">Individual</SelectItem>
+                  <SelectItem value="Company">Company</SelectItem>
+                </SelectContent>
+              </Select>
+              {renderFieldError("supplierType")}
+            </div>
           </div>
+          <div className={formGridClass}>
+            <div className={formFieldClass}>
+              <Label htmlFor="edit-date" className={formLabelClass}>Purchase Date *</Label>
+              <MaterialDatePicker
+                className={inputClass}
+                value={
+                  formData.purchaseDate
+                    ? new Date(formData.purchaseDate)
+                    : undefined
+                }
+                onChange={(date) =>
+                  onFormChange({
+                    purchaseDate: date ? date.toISOString().split("T")[0] : "",
+                  })
+                }
+              />
+              {renderFieldError("purchaseDate")}
+            </div>
+          </div>
+          </section>
+
+          <section className={formSectionClass}>
+            <h3 className={formSectionTitleClass}>
+              <Receipt className="h-4 w-4 text-navy/70" />
+              Options
+            </h3>
+            <div className={formFieldClass}>
+              <Label className={formLabelClass}>
+                <span className="inline-flex items-center gap-1.5">
+                  <ImagePlus className="h-3.5 w-3.5 text-muted-foreground" />
+                  Bill Image
+                </span>
+              </Label>
+              <Input
+                type="file"
+                accept="image/*"
+                onChange={(e) => {
+                  if (e.target.files?.[0]) {
+                    onBillImageChange(e.target.files[0]);
+                  }
+                }}
+                className={inputClass}
+              />
+              {billUrl && (
+                <a
+                  href={billUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-sans text-sm font-medium text-navy underline-offset-4 transition-colors hover:underline hover:text-navy/80"
+                >
+                  View Existing Bill
+                </a>
+              )}
+            </div>
+          </section>
           {userRole !== "admin" && (
-            <div className="space-y-2">
-              <Label htmlFor="edit-reason">Reason for Changes *</Label>
+            <div className={formFieldClass}>
+              <Label htmlFor="edit-reason" className={formLabelClass}>Reason for Changes *</Label>
               <Input
                 id="edit-reason"
                 value={editReason}
                 onChange={(e) => onEditReasonChange(e.target.value)}
                 placeholder="Explain the changes..."
                 required
+                className={inputClass}
               />
             </div>
           )}
-          <div className="flex justify-end space-x-2">
+          </div>
+          <div className={formDialogFooterClass}>
             <Button type="button" variant="neutralOutline" onClick={onCancel}>
               Cancel
             </Button>

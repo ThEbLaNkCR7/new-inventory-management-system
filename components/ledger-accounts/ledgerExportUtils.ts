@@ -164,9 +164,9 @@ export function printLedgerReport(htmlContent: string, title: string) {
         padding: 16px;
       }
       .text-center { text-align: center; }
-      .font-bold { font-weight: 700; }
       .font-semibold { font-weight: 600; }
       .font-medium { font-weight: 500; }
+      .italic { font-style: italic; }
       .text-muted-foreground { color: #6b7280; }
       .pt-2 { padding-top: 8px; }
       .flex-wrap { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; }
@@ -188,7 +188,7 @@ export function printLedgerReport(htmlContent: string, title: string) {
       .grand-total td {
         border-top: 2px solid #111;
         border-bottom: 3px double #111;
-        font-weight: 700;
+        font-weight: 600;
       }
       .summary-grid {
         display: grid;
@@ -304,7 +304,7 @@ export function buildLedgerPrintHtml(
 
   return `<div class="ledger-report-content">
     <div class="text-center">
-      <p class="font-bold" style="font-size:16px;">${COMPANY_NAME}</p>
+      <p class="font-semibold" style="font-size:16px;">${COMPANY_NAME}</p>
       ${account.address ? `<p class="text-muted-foreground">${account.address}</p>` : ""}
     </div>
     <div class="text-center font-semibold pt-2" style="font-size:16px;">Account Ledger</div>

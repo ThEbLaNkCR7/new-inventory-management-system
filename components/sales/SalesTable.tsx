@@ -27,8 +27,19 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatNepaliDateForTable, toTitleCase } from "@/lib/utils";
+import {
+  filterSelectClass,
+  pageToolbarClass,
+  searchIconClass,
+  searchInputClass,
+  searchWrapClass,
+  tableHeadRowClass,
+  tabsCountBadgeClass,
+  tabsListClass,
+  tabsTriggerClass,
+} from "@/lib/ui-styles";
 import { usePagination } from "@/hooks/usePagination";
-import { Building2, Edit, Eye, Filter, Search, Trash2, TrendingUp, Users, X } from "lucide-react";
+import { Building2, ChevronDown, ChevronRight, Edit, Eye, Filter, Search, Trash2, TrendingUp, Users, X } from "lucide-react";
 import React from "react";
 import DataPagination from "@/components/ui/data-pagination";
 import { formatSaleTotal, getSaleTotal } from "./utils";
@@ -79,7 +90,9 @@ export default function SalesTable({
   onProductClick: _onProductClick,
   onClientClick: _onClientClick,
 }: SalesTableProps) {
-  const [selectedSales, setSelectedSales] = React.useState<Record<string, string>>({});
+  const [expandedClients, setExpandedClients] = React.useState<Set<string>>(
+    new Set(),
+  );
 
   const tabSales = React.useMemo(() => {
     if (activeTab === "individual") {
@@ -134,8 +147,11 @@ export default function SalesTable({
     resetKey: `${searchTerm}|${activeTab}|${saleTypeFilter}|${paymentStatusFilter}`,
   });
 
-  const formatSaleType = (saleType?: string) =>
-    saleType === "site" ? "Site" : "Client";
+  const saleTypeBadge = (saleType?: string) => (
+    <Badge variant="outline" className="font-normal">
+      {saleType === "site" ? "Site" : "Client"}
+    </Badge>
+  );
 
   const paymentStatusBadge = (paymentStatus?: string) => {
     const status = paymentStatus || "Pending";
@@ -143,179 +159,211 @@ export default function SalesTable({
     return (
       <Badge
         variant="secondary"
-        className={
-          isReceived
-            ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400"
-            : "bg-amber-100 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400"
-        }
+        className="border border-border bg-card text-navy"
       >
         {status}
       </Badge>
     );
   };
 
-  const formatSaleOptionLabel = (sale: any) => {
-    const date = formatNepaliDateForTable(sale.saleDate);
-    const type = formatSaleType(sale.saleType);
-    const status = sale.paymentStatus || "Pending";
-    const total = formatSaleTotal(sale);
-    return `${date} · ${type} · ${status} · Rs ${total}`;
+  const toggleExpanded = (client: string) => {
+    setExpandedClients((prev) => {
+      const next = new Set(prev);
+      if (next.has(client)) next.delete(client);
+      else next.add(client);
+      return next;
+    });
   };
 
-  const getSelectedSale = (group: SaleGroup) => {
-    const selectedId = selectedSales[group.client] || group.sales[0]?.id;
-    return group.sales.find((sale) => sale.id === selectedId) || group.sales[0];
-  };
+  const renderSaleActions = (sale: any) => (
+    <div className="flex items-center space-x-2">
+      <Button
+        size="sm"
+        variant="neutralOutline"
+        onClick={(e) => {
+          e.stopPropagation();
+          onView(sale);
+        }}
+        className="text-muted-foreground hover:bg-muted hover:border-navy/30 hover:text-navy dark:hover:bg-muted dark:hover:border-white/30 transition-colors"
+      >
+        <Eye className="h-4 w-4" />
+      </Button>
+      <Button
+        size="sm"
+        variant="neutralOutline"
+        onClick={(e) => {
+          e.stopPropagation();
+          onEdit(sale);
+        }}
+        className="hover:bg-muted dark:hover:bg-muted transition-colors"
+      >
+        <Edit className="h-4 w-4" />
+      </Button>
+      <Button
+        size="sm"
+        variant="neutralOutline"
+        onClick={(e) => {
+          e.stopPropagation();
+          onDelete(sale);
+        }}
+        className="text-navy transition-colors hover:bg-muted hover:border-border"
+      >
+        <Trash2 className="h-4 w-4" />
+      </Button>
+    </div>
+  );
+
+  // Fixed expand slot so single-sale rows align with grouped rows
+  const renderExpandCell = (content?: React.ReactNode) => (
+    <TableCell className="w-10 min-w-10 max-w-10 p-2 align-middle">
+      <div className="flex h-7 w-7 shrink-0 items-center justify-center">
+        {content}
+      </div>
+    </TableCell>
+  );
+
+  const renderSaleDetailRow = (sale: any) => (
+    <TableRow
+      key={sale.id}
+      className="hover:bg-muted/60 transition-colors duration-150"
+    >
+      {renderExpandCell()}
+      <TableCell className="pl-6 text-sm font-medium text-navy">
+        {sale.saleType === "site" && sale.projectName
+          ? sale.projectName
+          : "Client sale"}
+      </TableCell>
+      <TableCell>{saleTypeBadge(sale.saleType)}</TableCell>
+      <TableCell>{paymentStatusBadge(sale.paymentStatus)}</TableCell>
+      <TableCell className="text-sm font-medium tabular-nums text-navy">
+        {sale.items?.length || 0}
+      </TableCell>
+      <TableCell className="text-sm font-medium tabular-nums text-navy">
+        Rs {formatSaleTotal(sale)}
+      </TableCell>
+      <TableCell className="text-sm font-medium text-navy">
+        {formatNepaliDateForTable(sale.saleDate)}
+      </TableCell>
+      <TableCell>{renderSaleActions(sale)}</TableCell>
+    </TableRow>
+  );
 
   const renderSaleRows = () =>
-    paginatedGroups.map((group) => {
-      const selectedSale = getSelectedSale(group);
-      if (!selectedSale) return null;
+    paginatedGroups.flatMap((group) => {
+      // Single sale — full detail row (same columns as image)
+      if (group.sales.length === 1) {
+        const sale = group.sales[0];
+        return [
+          <TableRow
+            key={group.client}
+            className="hover:bg-muted/60 transition-colors duration-150"
+          >
+            {renderExpandCell()}
+            <TableCell className="text-sm font-medium text-navy">
+              {toTitleCase(group.client)}
+            </TableCell>
+            <TableCell>{saleTypeBadge(sale.saleType)}</TableCell>
+            <TableCell>{paymentStatusBadge(sale.paymentStatus)}</TableCell>
+            <TableCell className="text-sm font-medium tabular-nums text-navy">
+              {sale.items?.length || 0}
+            </TableCell>
+            <TableCell className="text-sm font-medium tabular-nums text-navy">
+              Rs {formatSaleTotal(sale)}
+            </TableCell>
+            <TableCell className="text-sm font-medium text-navy">
+              {formatNepaliDateForTable(sale.saleDate)}
+            </TableCell>
+            <TableCell>{renderSaleActions(sale)}</TableCell>
+          </TableRow>,
+        ];
+      }
 
-      const itemCount = selectedSale.items?.length || 0;
-      const quantity =
-        selectedSale.items?.reduce(
-          (total: number, item: any) => total + (item.quantitySold || 0),
-          0,
-        ) || 0;
-
-      return (
+      const isExpanded = expandedClients.has(group.client);
+      const groupTotal = group.sales.reduce(
+        (sum, sale) => sum + getSaleTotal(sale),
+        0,
+      );
+      const headerRow = (
         <TableRow
-          key={group.client}
-          className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-150"
+          key={`group-${group.client}`}
+          className="bg-muted/20 hover:bg-muted/50 dark:hover:bg-muted/60 cursor-pointer transition-colors duration-150"
+          onClick={() => toggleExpanded(group.client)}
         >
-          <TableCell className="font-medium">{itemCount}</TableCell>
-          <TableCell className="font-medium">
-            <div className="space-y-2 min-w-[180px]">
-              <span className="text-gray-700 dark:text-gray-100">
-                {toTitleCase(group.client)}
-              </span>
-              {group.sales.length > 1 ? (
-                <Select
-                  value={selectedSale.id}
-                  onValueChange={(value) =>
-                    setSelectedSales((prev) => ({
-                      ...prev,
-                      [group.client]: value,
-                    }))
-                  }
-                >
-                  <SelectTrigger className="h-8 w-full text-xs border-gray-200 dark:border-gray-600 dark:bg-gray-700/50 dark:text-gray-200">
-                    <SelectValue placeholder="Select sale">
-                      {formatSaleOptionLabel(selectedSale)}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent className="dark:bg-gray-800 dark:border-gray-700">
-                    {group.sales.map((sale) => (
-                      <SelectItem key={sale.id} value={sale.id}>
-                        {formatSaleOptionLabel(sale)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              ) : null}
-              {group.sales.length > 1 && (
-                <p className="text-xs text-gray-500 dark:text-gray-400">
-                  {group.sales.length} sales · Total Rs{" "}
-                  {group.sales
-                    .reduce((sum, sale) => sum + getSaleTotal(sale), 0)
-                    .toLocaleString()}
-                </p>
+          {renderExpandCell(
+            <button
+              type="button"
+              className="flex h-7 w-7 items-center justify-center rounded-md text-navy hover:bg-muted hover:text-navy"
+              aria-label={isExpanded ? "Collapse sales" : "Expand sales"}
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleExpanded(group.client);
+              }}
+            >
+              {isExpanded ? (
+                <ChevronDown className="h-4 w-4" />
+              ) : (
+                <ChevronRight className="h-4 w-4" />
               )}
-            </div>
-          </TableCell>
-          <TableCell className="font-medium">
-            {formatSaleType(selectedSale.saleType)}
-          </TableCell>
-          <TableCell>{paymentStatusBadge(selectedSale.paymentStatus)}</TableCell>
-          <TableCell className="font-medium">{quantity}</TableCell>
-          <TableCell className="text-gray-700">
-            Rs {formatSaleTotal(selectedSale)}
-          </TableCell>
-          <TableCell className="text-gray-700">
-            {formatNepaliDateForTable(selectedSale.saleDate)}
-          </TableCell>
+            </button>,
+          )}
           <TableCell>
-            <div className="flex space-x-2">
-              <Button
-                size="sm"
-                variant="neutralOutline"
-                onClick={() => onView(selectedSale)}
-                className="hover:bg-blue-50 hover:border-blue-300 dark:hover:bg-blue-900/20 dark:hover:border-blue-600 text-blue-600 dark:text-blue-400 transition-colors"
-              >
-                <Eye className="h-4 w-4" />
-              </Button>
-              <Button
-                size="sm"
-                variant="neutralOutline"
-                onClick={() => onEdit(selectedSale)}
-                className="hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
-              >
-                <Edit className="h-4 w-4" />
-              </Button>
-              <Button
-                size="sm"
-                variant="neutralOutline"
-                onClick={() => onDelete(selectedSale)}
-                className="hover:bg-red-50 hover:border-red-300 dark:hover:bg-red-900/20 dark:hover:border-red-600 text-red-600 dark:text-red-400 transition-colors"
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
+            <div className="min-w-[140px]">
+              <p className="text-sm font-medium text-navy">
+                {toTitleCase(group.client)}
+              </p>
+              <p className="mt-0.5 text-xs font-normal text-muted-foreground">
+                {group.sales.length}{" "}
+                {group.sales.length === 1 ? "sale" : "sales"}
+              </p>
             </div>
           </TableCell>
+          <TableCell />
+          <TableCell />
+          <TableCell />
+          <TableCell className="text-sm font-medium tabular-nums text-navy">
+            Rs {groupTotal.toLocaleString()}
+          </TableCell>
+          <TableCell />
+          <TableCell />
         </TableRow>
       );
+
+      if (!isExpanded) return [headerRow];
+
+      return [headerRow, ...group.sales.map((sale) => renderSaleDetailRow(sale))];
     });
 
   const tableHeader = (
     <TableHeader>
-      <TableRow className="bg-gray-50 dark:bg-gray-700">
-        <TableHead className="font-semibold text-sm text-gray-700 dark:text-gray-300">
-          Items
-        </TableHead>
-        <TableHead className="font-semibold text-sm text-gray-700 dark:text-gray-300">
-          Client
-        </TableHead>
-        <TableHead className="font-semibold text-sm text-gray-700 dark:text-gray-300">
-          Sale Type
-        </TableHead>
-        <TableHead className="font-semibold text-sm text-gray-700 dark:text-gray-300">
-          Payment Status
-        </TableHead>
-        <TableHead className="font-semibold text-sm text-gray-700 dark:text-gray-300">
-          Quantity
-        </TableHead>
-        <TableHead className="font-semibold text-sm text-gray-700 dark:text-gray-300">
-          Total
-        </TableHead>
-        <TableHead className="font-semibold text-sm text-gray-700 dark:text-gray-300">
-          Date
-        </TableHead>
-        <TableHead className="font-semibold text-sm text-gray-700 dark:text-gray-300">
-          Actions
-        </TableHead>
+      <TableRow className={tableHeadRowClass}>
+        <TableHead className="w-10 min-w-10 max-w-10 p-2" />
+        <TableHead>Client</TableHead>
+        <TableHead>Sale Type</TableHead>
+        <TableHead>Payment Status</TableHead>
+        <TableHead>Items</TableHead>
+        <TableHead>Total</TableHead>
+        <TableHead>Date</TableHead>
+        <TableHead>Actions</TableHead>
       </TableRow>
     </TableHeader>
   );
 
   return (
-    <Card className="dark:bg-gray-800 dark:border-gray-700 overflow-hidden">
+    <Card className="overflow-hidden">
       <CardHeader className="pb-3">
-        <CardTitle className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-          Sales Transactions
-        </CardTitle>
-        <CardDescription className="text-gray-600 dark:text-gray-400 mt-1">
+        <CardTitle>Sales Transactions</CardTitle>
+        <CardDescription>
           Track all sales transactions and revenue by client type
         </CardDescription>
 
-        <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
+        <div className={pageToolbarClass}>
+          <div className={searchWrapClass}>
+            <Search className={searchIconClass} />
             <Input
               placeholder="Search by client, product, or invoice..."
               value={searchTerm}
               onChange={(e) => onSearchTermChange(e.target.value)}
-              className="h-10 pl-10 border-gray-200 dark:border-gray-600 dark:bg-gray-700/50 dark:text-gray-200 focus:border-slate-400"
+              className={searchInputClass}
             />
           </div>
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
@@ -325,13 +373,13 @@ export default function SalesTable({
                 onSaleTypeFilterChange(value)
               }
             >
-              <SelectTrigger className="h-10 w-full sm:w-40 border-gray-200 dark:border-gray-600 dark:bg-gray-700/50 dark:text-gray-200">
+              <SelectTrigger className={filterSelectClass}>
                 <div className="flex items-center gap-2">
-                  <Filter className="h-4 w-4 shrink-0 text-gray-400" />
+                  <Filter className="h-4 w-4 shrink-0 text-muted-foreground" />
                   <SelectValue placeholder="Sale type" />
                 </div>
               </SelectTrigger>
-              <SelectContent className="dark:bg-gray-800 dark:border-gray-700">
+              <SelectContent>
                 <SelectItem value="all">All Types</SelectItem>
                 <SelectItem value="client">Client</SelectItem>
                 <SelectItem value="site">Site</SelectItem>
@@ -343,13 +391,13 @@ export default function SalesTable({
                 onPaymentStatusFilterChange(value)
               }
             >
-              <SelectTrigger className="h-10 w-full sm:w-44 border-gray-200 dark:border-gray-600 dark:bg-gray-700/50 dark:text-gray-200">
+              <SelectTrigger className="h-10 w-full border-border bg-background sm:w-44">
                 <div className="flex items-center gap-2">
-                  <Filter className="h-4 w-4 shrink-0 text-gray-400" />
+                  <Filter className="h-4 w-4 shrink-0 text-muted-foreground" />
                   <SelectValue placeholder="Payment status" />
                 </div>
               </SelectTrigger>
-              <SelectContent className="dark:bg-gray-800 dark:border-gray-700">
+              <SelectContent>
                 <SelectItem value="all">All Payments</SelectItem>
                 <SelectItem value="Pending">Pending</SelectItem>
                 <SelectItem value="Received">Received</SelectItem>
@@ -361,7 +409,7 @@ export default function SalesTable({
                 variant="neutralOutline"
                 size="sm"
                 onClick={clearFilters}
-                className="h-10 shrink-0 gap-1.5 text-gray-600 dark:text-gray-300"
+                className="h-10 shrink-0 gap-1.5"
               >
                 <X className="h-4 w-4" />
                 Clear
@@ -376,43 +424,25 @@ export default function SalesTable({
           onValueChange={onActiveTabChange}
           className="w-full"
         >
-          <TabsList className="grid w-full grid-cols-3 mb-4 bg-gray-100 dark:bg-gray-800 p-1 rounded-lg h-11">
-            <TabsTrigger
-              value="all"
-              className="flex items-center justify-center space-x-2 data-[state=active]:bg-white dark:data-[state=active]:bg-gray-700 data-[state=active]:shadow-lg data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-400 data-[state=active]:font-semibold transition-all duration-300 ease-in-out rounded-lg px-3 py-2.5 h-full"
-            >
+          <TabsList className={tabsListClass}>
+            <TabsTrigger value="all" className={tabsTriggerClass}>
               <TrendingUp className="h-4 w-4" />
               <span>All Sales</span>
-              <Badge
-                variant="secondary"
-                className="ml-1 bg-blue-100 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400 text-xs px-1.5 py-0.5"
-              >
+              <Badge variant="secondary" className={tabsCountBadgeClass}>
                 {salesCounts.allCount}
               </Badge>
             </TabsTrigger>
-            <TabsTrigger
-              value="individual"
-              className="flex items-center justify-center space-x-2 data-[state=active]:bg-white dark:data-[state=active]:bg-gray-700 data-[state=active]:shadow-lg data-[state=active]:text-teal-600 dark:data-[state=active]:text-teal-400 data-[state=active]:font-semibold transition-all duration-300 ease-in-out rounded-lg px-3 py-2.5 h-full"
-            >
+            <TabsTrigger value="individual" className={tabsTriggerClass}>
               <Users className="h-4 w-4" />
               <span>Individual</span>
-              <Badge
-                variant="secondary"
-                className="ml-1 bg-teal-100 text-teal-700 dark:bg-teal-900/20 dark:text-teal-400 text-xs px-1.5 py-0.5"
-              >
+              <Badge variant="secondary" className={tabsCountBadgeClass}>
                 {salesCounts.individualCount}
               </Badge>
             </TabsTrigger>
-            <TabsTrigger
-              value="company"
-              className="flex items-center justify-center space-x-2 data-[state=active]:bg-white dark:data-[state=active]:bg-gray-700 data-[state=active]:shadow-lg data-[state=active]:text-orange-600 dark:data-[state=active]:text-orange-400 data-[state=active]:font-semibold transition-all duration-300 ease-in-out rounded-lg px-3 py-2.5 h-full"
-            >
+            <TabsTrigger value="company" className={tabsTriggerClass}>
               <Building2 className="h-4 w-4" />
               <span>Company</span>
-              <Badge
-                variant="secondary"
-                className="ml-1 bg-orange-100 text-orange-700 dark:bg-orange-900/20 dark:text-orange-400 text-xs px-1.5 py-0.5"
-              >
+              <Badge variant="secondary" className={tabsCountBadgeClass}>
                 {salesCounts.companyCount}
               </Badge>
             </TabsTrigger>
@@ -429,7 +459,7 @@ export default function SalesTable({
               </Table>
               {groupedSales.length === 0 && (
                 <div className="text-center py-8 animate-in fade-in-0 duration-300">
-                  <p className="text-gray-500">No sales found</p>
+                  <p className="text-sm font-normal italic text-muted-foreground">No sales found</p>
                 </div>
               )}
             </div>
@@ -446,7 +476,7 @@ export default function SalesTable({
               </Table>
               {groupedSales.length === 0 && (
                 <div className="text-center py-8 animate-in fade-in-0 duration-300">
-                  <p className="text-gray-500">No individual sales found</p>
+                  <p className="text-sm font-normal italic text-muted-foreground">No individual sales found</p>
                 </div>
               )}
             </div>
@@ -463,7 +493,7 @@ export default function SalesTable({
               </Table>
               {groupedSales.length === 0 && (
                 <div className="text-center py-8 animate-in fade-in-0 duration-300">
-                  <p className="text-gray-500">No company sales found</p>
+                  <p className="text-sm font-normal italic text-muted-foreground">No company sales found</p>
                 </div>
               )}
             </div>

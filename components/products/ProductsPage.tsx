@@ -534,7 +534,7 @@ export default function ProductsPage() {
   }
 
   return (
-    <div className="space-y-4 bg-white dark:bg-gray-900 min-h-screen transition-colors duration-300">
+    <div className="space-y-4 min-h-screen transition-colors duration-300">
       <ProcessingOverlay
         isLoading={isLoading}
         currentStep={currentStep}
@@ -543,16 +543,16 @@ export default function ProductsPage() {
       />
 
       {showSuccessAlert && (
-        <Alert className="border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20 p-3 mb-0">
-          <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
-          <AlertDescription className="text-green-800 dark:text-green-200">{alertMessage}</AlertDescription>
+        <Alert className="border-border bg-muted p-3 mb-0">
+          <CheckCircle className="h-4 w-4 text-navy" />
+          <AlertDescription className="text-navy">{alertMessage}</AlertDescription>
         </Alert>
       )}
 
       <div className="relative">
         <div className="space-y-2">
           <h1 className="section-title">Products</h1>
-          <p className="text-gray-600 dark:text-gray-300 text-sm">Manage your product inventory with ease</p>
+          <p className="page-desc">Manage your product inventory with ease</p>
         </div>
         <div className="absolute top-0 right-0 flex space-x-3">
           <Button onClick={() => exportAllProductsToCSV(products)}>Export All Products</Button>

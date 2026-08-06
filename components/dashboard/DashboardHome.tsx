@@ -1,12 +1,280 @@
 "use client"
 
-import { useInventory } from "@/contexts/InventoryContext"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import type { ReactNode } from "react"
 import { Badge } from "@/components/ui/badge"
-import { Package, ShoppingCart, TrendingUp, AlertTriangle, DollarSign, Users, Truck, Calendar, BarChart3, Clock, CheckCircle, XCircle } from "lucide-react"
-import { formatNepaliDateForTable } from "@/lib/utils"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { useInventory } from "@/contexts/InventoryContext"
+import { cn, formatNepaliDateForTable } from "@/lib/utils"
+import {
+  AlertTriangle,
+  ArrowRight,
+  CheckCircle,
+  Clock,
+  Package,
+  ShoppingCart,
+  TrendingDown,
+  TrendingUp,
+  Truck,
+  Users,
+} from "lucide-react"
+import type { LucideIcon } from "lucide-react"
 
-export default function DashboardHome() {
+function formatRs(value: number) {
+  return `Rs ${value.toLocaleString()}`
+}
+
+/**
+ * Hover/accent tone matches meaning — not always brand green.
+ * Status colors only show at rest when something needs attention.
+ */
+type Tone = "sales" | "purchases" | "profit" | "alert" | "clients" | "suppliers" | "inventory" | "expense" | "danger"
+
+const toneStyles: Record<
+  Tone,
+  {
+    hoverCard: string
+    bar: string
+    barHover: string
+    iconRest: string
+    iconActive: string
+    iconHover: string
+    value: string
+    linkHover: string
+    amountHover: string
+    panelHover: string
+    panelBarHover: string
+    panelIconHover: string
+  }
+> = (() => {
+  const plain = {
+    hoverCard: "hover:border-border hover:bg-muted/60",
+    bar: "bg-navy",
+    barHover: "group-hover:bg-navy",
+    iconRest: "bg-muted text-navy/70",
+    iconActive: "bg-foreground text-background",
+    iconHover: "group-hover:bg-muted group-hover:text-navy",
+    value: "text-navy",
+    linkHover: "hover:text-navy",
+    amountHover: "group-hover:text-navy",
+    panelHover: "hover:border-border",
+    panelBarHover: "group-hover/panel:bg-navy",
+    panelIconHover: "group-hover/panel:bg-muted group-hover/panel:text-navy",
+  }
+  return {
+    sales: plain,
+    purchases: plain,
+    profit: plain,
+    alert: plain,
+    clients: plain,
+    suppliers: plain,
+    inventory: plain,
+    expense: plain,
+    danger: plain,
+  }
+})()
+
+function Kpi({
+  label,
+  value,
+  hint,
+  icon: Icon,
+  tone = "sales",
+  active = false,
+  onClick,
+}: {
+  label: string
+  value: string | number
+  hint?: string
+  icon: LucideIcon
+  tone?: Tone
+  /** Show tone color at rest (alerts, loss, etc.) */
+  active?: boolean
+  onClick?: () => void
+}) {
+  const t = toneStyles[tone]
+  const Comp = onClick ? "button" : "div"
+
+  return (
+    <Comp
+      type={onClick ? "button" : undefined}
+      onClick={onClick}
+      className={cn(
+        "group relative w-full overflow-hidden rounded-lg border border-border/80 bg-card p-4 text-left shadow-[var(--card-shadow)] transition-all duration-200 hover:shadow-sm",
+        t.hoverCard,
+        onClick && "cursor-pointer",
+      )}
+    >
+      <span
+        className={cn(
+          "absolute inset-y-0 left-0 w-1 transition-colors",
+          active ? t.bar : cn("bg-transparent", t.barHover),
+        )}
+      />
+      <div className="flex items-start justify-between gap-3 pl-1.5">
+        <div className="min-w-0 space-y-1">
+          <p className="font-sans text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            {label}
+          </p>
+          <p
+            className={cn(
+              "truncate font-sans text-2xl font-semibold tracking-tight tabular-nums",
+              active ? t.value : "text-navy",
+            )}
+          >
+            {value}
+          </p>
+          {hint ? <p className="font-sans text-xs text-muted-foreground">{hint}</p> : null}
+        </div>
+        <div
+          className={cn(
+            "flex h-10 w-10 shrink-0 items-center justify-center rounded-lg transition-colors duration-200",
+            active ? t.iconActive : cn(t.iconRest, t.iconHover),
+          )}
+        >
+          <Icon className="h-4 w-4" />
+        </div>
+      </div>
+    </Comp>
+  )
+}
+
+function Panel({
+  children,
+  className,
+  tone = "sales",
+  active = false,
+}: {
+  children: ReactNode
+  className?: string
+  tone?: Tone
+  active?: boolean
+}) {
+  const t = toneStyles[tone]
+  return (
+    <Card
+      className={cn(
+        "group/panel relative overflow-hidden transition-all duration-200 hover:shadow-sm",
+        t.panelHover,
+        className,
+      )}
+    >
+      <span
+        className={cn(
+          "absolute inset-x-0 top-0 h-0.5 transition-colors",
+          active ? t.bar : cn("bg-transparent", t.panelBarHover),
+        )}
+      />
+      {children}
+    </Card>
+  )
+}
+
+function PanelIcon({
+  tone = "sales",
+  active = false,
+  children,
+}: {
+  tone?: Tone
+  active?: boolean
+  children: ReactNode
+}) {
+  const t = toneStyles[tone]
+  return (
+    <span
+      className={cn(
+        "flex h-8 w-8 items-center justify-center rounded-lg transition-colors",
+        active ? t.iconActive : cn(t.iconRest, t.panelIconHover),
+      )}
+    >
+      {children}
+    </span>
+  )
+}
+
+function ListRow({
+  children,
+  onClick,
+}: {
+  children: ReactNode
+  onClick?: () => void
+}) {
+  const Comp = onClick ? "button" : "li"
+  return (
+    <Comp
+      type={onClick ? "button" : undefined}
+      onClick={onClick}
+      className={cn(
+        "group -mx-2 flex w-full items-center justify-between gap-3 rounded-md px-2 py-2.5 text-left transition-colors duration-150",
+        "hover:bg-muted/60",
+        onClick && "cursor-pointer",
+      )}
+    >
+      {children}
+    </Comp>
+  )
+}
+
+function EmptyState({ message }: { message: string }) {
+  return (
+    <p className="py-8 text-center font-sans text-sm font-normal italic text-muted-foreground">
+      {message}
+    </p>
+  )
+}
+
+function ViewLink({
+  label,
+  onClick,
+  tone = "sales",
+}: {
+  label: string
+  onClick: () => void
+  tone?: Tone
+}) {
+  const t = toneStyles[tone]
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "inline-flex items-center gap-1 font-sans text-xs font-medium text-muted-foreground transition-colors",
+        t.linkHover,
+      )}
+    >
+      {label}
+      <ArrowRight className="h-3.5 w-3.5" />
+    </button>
+  )
+}
+
+function Amount({
+  children,
+  tone = "sales",
+  className,
+}: {
+  children: ReactNode
+  tone?: Tone
+  className?: string
+}) {
+  const t = toneStyles[tone]
+  return (
+    <span
+      className={cn(
+        "shrink-0 font-sans text-sm font-medium tabular-nums transition-colors text-navy",
+        t.amountHover,
+        className,
+      )}
+    >
+      {children}
+    </span>
+  )
+}
+
+interface DashboardHomeProps {
+  onNavigate?: (tab: string) => void
+}
+
+export default function DashboardHome({ onNavigate }: DashboardHomeProps) {
   const {
     products,
     purchases,
@@ -16,6 +284,8 @@ export default function DashboardHome() {
     getLowStockProducts,
     getTotalPurchases,
   } = useInventory()
+
+  const go = (tab: string) => onNavigate?.(tab)
 
   const lowStockProducts = getLowStockProducts()
   const totalPurchases = getTotalPurchases()
@@ -29,12 +299,10 @@ export default function DashboardHome() {
   const isSiteSale = (sale: (typeof sales)[number]) =>
     (sale.saleType || "client") === "site"
 
-  // All site sales count as project chemical expenses and stay even after payment is received
   const projectChemicalExpenses = sales
     .filter(isSiteSale)
     .reduce((total, sale) => total + getSaleAmount(sale), 0)
 
-  // Total sales excludes pending site sales; when received they are included
   const totalSales = sales
     .filter((sale) => {
       if (!isSiteSale(sale)) return true
@@ -43,757 +311,454 @@ export default function DashboardHome() {
     .reduce((total, sale) => total + getSaleAmount(sale), 0)
 
   const profit = totalSales - totalPurchases
+  const totalProducts = new Set(products.map((p) => p.name)).size
+  const totalInventoryValue = products.reduce(
+    (sum, p) => sum + p.stockQuantity * p.unitPrice,
+    0,
+  )
 
-  // Calculate additional metrics
-  const totalProducts = new Set(products.map(p => p.name)).size
-  const totalClients = clients.length
-  const totalSuppliers = suppliers.length
-  const averageProductPrice = totalProducts > 0 ? products.reduce((sum, p) => sum + p.unitPrice, 0) / totalProducts : 0
-  const totalInventoryValue = products.reduce((sum, p) => sum + (p.stockQuantity * p.unitPrice), 0)
-
-  // Recent activity (last 30 days)
-  const lastMonth = new Date();
-  lastMonth.setMonth(lastMonth.getMonth() - 1);
-
-  const monthlySales = sales.filter(
-    (sale) => new Date(sale.saleDate) >= lastMonth
-  );
-
+  const lastMonth = new Date()
+  lastMonth.setMonth(lastMonth.getMonth() - 1)
+  const monthlySales = sales.filter((sale) => new Date(sale.saleDate) >= lastMonth)
   const monthlyPurchases = purchases.filter(
-    (purchase) => new Date(purchase.purchaseDate) >= lastMonth
-  );
-  const ninetyDaysAgo = new Date();
-  ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+    (purchase) => new Date(purchase.purchaseDate) >= lastMonth,
+  )
 
+  const ninetyDaysAgo = new Date()
+  ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90)
   const deadStockProducts = products.filter((p) => {
-    const createdDate = new Date(p.createdAt);
-    return p.stockQuantity > 0 && createdDate < ninetyDaysAgo;
-  });
+    const createdDate = new Date(p.createdAt)
+    return p.stockQuantity > 0 && createdDate < ninetyDaysAgo
+  })
 
-  const productSalesMap = new Map<string, number>();
-
+  const productSalesMap = new Map<string, number>()
   sales.forEach((sale) => {
     sale.items?.forEach((item: any) => {
-      const current = productSalesMap.get(item.productName) || 0;
-      productSalesMap.set(
-        item.productName,
-        current + (item.quantitySold || 0),
-      );
-    });
-  });
-
+      const current = productSalesMap.get(item.productName) || 0
+      productSalesMap.set(item.productName, current + (item.quantitySold || 0))
+    })
+  })
   const topSellingProducts = Array.from(productSalesMap.entries())
     .sort((a, b) => b[1] - a[1])
-    .slice(0, 3);
+    .slice(0, 5)
 
+  const OVERDUE_DAYS = 30
+  const overdueDate = new Date()
+  overdueDate.setDate(overdueDate.getDate() - OVERDUE_DAYS)
 
-  const OVERDUE_DAYS = 30;
+  const overdueClients = clients
+    .map((client) => {
+      const clientSales = sales.filter((s) => s.client === client.name)
+      const total = clientSales.reduce(
+        (sum, s) =>
+          sum +
+          (s.items || []).reduce(
+            (iSum: number, item: any) =>
+              iSum + (item.quantitySold || 0) * (item.salePrice || 0),
+            0,
+          ),
+        0,
+      )
+      const lastSaleDate = clientSales.reduce((latest, s) => {
+        const d = new Date(s.saleDate)
+        return !latest || d > latest ? d : latest
+      }, null as Date | null)
+      return {
+        name: client.name,
+        total,
+        isOverdue: Boolean(lastSaleDate && lastSaleDate < overdueDate),
+      }
+    })
+    .filter((c) => c.isOverdue)
+    .slice(0, 5)
 
-  const overdueDate = new Date();
-  overdueDate.setDate(overdueDate.getDate() - OVERDUE_DAYS);
+  const overdueSuppliers = suppliers
+    .map((supplier) => {
+      const supplierPurchases = purchases.filter((p) => p.supplier === supplier.name)
+      const total = supplierPurchases.reduce(
+        (sum, p) =>
+          sum +
+          (p.items || []).reduce(
+            (iSum: number, item: any) =>
+              iSum + (item.quantityPurchased || 0) * (item.purchasePrice || 0),
+            0,
+          ),
+        0,
+      )
+      const lastPurchaseDate = supplierPurchases.reduce((latest, p) => {
+        const d = new Date(p.purchaseDate)
+        return !latest || d > latest ? d : latest
+      }, null as Date | null)
+      return {
+        name: supplier.name,
+        total,
+        isOverdue: Boolean(lastPurchaseDate && lastPurchaseDate < overdueDate),
+      }
+    })
+    .filter((s) => s.isOverdue)
+    .slice(0, 5)
 
-  // CLIENT OVERDUE (receivables)
-  const clientReceivables = clients.map((client) => {
-    const clientSales = sales.filter((s) => s.client === client.name);
+  const recentSales = [...sales]
+    .sort((a, b) => new Date(b.saleDate).getTime() - new Date(a.saleDate).getTime())
+    .slice(0, 5)
 
-    const total = clientSales.reduce(
-      (sum, s) =>
-        sum +
-        (s.items || []).reduce(
-          (iSum: number, item: any) =>
-            iSum +
-            (item.quantitySold || 0) * (item.salePrice || 0),
-          0,
-        ),
-      0,
-    );
+  const recentPurchases = [...purchases]
+    .sort(
+      (a, b) =>
+        new Date(b.purchaseDate).getTime() - new Date(a.purchaseDate).getTime(),
+    )
+    .slice(0, 5)
 
-    const lastSaleDate = clientSales.reduce((latest, s) => {
-      const d = new Date(s.saleDate);
-      return !latest || d > latest ? d : latest;
-    }, null as Date | null);
-
-    const isOverdue =
-      lastSaleDate && lastSaleDate < overdueDate;
-
-    return {
-      name: client.name,
-      total,
-      isOverdue,
-    };
-  });
-
-  // SUPPLIER OVERDUE (payables)
-  const supplierPayables = suppliers.map((supplier) => {
-    const supplierPurchases = purchases.filter(
-      (p) => p.supplier === supplier.name,
-    );
-
-    const total = supplierPurchases.reduce(
-      (sum, p) =>
-        sum +
-        (p.items || []).reduce(
-          (iSum: number, item: any) =>
-            iSum +
-            (item.quantityPurchased || 0) *
-            (item.purchasePrice || 0),
-          0,
-        ),
-      0,
-    );
-
-    const lastPurchaseDate = supplierPurchases.reduce(
-      (latest, p) => {
-        const d = new Date(p.purchaseDate);
-        return !latest || d > latest ? d : latest;
-      },
-      null as Date | null,
-    );
-
-    const isOverdue =
-      lastPurchaseDate && lastPurchaseDate < overdueDate;
-
-    return {
-      name: supplier.name,
-      total,
-      isOverdue,
-    };
-  });
-
-  const stats = [
-    {
-      title: "Total Products",
-      value: totalProducts,
-      icon: Package,
-      color: "text-gray-800 dark:text-gray-100",
-      bgColor: "bg-white dark:bg-gray-800",
-      description: "Items in inventory",
-    },
-    {
-      title: "Total Sales",
-      value: `Rs ${totalSales.toLocaleString()}`,
-      icon: TrendingUp,
-      color: "text-gray-800 dark:text-gray-100",
-      bgColor: "bg-white dark:bg-gray-800",
-      description: "Client sales + received site payments",
-    },
-    {
-      title: "Project Chemical Expenses",
-      value: `Rs ${projectChemicalExpenses.toLocaleString()}`,
-      icon: DollarSign,
-      color: "text-gray-800 dark:text-gray-100",
-      bgColor: "bg-white dark:bg-gray-800",
-      description: "Site sales total (not reduced when received)",
-    },
-    {
-      title: "Total Purchases",
-      value: `Rs ${totalPurchases.toLocaleString()}`,
-      icon: ShoppingCart,
-      color: "text-gray-800 dark:text-gray-100",
-      bgColor: "bg-white dark:bg-gray-800",
-      description: "Total spending",
-    },
-    {
-      title: "Net Profit",
-      value: `Rs ${profit.toLocaleString()}`,
-      icon: DollarSign,
-      color: profit >= 0 ? "text-emerald-600" : "text-red-600",
-      bgColor: "bg-white dark:bg-gray-800",
-      description: profit >= 0 ? "Positive balance" : "Negative balance",
-    },
-    {
-      title: "Inventory Value",
-      value: `Rs ${totalInventoryValue.toLocaleString()}`,
-      icon: BarChart3,
-      color: "text-gray-800 dark:text-gray-100",
-      bgColor: "bg-white dark:bg-gray-800",
-      description: "Current stock value",
-    },
-    {
-      title: "Active Clients",
-      value: totalClients,
-      icon: Users,
-      color: "text-gray-800 dark:text-gray-100",
-      bgColor: "bg-white dark:bg-gray-800",
-      description: "Registered clients",
-    },
-  ]
-
-  const quickStats = [
-    {
-      title: "Active Suppliers",
-      value: totalSuppliers,
-      icon: Truck,
-      color: "text-gray-700 dark:text-gray-200",
-    },
-    {
-      title: "Avg. Product Price",
-      value: `Rs ${averageProductPrice.toFixed(2)}`,
-      icon: DollarSign,
-      color: "text-gray-700 dark:text-gray-200",
-    },
-    {
-      title: "Low Stock Items",
-      value: lowStockProducts.length,
-      icon: AlertTriangle,
-      color: "text-amber-600",
-    },
-    {
-      title: "This Monthly Sales",
-      value: monthlySales.length,
-      icon: Calendar,
-      color: "text-gray-700 dark:text-gray-200",
-    },
-    {
-      title: "Dead Stock",
-      value: deadStockProducts.length,
-      icon: Clock,
-      color: "text-red-600",
-    }
-  ]
+  const stockAttentionCount = lowStockProducts.length + deadStockProducts.length
 
   return (
-    <div className="space-y-4 min-h-screen transition-colors duration-300 bg-white dark:bg-gray-900">
-      <div className="space-y-2">
-        <h1 className="section-title">
-          Dashboard
-        </h1>
-        <p className="text-gray-600 dark:text-gray-300 text-sm">Comprehensive overview of your inventory management system</p>
+    <div className="space-y-5">
+      <div className="page-header">
+        <h1 className="section-title">Dashboard</h1>
+        <p className="page-desc">What needs attention, and how the business is doing</p>
       </div>
 
-      {/* Inventory Section */}
-      <div className="space-y-3 mt-4">
-        <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100 border-b dark:border-gray-700 pb-1.5 mb-3 tracking-tight pl-4 border-l-4 border-blue-500 bg-blue-50/60 dark:bg-blue-900/20">Inventory</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Total Products */}
-          {stats.filter(s => s.title === "Total Products").map((stat, index) => {
-            const Icon = stat.icon
-            return (
-              <Card key={index} className="shadow-sm hover:shadow-md transition-shadow duration-200 border-0 bg-white/90 dark:bg-gray-800 dark:border-gray-700">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-semibold text-gray-900 dark:text-gray-200">{stat.title}</CardTitle>
-                  <div className={`p-2 rounded-full ${stat.bgColor} shadow-md transition-all duration-300 hover:scale-110`}>
-                    <Icon className={`h-5 w-5 ${stat.color}`} />
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className={`text-xl font-bold ${stat.color}`}>{stat.value}</div>
-                  <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">{stat.description}</p>
-                </CardContent>
-              </Card>
-            )
-          })}
-          {/* Inventory Value */}
-          {stats.filter(s => s.title === "Inventory Value").map((stat, index) => {
-            const Icon = stat.icon
-            return (
-              <Card key={index} className="shadow-sm hover:shadow-md transition-shadow duration-200 border-0 bg-white/90 dark:bg-gray-800 dark:border-gray-700">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-semibold text-gray-900 dark:text-gray-200">{stat.title}</CardTitle>
-                  <div className={`p-2 rounded-full ${stat.bgColor} shadow-md transition-all duration-300 hover:scale-110`}>
-                    <Icon className={`h-5 w-5 ${stat.color}`} />
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className={`text-xl font-bold ${stat.color}`}>{stat.value}</div>
-                  <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">{stat.description}</p>
-                </CardContent>
-              </Card>
-            )
-          })}
-          {/* Low Stock Items (from quickStats) */}
-          {quickStats.filter(q => q.title === "Low Stock Items").map((stat, index) => {
-            const Icon = stat.icon
-            return (
-              <Card key={index} className="shadow-sm hover:shadow-md transition-shadow duration-200 border-0 bg-white/90 dark:bg-gray-800 dark:border-gray-700">
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-semibold text-gray-900 dark:text-gray-200">{stat.title}</p>
-                      <p className={`text-xl font-bold ${stat.color}`}>{stat.value}</p>
-                    </div>
-                    <Icon className={`h-8 w-8 ${stat.color} opacity-80`} />
-                  </div>
-                </CardContent>
-              </Card>
-            )
-          })}
-          {quickStats.filter(q => q.title === "Dead Stock").map((stat, index) => {
-            const Icon = stat.icon
-            return (
-              <Card key={index} className="shadow-sm hover:shadow-md transition-shadow duration-200 border-0 bg-white/90 dark:bg-gray-800 dark:border-gray-700">
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-semibold text-gray-900 dark:text-gray-200">{stat.title}</p>
-                      <p className={`text-xl font-bold ${stat.color}`}>{stat.value}</p>
-                    </div>
-                    <Icon className={`h-8 w-8 ${stat.color} opacity-80`} />
-                  </div>
-                </CardContent>
-              </Card>
-            )
-          })}
-        </div>
-
-        {/* most frequently sales */}
-        <div className="mt-4">
-          <h2 className="text-xl font-bold text-green-600 mb-4">
-            Top Selling Products
-          </h2>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {topSellingProducts.map(([name, qty], idx) => (
-              <Card key={idx}>
-                <CardContent className="p-4 flex justify-between">
-                  <p className="font-medium">{name}</p>
-                  <Badge className="bg-green-100 text-green-700">
-                    {qty} sold
-                  </Badge>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
+      {/* KPIs — same card style; hover tone matches meaning */}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <Kpi
+          label="Inventory value"
+          value={formatRs(totalInventoryValue)}
+          hint={`${totalProducts} products`}
+          icon={Package}
+          tone="inventory"
+          onClick={() => go("products")}
+        />
+        <Kpi
+          label="Total Sales"
+          value={formatRs(totalSales)}
+          hint={`${monthlySales.length} in last 30 days`}
+          icon={TrendingUp}
+          tone="sales"
+          active
+          onClick={() => go("sales")}
+        />
+        <Kpi
+          label="Total Purchases"
+          value={formatRs(totalPurchases)}
+          hint={`${monthlyPurchases.length} in last 30 days`}
+          icon={ShoppingCart}
+          tone="purchases"
+          onClick={() => go("purchases")}
+        />
+        <Kpi
+          label="Net Profit"
+          value={formatRs(profit)}
+          hint={profit >= 0 ? "Sales minus purchases" : "Currently at a loss"}
+          icon={profit < 0 ? TrendingDown : TrendingUp}
+          tone={profit < 0 ? "danger" : "profit"}
+          active
+        />
+        <Kpi
+          label="Stock alerts"
+          value={stockAttentionCount}
+          hint={
+            stockAttentionCount > 0
+              ? `${lowStockProducts.length} low · ${deadStockProducts.length} dead`
+              : `${totalProducts} products OK`
+          }
+          icon={stockAttentionCount > 0 ? AlertTriangle : Package}
+          tone={stockAttentionCount > 0 ? "alert" : "inventory"}
+          active={stockAttentionCount > 0}
+          onClick={() => go("products")}
+        />
+        <Kpi
+          label="Clients"
+          value={clients.length}
+          hint="Active accounts"
+          icon={Users}
+          tone="clients"
+          onClick={() => go("clients")}
+        />
+        <Kpi
+          label="Suppliers"
+          value={suppliers.length}
+          hint="Active vendors"
+          icon={Truck}
+          tone="suppliers"
+          onClick={() => go("suppliers")}
+        />
+        <Kpi
+          label="Site expenses"
+          value={formatRs(projectChemicalExpenses)}
+          hint="Project chemical sales"
+          icon={Package}
+          tone="expense"
+        />
       </div>
 
-      {/* Sales & Purchases Section */}
-      <div className="space-y-3 mt-4">
-        <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100 border-b dark:border-gray-700 pb-1.5 mb-3 tracking-tight pl-4 border-l-4 border-green-500 bg-green-50/60 dark:bg-green-900/20">Sales & Purchases</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Total Sales */}
-          {stats.filter(s => s.title === "Total Sales").map((stat, index) => {
-            const Icon = stat.icon
-            return (
-              <Card key={index} className="shadow-sm hover:shadow-md transition-shadow duration-200 border-0 bg-white/90 dark:bg-gray-800 dark:border-gray-700">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-semibold text-gray-900 dark:text-gray-200">{stat.title}</CardTitle>
-                  <div className={`p-2 rounded-full ${stat.bgColor} shadow-md transition-all duration-300 hover:scale-110`}>
-                    <Icon className={`h-5 w-5 ${stat.color}`} />
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className={`text-xl font-bold ${stat.color}`}>{stat.value}</div>
-                  <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">{stat.description}</p>
-                </CardContent>
-              </Card>
-            )
-          })}
-          {/* Project Chemical Expenses */}
-          {stats.filter(s => s.title === "Project Chemical Expenses").map((stat, index) => {
-            const Icon = stat.icon
-            return (
-              <Card key={index} className="shadow-sm hover:shadow-md transition-shadow duration-200 border-0 bg-white/90 dark:bg-gray-800 dark:border-gray-700">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-semibold text-gray-900 dark:text-gray-200">{stat.title}</CardTitle>
-                  <div className={`p-2 rounded-full ${stat.bgColor} shadow-md transition-all duration-300 hover:scale-110`}>
-                    <Icon className={`h-5 w-5 ${stat.color}`} />
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className={`text-xl font-bold ${stat.color}`}>{stat.value}</div>
-                  <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">{stat.description}</p>
-                </CardContent>
-              </Card>
-            )
-          })}
-          {/* Total Purchases */}
-          {stats.filter(s => s.title === "Total Purchases").map((stat, index) => {
-            const Icon = stat.icon
-            return (
-              <Card key={index} className="shadow-sm hover:shadow-md transition-shadow duration-200 border-0 bg-white/90 dark:bg-gray-800 dark:border-gray-700">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-semibold text-gray-900 dark:text-gray-200">{stat.title}</CardTitle>
-                  <div className={`p-2 rounded-full ${stat.bgColor} shadow-md transition-all duration-300 hover:scale-110`}>
-                    <Icon className={`h-5 w-5 ${stat.color}`} />
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className={`text-xl font-bold ${stat.color}`}>{stat.value}</div>
-                  <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">{stat.description}</p>
-                </CardContent>
-              </Card>
-            )
-          })}
-          {/* Net Profit */}
-          {stats.filter(s => s.title === "Net Profit").map((stat, index) => {
-            const Icon = stat.icon
-            return (
-              <Card key={index} className="shadow-sm hover:shadow-md transition-shadow duration-200 border-0 bg-white/90 dark:bg-gray-800 dark:border-gray-700">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-semibold text-gray-900 dark:text-gray-200">{stat.title}</CardTitle>
-                  <div className={`p-2 rounded-full ${stat.bgColor} shadow-md transition-all duration-300 hover:scale-110`}>
-                    <Icon className={`h-5 w-5 ${stat.color}`} />
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className={`text-xl font-bold ${stat.color}`}>{stat.value}</div>
-                  <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">{stat.description}</p>
-                </CardContent>
-              </Card>
-            )
-          })}
-          {/* This Monthly Sales (from quickStats) */}
-          {quickStats.filter(q => q.title === "This Monthly Sales").map((stat, index) => {
-            const Icon = stat.icon
-            return (
-              <Card key={index} className="shadow-sm hover:shadow-md transition-shadow duration-200 border-0 bg-white/90 dark:bg-gray-800 dark:border-gray-700">
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-semibold text-gray-900 dark:text-gray-200">{stat.title}</p>
-                      <p className={`text-xl font-bold ${stat.color}`}>{stat.value}</p>
-                    </div>
-                    <Icon className={`h-8 w-8 ${stat.color} opacity-80`} />
-                  </div>
-                </CardContent>
-              </Card>
-            )
-          })}
-        </div>
+      {/* Activity — 2 columns */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <Panel tone="sales" active>
+          <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-3">
+            <div className="space-y-1">
+              <CardTitle className="flex items-center gap-2">
+                <PanelIcon tone="sales" active>
+                  <TrendingUp className="h-4 w-4" />
+                </PanelIcon>
+                Recent sales
+              </CardTitle>
+              <CardDescription>Latest transactions</CardDescription>
+            </div>
+            <ViewLink label="View all" tone="sales" onClick={() => go("sales")} />
+          </CardHeader>
+          <CardContent>
+            {recentSales.length > 0 ? (
+              <ul className="space-y-0.5">
+                {recentSales.map((sale) => {
+                  const amount = getSaleAmount(sale)
+                  const itemCount = sale.items?.length || 0
+                  return (
+                    <li key={sale.id}>
+                      <ListRow onClick={() => go("sales")}>
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium text-navy">
+                            {sale.client}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {itemCount} {itemCount === 1 ? "item" : "items"} ·{" "}
+                            {formatNepaliDateForTable(sale.saleDate)}
+                          </p>
+                        </div>
+                        <span className="shrink-0 text-sm font-semibold tabular-nums text-brand-dark dark:text-brand">
+                          {formatRs(amount)}
+                        </span>
+                      </ListRow>
+                    </li>
+                  )
+                })}
+              </ul>
+            ) : (
+              <EmptyState message="No sales recorded yet" />
+            )}
+          </CardContent>
+        </Panel>
+
+        <Panel tone="purchases">
+          <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-3">
+            <div className="space-y-1">
+              <CardTitle className="flex items-center gap-2">
+                <PanelIcon tone="purchases">
+                  <ShoppingCart className="h-4 w-4" />
+                </PanelIcon>
+                Recent purchases
+              </CardTitle>
+              <CardDescription>Latest orders</CardDescription>
+            </div>
+            <ViewLink label="View all" tone="purchases" onClick={() => go("purchases")} />
+          </CardHeader>
+          <CardContent>
+            {recentPurchases.length > 0 ? (
+              <ul className="space-y-0.5">
+                {recentPurchases.map((purchase) => {
+                  const amount = (purchase.items || []).reduce(
+                    (sum, item) =>
+                      sum + (item.quantityPurchased || 0) * (item.purchasePrice || 0),
+                    0,
+                  )
+                  const itemCount = purchase.items?.length || 0
+                  return (
+                    <li key={purchase.id}>
+                      <ListRow onClick={() => go("purchases")}>
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium text-navy">
+                            {purchase.supplier}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {itemCount} {itemCount === 1 ? "item" : "items"} ·{" "}
+                            {formatNepaliDateForTable(purchase.purchaseDate)}
+                          </p>
+                        </div>
+                        <Amount tone="purchases" className="text-sm font-semibold">
+                          {formatRs(amount)}
+                        </Amount>
+                      </ListRow>
+                    </li>
+                  )
+                })}
+              </ul>
+            ) : (
+              <EmptyState message="No purchases recorded yet" />
+            )}
+          </CardContent>
+        </Panel>
       </div>
 
-      {/* Business Associate Section */}
-      <div className="space-y-3 mt-4">
-        <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100 border-b dark:border-gray-700 pb-1.5 mb-3 tracking-tight pl-4 border-l-4 border-indigo-500 bg-indigo-50/60 dark:bg-indigo-900/20">Business Associate</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Active Clients */}
-          {stats.filter(s => s.title === "Active Clients").map((stat, index) => {
-            const Icon = stat.icon
-            return (
-              <Card key={index} className="shadow-sm hover:shadow-md transition-shadow duration-200 border-0 bg-white/90 dark:bg-gray-800 dark:border-gray-700">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-semibold text-gray-900 dark:text-gray-200">{stat.title}</CardTitle>
-                  <div className={`p-2 rounded-full ${stat.bgColor} shadow-md transition-all duration-300 hover:scale-110`}>
-                    <Icon className={`h-5 w-5 ${stat.color}`} />
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className={`text-xl font-bold ${stat.color}`}>{stat.value}</div>
-                  <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">{stat.description}</p>
-                </CardContent>
-              </Card>
-            )
-          })}
-          {/* Suppliers (from quickStats) */}
-          {quickStats.filter(q => q.title === "Active Suppliers").map((stat, index) => {
-            const Icon = stat.icon
-            return (
-              <Card key={index} className="shadow-sm hover:shadow-md transition-shadow duration-200 border-0 bg-white/90 dark:bg-gray-800 dark:border-gray-700">
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-semibold text-gray-900 dark:text-gray-200">{stat.title}</p>
-                      <p className={`text-xl font-bold ${stat.color}`}>{stat.value}</p>
-                    </div>
-                    <Icon className={`h-8 w-8 ${stat.color} opacity-80`} />
-                  </div>
-                </CardContent>
-              </Card>
-            )
-          })}
-          {/* Avg. Product Price (from quickStats) */}
-          {quickStats.filter(q => q.title === "Avg. Product Price").map((stat, index) => {
-            const Icon = stat.icon
-            return (
-              <Card key={index} className="shadow-sm hover:shadow-md transition-shadow duration-200 border-0 bg-white/90 dark:bg-gray-800 dark:border-gray-700">
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-semibold text-gray-900 dark:text-gray-200">{stat.title}</p>
-                      <p className={`text-xl font-bold ${stat.color}`}>{stat.value}</p>
-                    </div>
-                    <Icon className={`h-8 w-8 ${stat.color} opacity-80`} />
-                  </div>
-                </CardContent>
-              </Card>
-            )
-          })}
-
-          {/* CLIENT OVERDUE RECEIVABLES */}
-          <Card className="shadow-sm hover:shadow-md transition-shadow duration-200 border-0 bg-white/90 dark:bg-gray-800 dark:border-gray-700">
-            <CardHeader>
-              <CardTitle className="flex items-center text-red-600">
-                <AlertTriangle className="mr-2 h-5 w-5" />
-                Client Receivables (Overdue)
+      {/* Attention — 2 columns */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <Panel tone="alert" active={stockAttentionCount > 0}>
+          <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-3">
+            <div className="space-y-1">
+              <CardTitle className="flex items-center gap-2">
+                <PanelIcon tone="alert" active={stockAttentionCount > 0}>
+                  <AlertTriangle className="h-4 w-4" />
+                </PanelIcon>
+                Needs attention
               </CardTitle>
               <CardDescription>
-                Payments pending over {OVERDUE_DAYS} days
+                {stockAttentionCount > 0
+                  ? `${lowStockProducts.length} low stock · ${deadStockProducts.length} dead stock`
+                  : "Stock looks healthy"}
               </CardDescription>
-            </CardHeader>
-
-            <CardContent>
-              <div className="space-y-3">
-                {clientReceivables
-                  .filter((c) => c.isOverdue)
-                  .slice(0, 5)
-                  .map((c, i) => (
-                    <div
-                      key={i}
-                      className="flex justify-between p-3 bg-red-50 dark:bg-red-900/10 rounded-lg border border-red-200"
-                    >
-                      <p className="font-medium">{c.name}</p>
-                      <p className="text-red-600 font-semibold">
-                        Rs {c.total.toLocaleString()}
-                      </p>
-                    </div>
-                  ))}
-
-                {clientReceivables.filter((c) => c.isOverdue).length === 0 && (
-                  <p className="text-gray-500 text-center py-4">
-                    No overdue receivables 🎉
-                  </p>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* SUPPLIER OVERDUE PAYABLES */}
-          <Card className="shadow-sm hover:shadow-md transition-shadow duration-200 border-0 bg-white/90 dark:bg-gray-800 dark:border-gray-700">
-            <CardHeader>
-              <CardTitle className="flex items-center text-orange-600">
-                <Truck className="mr-2 h-5 w-5" />
-                Supplier Payables (Overdue)
-              </CardTitle>
-              <CardDescription>
-                Payments pending over {OVERDUE_DAYS} days
-              </CardDescription>
-            </CardHeader>
-
-            <CardContent>
-              <div className="space-y-3">
-                {supplierPayables
-                  .filter((s) => s.isOverdue)
-                  .slice(0, 5)
-                  .map((s, i) => (
-                    <div
-                      key={i}
-                      className="flex justify-between p-3 bg-orange-50 dark:bg-orange-900/10 rounded-lg border border-orange-200"
-                    >
-                      <p className="font-medium">{s.name}</p>
-                      <p className="text-orange-600 font-semibold">
-                        Rs {s.total.toLocaleString()}
-                      </p>
-                    </div>
-                  ))}
-
-                {supplierPayables.filter((s) => s.isOverdue).length === 0 && (
-                  <p className="text-gray-500 text-center py-4">
-                    No overdue payables 🎉
-                  </p>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-
-      {/* Alerts and Recent Activity */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* Low Stock Alert */}
-        <Card className="dark:bg-gray-800 dark:border-gray-700">
-          <CardHeader>
-            <CardTitle className="flex items-center text-gray-900 dark:text-gray-200">
-              <AlertTriangle className="mr-2 h-5 w-5 text-amber-500" />
-              Stock Alerts
-            </CardTitle>
-            <CardDescription className="text-gray-600 dark:text-gray-400">
-              {lowStockProducts.length > 0 ? `${lowStockProducts.length} items need attention` : "All items well stocked"}
-            </CardDescription>
+            </div>
+            <ViewLink label="Products" tone="alert" onClick={() => go("products")} />
           </CardHeader>
           <CardContent>
             {lowStockProducts.length > 0 ? (
-              <div className="space-y-3">
+              <ul className="space-y-0.5">
                 {lowStockProducts.slice(0, 5).map((product) => (
-                  <div
-                    key={product.id}
-                    className="flex items-center justify-between p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800"
-                  >
-                    <div>
-                      <p className="font-medium text-gray-900 dark:text-gray-200">{product.name}</p>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">HS Code: {product.hsCode}</p>
-                    </div>
-                    <Badge variant="destructive" className="bg-amber-500 text-white">
-                      {product.stockQuantity} left
-                    </Badge>
-                  </div>
+                  <li key={product.id}>
+                    <ListRow onClick={() => go("products")}>
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium text-navy">
+                          {product.name}
+                        </p>
+                        <p className="text-xs text-muted-foreground">HS {product.hsCode}</p>
+                      </div>
+                      <Badge
+                        variant="outline"
+                        className="shrink-0 border-border bg-muted text-amber-700 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-300"
+                      >
+                        {product.stockQuantity} left
+                      </Badge>
+                    </ListRow>
+                  </li>
                 ))}
-                {lowStockProducts.length > 5 && (
-                  <p className="text-sm text-gray-500 dark:text-gray-400 text-center">
-                    +{lowStockProducts.length - 5} more items
-                  </p>
-                )}
-              </div>
+              </ul>
             ) : (
-              <div className="text-center py-6">
-                <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-2" />
-                <p className="text-gray-600 dark:text-gray-400">All products are well stocked</p>
+              <div className="flex flex-col items-center py-8 text-muted-foreground">
+                <CheckCircle className="mb-2 h-8 w-8 text-muted-foreground" />
+                <p className="text-sm">No low-stock items</p>
               </div>
             )}
+            {deadStockProducts.length > 0 && (
+              <button
+                type="button"
+                onClick={() => go("products")}
+                className="mt-3 flex w-full items-center gap-2 rounded-md border border-red-100 bg-red-50/70 px-3 py-2 text-left text-xs text-red-700 transition-colors hover:bg-red-50 dark:border-red-900/40 dark:bg-red-900/15 dark:text-red-300 dark:hover:bg-red-900/25"
+              >
+                <Clock className="h-3.5 w-3.5 shrink-0" />
+                {deadStockProducts.length} dead stock item
+                {deadStockProducts.length === 1 ? "" : "s"} (90+ days)
+              </button>
+            )}
           </CardContent>
-        </Card>
+        </Panel>
 
-        {/* Recent Sales */}
-        <Card className="dark:bg-gray-800 dark:border-gray-700">
-          <CardHeader>
-            <CardTitle className="text-gray-900 dark:text-gray-200">Recent Sales</CardTitle>
-            <CardDescription className="text-gray-600 dark:text-gray-400">Latest transactions</CardDescription>
+        <Panel tone="sales" active>
+          <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-3">
+            <div className="space-y-1">
+              <CardTitle className="flex items-center gap-2">
+                <PanelIcon tone="sales" active>
+                  <Package className="h-4 w-4" />
+                </PanelIcon>
+                Top selling products
+              </CardTitle>
+              <CardDescription>By quantity sold</CardDescription>
+            </div>
+            <ViewLink label="Sales" tone="sales" onClick={() => go("sales")} />
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              {(() => {
-                const saleItems: any[] = []
-                sales.forEach((s) => {
-                  if (s.items && s.items.length > 0) {
-                    s.items.forEach((item: any) => {
-                      saleItems.push({
-                        ...item,
-                        client: s.client,
-                        saleDate: s.saleDate,
-                        id: s.id,
-                      })
-                    })
-                  }
-                })
-                return saleItems.slice(-5).reverse().map((item, idx) => (
-                  <div
-                    key={idx}
-                    className="flex items-center justify-between p-3 rounded-lg bg-green-50 dark:bg-green-900/10 border border-green-200 dark:border-green-800"
-                  >
-                    <div>
-                      <p className="font-medium text-gray-900 dark:text-gray-200">{item.productName}</p>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">{item.client}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-medium text-green-600">
-                        Rs {((item.quantitySold || 0) * (item.salePrice || 0)).toLocaleString()}
+            {topSellingProducts.length > 0 ? (
+              <ol className="space-y-0.5">
+                {topSellingProducts.map(([name, qty], index) => (
+                  <li key={name}>
+                    <ListRow onClick={() => go("sales")}>
+                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-muted font-sans text-xs font-semibold text-muted-foreground">
+                        {index + 1}
+                      </span>
+                      <p className="min-w-0 flex-1 truncate text-sm font-medium text-navy">
+                        {name}
                       </p>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
-                        {formatNepaliDateForTable(item.saleDate)}
-                      </p>
-                    </div>
-                  </div>
-                ))
-              })()}
-              {sales.length === 0 && (
-                <div className="text-center py-6">
-                  <XCircle className="h-12 w-12 text-gray-400 mx-auto mb-2" />
-                  <p className="text-gray-500 dark:text-gray-400">No sales recorded yet</p>
-                </div>
-              )}
-            </div>
+                      <span className="shrink-0 text-sm font-medium tabular-nums text-brand-dark dark:text-brand">
+                        {qty} sold
+                      </span>
+                    </ListRow>
+                  </li>
+                ))}
+              </ol>
+            ) : (
+              <EmptyState message="No sales data yet" />
+            )}
           </CardContent>
-        </Card>
-
-        {/* Recent Purchases */}
-        <Card className="dark:bg-gray-800 dark:border-gray-700">
-          <CardHeader>
-            <CardTitle className="text-gray-900 dark:text-gray-200">Recent Purchases</CardTitle>
-            <CardDescription className="text-gray-600 dark:text-gray-400">Latest orders</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {(() => {
-                const purchaseItems: any[] = []
-                purchases.forEach((p) => {
-                  if (p.items && p.items.length > 0) {
-                    p.items.forEach((item: any) => {
-                      purchaseItems.push({
-                        ...item,
-                        supplier: p.supplier,
-                        purchaseDate: p.purchaseDate,
-                        id: p.id,
-                      })
-                    })
-                  }
-                })
-                return purchaseItems.slice(-5).reverse().map((item, idx) => (
-                  <div
-                    key={idx}
-                    className="flex items-center justify-between p-3 rounded-lg bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800"
-                  >
-                    <div>
-                      <p className="font-medium text-gray-900 dark:text-gray-200">{item.productName}</p>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">{item.supplier}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-medium text-blue-600">
-                        Rs {((item.quantityPurchased || 0) * (item.purchasePrice || 0)).toLocaleString()}
-                      </p>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
-                        {formatNepaliDateForTable(item.purchaseDate)}
-                      </p>
-                    </div>
-                  </div>
-                ))
-              })()}
-              {purchases.length === 0 && (
-                <div className="text-center py-6">
-                  <XCircle className="h-12 w-12 text-gray-400 mx-auto mb-2" />
-                  <p className="text-gray-500 dark:text-gray-400">No purchases recorded yet</p>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+        </Panel>
       </div>
 
-      {/* Performance Summary */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Card className="dark:bg-gray-800 dark:border-gray-700">
-          <CardHeader>
-            <CardTitle className="text-gray-900 dark:text-gray-200">This Week's Performance</CardTitle>
-            <CardDescription className="text-gray-600 dark:text-gray-400">Sales and purchase activity</CardDescription>
+      {/* Money due — 2 columns */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <Panel tone="danger" active={overdueClients.length > 0}>
+          <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-3">
+            <div className="space-y-1">
+              <CardTitle className="flex items-center gap-2">
+                <PanelIcon tone="danger" active={overdueClients.length > 0}>
+                  <AlertTriangle className="h-4 w-4" />
+                </PanelIcon>
+                Client receivables
+              </CardTitle>
+              <CardDescription>Pending over {OVERDUE_DAYS} days</CardDescription>
+            </div>
+            <ViewLink label="Clients" tone="danger" onClick={() => go("clients")} />
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              <div className="flex justify-between items-center p-3 bg-green-50 dark:bg-green-900/10 rounded-lg">
-                <div className="flex items-center">
-                  <TrendingUp className="h-5 w-5 text-green-600 mr-2" />
-                  <span className="text-gray-900 dark:text-gray-200">Sales</span>
-                </div>
-                <span className="font-semibold text-green-600">{monthlySales.length} transactions</span>
-              </div>
-              <div className="flex justify-between items-center p-3 bg-blue-50 dark:bg-blue-900/10 rounded-lg">
-                <div className="flex items-center">
-                  <ShoppingCart className="h-5 w-5 text-blue-600 mr-2" />
-                  <span className="text-gray-900 dark:text-gray-200">Purchases</span>
-                </div>
-                <span className="font-semibold text-blue-600">{monthlyPurchases.length} orders</span>
-              </div>
-            </div>
+            {overdueClients.length > 0 ? (
+              <ul className="space-y-0.5">
+                {overdueClients.map((c) => (
+                  <li key={c.name}>
+                    <ListRow onClick={() => go("clients")}>
+                      <p className="truncate text-sm font-medium text-navy">
+                        {c.name}
+                      </p>
+                      <span className="shrink-0 text-sm font-semibold tabular-nums text-navy">
+                        {formatRs(c.total)}
+                      </span>
+                    </ListRow>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <EmptyState message="No overdue receivables" />
+            )}
           </CardContent>
-        </Card>
+        </Panel>
 
-        <Card className="dark:bg-gray-800 dark:border-gray-700">
-          <CardHeader>
-            <CardTitle className="text-gray-900 dark:text-gray-200">System Status</CardTitle>
-            <CardDescription className="text-gray-600 dark:text-gray-400">Current system overview</CardDescription>
+        <Panel tone="alert" active={overdueSuppliers.length > 0}>
+          <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-3">
+            <div className="space-y-1">
+              <CardTitle className="flex items-center gap-2">
+                <PanelIcon tone="alert" active={overdueSuppliers.length > 0}>
+                  <Truck className="h-4 w-4" />
+                </PanelIcon>
+                Supplier payables
+              </CardTitle>
+              <CardDescription>Pending over {OVERDUE_DAYS} days</CardDescription>
+            </div>
+            <ViewLink label="Suppliers" tone="alert" onClick={() => go("suppliers")} />
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600 dark:text-gray-400">Database Status</span>
-                <Badge className="bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400">
-                  <CheckCircle className="h-3 w-3 mr-1" />
-                  Active
-                </Badge>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600 dark:text-gray-400">Last Backup</span>
-                <span className="text-gray-900 dark:text-gray-200">Today</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600 dark:text-gray-400">Active Users</span>
-                <span className="text-gray-900 dark:text-gray-200">1</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600 dark:text-gray-400">System Version</span>
-                <span className="text-gray-900 dark:text-gray-200">v1.0.0</span>
-              </div>
-            </div>
+            {overdueSuppliers.length > 0 ? (
+              <ul className="space-y-0.5">
+                {overdueSuppliers.map((s) => (
+                  <li key={s.name}>
+                    <ListRow onClick={() => go("suppliers")}>
+                      <p className="truncate text-sm font-medium text-navy">
+                        {s.name}
+                      </p>
+                      <span className="shrink-0 text-sm font-semibold tabular-nums text-amber-700 dark:text-amber-400">
+                        {formatRs(s.total)}
+                      </span>
+                    </ListRow>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <EmptyState message="No overdue payables" />
+            )}
           </CardContent>
-        </Card>
+        </Panel>
       </div>
     </div>
   )

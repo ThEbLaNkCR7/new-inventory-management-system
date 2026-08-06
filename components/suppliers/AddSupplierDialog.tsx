@@ -29,9 +29,9 @@ import { Clock } from "lucide-react"
 import { validateSupplierFormData } from "./utils"
 
 const inputClass =
-  "border-2 focus:border-slate-500 transition-colors dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
+  "border border-border bg-background focus:border-navy/50 focus-visible:ring-1 focus-visible:ring-navy/20"
 const selectTriggerClass = inputClass
-const errorTextClass = "text-sm text-red-600 dark:text-red-400"
+const errorTextClass = "text-sm text-navy"
 
 const initialFormData = {
   name: "",
@@ -195,17 +195,12 @@ export default function AddSupplierDialog({
             <DialogDescription>
               Enter supplier information to add to your database
               {!isAdmin && (
-                <div className="mt-2 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
-                  <div className="flex items-center text-amber-800 dark:text-amber-200">
-                    <Clock className="h-4 w-4 mr-2" />
-                    <span className="text-sm font-medium">Changes require admin approval</span>
-                  </div>
-                </div>
+                <p className="mt-1.5 text-xs text-amber-700 dark:text-amber-400">Changes require admin approval</p>
               )}
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label htmlFor="add-supplier-name">Full Name *</Label>
               <Input
                 id="add-supplier-name"
@@ -215,7 +210,7 @@ export default function AddSupplierDialog({
               />
               {renderFieldError("name")}
             </div>
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label htmlFor="add-supplier-email">Email *</Label>
               <Input
                 id="add-supplier-email"
@@ -226,7 +221,7 @@ export default function AddSupplierDialog({
               />
               {renderFieldError("email")}
             </div>
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label htmlFor="add-supplier-phone">Phone *</Label>
               <Input
                 id="add-supplier-phone"
@@ -236,7 +231,7 @@ export default function AddSupplierDialog({
               />
               {renderFieldError("phone")}
             </div>
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label htmlFor="add-supplier-company">Company Type *</Label>
               <div className="space-y-2">
                 <Select
@@ -267,7 +262,7 @@ export default function AddSupplierDialog({
                 {formData.company === "custom" && renderFieldError("customCompany")}
               </div>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label htmlFor="add-supplier-address">Address</Label>
               <Input
                 id="add-supplier-address"
@@ -277,7 +272,7 @@ export default function AddSupplierDialog({
                 className={inputClass}
               />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label htmlFor="add-supplier-status">Status *</Label>
               <Select value={formData.status} onValueChange={(value) => updateForm({ status: value })}>
                 <SelectTrigger id="add-supplier-status" className={cn(selectTriggerClass, fieldErrorClass("status"))}>
@@ -330,7 +325,7 @@ export default function AddSupplierDialog({
             <DialogDescription>Please provide a reason for this supplier request</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label htmlFor="add-supplier-reason">Reason for Request</Label>
               <Textarea
                 id="add-supplier-reason"

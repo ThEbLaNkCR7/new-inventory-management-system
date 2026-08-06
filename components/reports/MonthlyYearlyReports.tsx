@@ -30,12 +30,12 @@ const formatDate = (dateString: string) => {
 const SimpleTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
     return (
-      <div className="bg-white dark:bg-gray-800 p-3 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg">
-        <p className="font-semibold text-gray-800 dark:text-gray-200 mb-2">{label}</p>
+      <div className="bg-card p-3 border border-border rounded-lg shadow-lg">
+        <p className="font-semibold text-navy mb-2">{label}</p>
         {payload.map((entry: any, index: number) => (
           <div key={index} className="flex items-center gap-2 mb-1">
             <div className="w-3 h-3 rounded-full" style={{ backgroundColor: entry.color }} />
-            <span className="text-sm text-gray-600 dark:text-gray-300">
+            <span className="text-sm text-muted-foreground">
               {entry.name}: <span className="font-semibold">Rs {entry.value.toLocaleString()}</span>
             </span>
           </div>
@@ -47,26 +47,26 @@ const SimpleTooltip = ({ active, payload, label }: any) => {
 }
 
 const MetricCard = ({ title, value, subtitle, icon: Icon, trend, color }: any) => (
-  <Card className="border border-gray-200 dark:border-gray-700">
+  <Card className="border border-border">
     <CardContent className="p-6">
       <div className="flex items-center justify-between">
         <div className="space-y-2">
-          <p className="text-sm font-medium text-gray-600 dark:text-gray-400">{title}</p>
-          <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">Rs {value.toLocaleString()}</p>
-          {subtitle && <p className="text-xs text-gray-500 dark:text-gray-400">{subtitle}</p>}
+          <p className="text-sm font-medium text-muted-foreground">{title}</p>
+          <p className="text-2xl font-semibold tracking-tight tabular-nums text-navy">Rs {value.toLocaleString()}</p>
+          {subtitle && <p className="text-xs text-muted-foreground">{subtitle}</p>}
         </div>
-        <div className={`p-3 rounded-full ${color}`}>
-          <Icon className="h-5 w-5 text-white" />
+        <div className={`rounded-full p-3 ${color || "bg-foreground"}`}>
+          <Icon className="h-5 w-5 text-background" />
         </div>
       </div>
       {trend && (
-        <div className="flex items-center mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
+        <div className="mt-3 flex items-center border-t border-border pt-3">
           {trend.direction === "up" ? (
-            <TrendingUp className="h-4 w-4 text-green-500 mr-1" />
+            <TrendingUp className="mr-1 h-4 w-4 text-foreground" />
           ) : (
-            <TrendingDown className="h-4 w-4 text-red-500 mr-1" />
+            <TrendingDown className="mr-1 h-4 w-4 text-foreground" />
           )}
-          <span className={`text-sm ${trend.direction === "up" ? "text-green-600" : "text-red-600"}`}>
+          <span className="text-sm text-muted-foreground">
             {trend.value}% vs last period
           </span>
         </div>
@@ -207,7 +207,7 @@ export default function MonthlyYearlyReports() {
           <h1 className="section-title">
             Monthly & Yearly Reports
           </h1>
-          <p className="text-gray-600 dark:text-gray-300 text-lg">Simple period-based reporting</p>
+          <p className="page-desc">Simple period-based reporting</p>
         </div>
         <Button
           type="button"
@@ -241,7 +241,7 @@ export default function MonthlyYearlyReports() {
               subtitle={`${selectedYear} Total`}
               icon={DollarSign}
               trend={{ direction: "up", value: "12.5" }}
-              color="bg-blue-500"
+              color="bg-foreground"
             />
             <MetricCard
               title="Total Purchases"
@@ -249,7 +249,7 @@ export default function MonthlyYearlyReports() {
               subtitle={`${selectedYear} Total`}
               icon={Activity}
               trend={{ direction: "up", value: "8.2" }}
-              color="bg-green-500"
+              color="bg-foreground"
             />
             <MetricCard
               title="Net Profit"
@@ -257,7 +257,7 @@ export default function MonthlyYearlyReports() {
               subtitle={`${selectedYear} Total`}
               icon={TrendingUp}
               trend={{ direction: "up", value: "15.3" }}
-              color="bg-purple-500"
+              color="bg-foreground"
             />
             <MetricCard
               title="Avg Monthly"
@@ -265,19 +265,19 @@ export default function MonthlyYearlyReports() {
               subtitle="Sales Average"
               icon={PieChart}
               trend={{ direction: "up", value: "5.1" }}
-              color="bg-gray-500"
+              color="bg-foreground"
             />
           </div>
 
           {/* Monthly Performance Chart */}
-          <Card className="border border-gray-200 dark:border-gray-700">
+          <Card className="border border-border">
             <CardHeader>
               <div className="flex justify-between items-center">
                 <div>
-                  <CardTitle className="text-xl font-semibold text-gray-800 dark:text-gray-200">
+                  <CardTitle>
                     Monthly Trends - {selectedYear}
                   </CardTitle>
-                  <CardDescription className="text-gray-600 dark:text-gray-400">
+                  <CardDescription className="text-sm text-muted-foreground">
                     How your business performed each month
                   </CardDescription>
                 </div>
@@ -348,9 +348,9 @@ export default function MonthlyYearlyReports() {
                   <TableHeader>
                     <TableRow>
                       <TableHead className="font-semibold">Month</TableHead>
-                      <TableHead className="text-right font-semibold">Sales</TableHead>
-                      <TableHead className="text-right font-semibold">Purchases</TableHead>
-                      <TableHead className="text-right font-semibold">Profit</TableHead>
+                      <TableHead className="text-right font-semibold tabular-nums">Sales</TableHead>
+                      <TableHead className="text-right font-semibold tabular-nums">Purchases</TableHead>
+                      <TableHead className="text-right font-semibold tabular-nums">Profit</TableHead>
                       <TableHead className="text-center font-semibold">Margin %</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -358,16 +358,16 @@ export default function MonthlyYearlyReports() {
                     {monthlyData.map((month) => {
                       const profitMargin = month.sales > 0 ? ((month.profit / month.sales) * 100).toFixed(1) : 0
                       return (
-                        <TableRow key={month.month} className="hover:bg-gray-50 dark:hover:bg-gray-800">
+                        <TableRow key={month.month} className="hover:bg-muted/60">
                           <TableCell className="font-medium">{month.month}</TableCell>
-                          <TableCell className="text-right text-green-600 dark:text-green-400 font-semibold">
+                          <TableCell className="text-right font-semibold tabular-nums text-navy">
                             Rs {month.sales.toLocaleString()}
                           </TableCell>
-                          <TableCell className="text-right text-red-600 dark:text-red-400 font-semibold">
+                          <TableCell className="text-right font-semibold tabular-nums text-navy">
                             Rs {month.purchases.toLocaleString()}
                           </TableCell>
                           <TableCell
-                            className={`text-right font-semibold ${month.profit >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}
+                            className={`text-right font-semibold tabular-nums ${month.profit >= 0 ? "text-navy" : "text-navy"}`}
                           >
                             Rs {month.profit.toLocaleString()}
                           </TableCell>
@@ -388,14 +388,14 @@ export default function MonthlyYearlyReports() {
 
         <TabsContent value="yearly" className="space-y-6">
           {/* Yearly Summary */}
-          <Card className="border border-gray-200 dark:border-gray-700">
+          <Card className="border border-border">
             <CardHeader>
               <div className="flex justify-between items-center">
                 <div>
-                  <CardTitle className="text-xl font-semibold text-gray-800 dark:text-gray-200">
+                  <CardTitle>
                     Yearly Performance Overview
                   </CardTitle>
-                  <CardDescription className="text-gray-600 dark:text-gray-400">
+                  <CardDescription className="text-sm text-muted-foreground">
                     Compare performance across different years
                   </CardDescription>
                 </div>
@@ -408,9 +408,9 @@ export default function MonthlyYearlyReports() {
                   <TableHeader>
                     <TableRow>
                       <TableHead className="font-semibold">Year</TableHead>
-                      <TableHead className="text-right font-semibold">Total Sales</TableHead>
-                      <TableHead className="text-right font-semibold">Total Purchases</TableHead>
-                      <TableHead className="text-right font-semibold">Total Profit</TableHead>
+                      <TableHead className="text-right font-semibold tabular-nums">Total Sales</TableHead>
+                      <TableHead className="text-right font-semibold tabular-nums">Total Purchases</TableHead>
+                      <TableHead className="text-right font-semibold tabular-nums">Total Profit</TableHead>
                       <TableHead className="text-center font-semibold">Profit Margin</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -418,16 +418,16 @@ export default function MonthlyYearlyReports() {
                     {yearlyData.map((year) => {
                       const profitMargin = year.sales > 0 ? ((year.profit / year.sales) * 100).toFixed(1) : 0
                       return (
-                        <TableRow key={year.year} className="hover:bg-gray-50 dark:hover:bg-gray-800">
+                        <TableRow key={year.year} className="hover:bg-muted/60">
                           <TableCell className="font-medium">{year.year}</TableCell>
-                          <TableCell className="text-right text-green-600 dark:text-green-400 font-semibold">
+                          <TableCell className="text-right font-semibold tabular-nums text-navy">
                             Rs {year.sales.toLocaleString()}
                           </TableCell>
-                          <TableCell className="text-right text-red-600 dark:text-red-400 font-semibold">
+                          <TableCell className="text-right font-semibold tabular-nums text-navy">
                             Rs {year.purchases.toLocaleString()}
                           </TableCell>
                           <TableCell
-                            className={`text-right font-semibold ${year.profit >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}
+                            className={`text-right font-semibold tabular-nums ${year.profit >= 0 ? "text-navy" : "text-navy"}`}
                           >
                             Rs {year.profit.toLocaleString()}
                           </TableCell>
@@ -446,14 +446,14 @@ export default function MonthlyYearlyReports() {
           </Card>
 
           {/* Detailed Year Report */}
-          <Card className="border border-gray-200 dark:border-gray-700">
+          <Card className="border border-border">
             <CardHeader>
               <div className="flex justify-between items-center">
                 <div>
-                  <CardTitle className="text-xl font-semibold text-gray-800 dark:text-gray-200">
+                  <CardTitle>
                     Detailed Year Report
                   </CardTitle>
-                  <CardDescription className="text-gray-600 dark:text-gray-400">
+                  <CardDescription className="text-sm text-muted-foreground">
                     Get detailed breakdown for a specific year
                   </CardDescription>
                 </div>
@@ -479,48 +479,48 @@ export default function MonthlyYearlyReports() {
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-700">
                       <div className="flex items-center gap-2 mb-2">
-                        <DollarSign className="h-4 w-4 text-blue-600" />
+                        <DollarSign className="h-4 w-4 text-navy" />
                         <span className="font-medium text-blue-800 dark:text-blue-200">Total Sales</span>
                       </div>
-                      <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">
+                      <p className="text-2xl font-semibold tracking-tight tabular-nums text-blue-900 dark:text-blue-100">
                         Rs {currentYearData.sales.toLocaleString()}
                       </p>
                     </div>
                     
                     <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-700">
                       <div className="flex items-center gap-2 mb-2">
-                        <Activity className="h-4 w-4 text-green-600" />
-                        <span className="font-medium text-green-800 dark:text-green-200">Total Purchases</span>
+                        <Activity className="h-4 w-4 text-navy" />
+                        <span className="font-medium text-navy">Total Purchases</span>
                       </div>
-                      <p className="text-2xl font-bold text-green-900 dark:text-green-100">
+                      <p className="text-2xl font-semibold tracking-tight tabular-nums text-green-900 dark:text-green-100">
                         Rs {currentYearData.purchases.toLocaleString()}
                       </p>
                     </div>
                     
                     <div className="p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-700">
                       <div className="flex items-center gap-2 mb-2">
-                        <TrendingUp className="h-4 w-4 text-purple-600" />
+                        <TrendingUp className="h-4 w-4 text-navy" />
                         <span className="font-medium text-purple-800 dark:text-purple-200">Total Profit</span>
                       </div>
-                      <p className="text-2xl font-bold text-purple-900 dark:text-purple-100">
+                      <p className="text-2xl font-semibold tracking-tight tabular-nums text-purple-900 dark:text-purple-100">
                         Rs {currentYearData.profit.toLocaleString()}
                       </p>
                     </div>
                   </div>
                   
-                  <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                  <div className="p-4 bg-muted rounded-lg">
                     <div className="flex items-center gap-2 mb-2">
-                      <Info className="h-4 w-4 text-gray-500" />
-                      <span className="font-medium text-gray-700 dark:text-gray-300">Year Summary</span>
+                      <Info className="h-4 w-4 text-muted-foreground" />
+                      <span className="font-medium text-navy">Year Summary</span>
                     </div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                    <p className="text-sm text-muted-foreground">
                       In {currentYearData.year}, you had {currentYearData.monthlyBreakdown.length} months of data with an average monthly profit of Rs {Math.round(currentYearData.profit / currentYearData.monthlyBreakdown.length).toLocaleString()}.
                     </p>
                   </div>
                 </div>
               ) : (
                 <div className="text-center py-8">
-                  <p className="text-gray-500">No data available for the selected year</p>
+                  <p className="text-sm font-normal italic text-muted-foreground">No data available for the selected year</p>
                 </div>
               )}
             </CardContent>

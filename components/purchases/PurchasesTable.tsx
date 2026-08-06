@@ -11,13 +11,6 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   Table,
   TableBody,
   TableCell,
@@ -28,8 +21,18 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { Purchase } from "@/contexts/InventoryContext";
 import { formatNepaliDateForTable, toTitleCase } from "@/lib/utils";
+import {
+  pageToolbarClass,
+  searchIconClass,
+  searchInputClass,
+  searchWrapClass,
+  tableHeadRowClass,
+  tabsCountBadgeClass,
+  tabsListClass,
+  tabsTriggerClass,
+} from "@/lib/ui-styles";
 import { usePagination } from "@/hooks/usePagination";
-import { Building2, Edit, Eye, Search, Trash2, TrendingUp, Users, X } from "lucide-react";
+import { Building2, ChevronDown, ChevronRight, Edit, Eye, Search, Trash2, TrendingUp, Users, X } from "lucide-react";
 import React from "react";
 import DataPagination from "@/components/ui/data-pagination";
 import { formatPurchaseTotal, getPurchaseTotal } from "./utils";
@@ -68,9 +71,9 @@ export default function PurchasesTable({
   onDelete,
   onSupplierClick: _onSupplierClick,
 }: PurchasesTableProps) {
-  const [selectedPurchases, setSelectedPurchases] = React.useState<
-    Record<string, string>
-  >({});
+  const [expandedSuppliers, setExpandedSuppliers] = React.useState<Set<string>>(
+    new Set(),
+  );
 
   const tabPurchases = React.useMemo(() => {
     if (activeTab === "individual") {
@@ -116,179 +119,204 @@ export default function PurchasesTable({
     resetKey: `${searchTerm}|${activeTab}`,
   });
 
-  const formatPurchaseOptionLabel = (purchase: Purchase) => {
-    const date = formatNepaliDateForTable(purchase.purchaseDate);
-    const total = formatPurchaseTotal(purchase);
-    const items = purchase.items?.length || 0;
-    return `${date} · ${items} items · Rs ${total}`;
+  const toggleExpanded = (supplier: string) => {
+    setExpandedSuppliers((prev) => {
+      const next = new Set(prev);
+      if (next.has(supplier)) next.delete(supplier);
+      else next.add(supplier);
+      return next;
+    });
   };
 
-  const getSelectedPurchase = (group: PurchaseGroup) => {
-    const selectedId = selectedPurchases[group.supplier] || group.purchases[0]?.id;
-    return (
-      group.purchases.find((purchase) => purchase.id === selectedId) ||
-      group.purchases[0]
-    );
-  };
+  const renderPurchaseActions = (purchase: Purchase) => (
+    <div className="flex items-center space-x-2">
+      <Button
+        size="sm"
+        variant="neutralOutline"
+        onClick={() => onView(purchase)}
+        className="text-muted-foreground hover:bg-muted hover:border-navy/30 hover:text-navy dark:hover:bg-muted dark:hover:border-white/30 transition-colors"
+      >
+        <Eye className="h-4 w-4" />
+      </Button>
+      <Button
+        size="sm"
+        variant="neutralOutline"
+        onClick={() => onEdit(purchase)}
+        className="hover:bg-muted dark:hover:bg-muted transition-colors"
+      >
+        <Edit className="h-4 w-4" />
+      </Button>
+      <Button
+        size="sm"
+        variant="neutralOutline"
+        onClick={() => onDelete(purchase)}
+        className="text-navy transition-colors hover:bg-muted hover:border-border"
+      >
+        <Trash2 className="h-4 w-4" />
+      </Button>
+    </div>
+  );
+
+  const expandCellClass = "w-10 min-w-10 max-w-10 p-2 align-middle";
+
+  const renderExpandCell = (content?: React.ReactNode) => (
+    <TableCell className={expandCellClass}>
+      <div className="flex h-7 w-7 shrink-0 items-center justify-center">
+        {content}
+      </div>
+    </TableCell>
+  );
+
+  const renderPurchaseDetailRow = (purchase: Purchase) => (
+    <TableRow
+      key={purchase.id}
+      className="hover:bg-muted/60 transition-colors duration-150"
+    >
+      {renderExpandCell()}
+      <TableCell className="pl-6 text-sm font-medium text-navy">
+        Purchase order
+      </TableCell>
+      <TableCell className="text-sm font-medium tabular-nums text-navy">
+        {purchase.items?.length || 0}
+      </TableCell>
+      <TableCell className="text-sm font-medium tabular-nums text-navy">
+        Rs {(purchase.items?.[0]?.purchasePrice || 0).toFixed(2)}
+      </TableCell>
+      <TableCell className="text-sm font-medium tabular-nums text-navy">
+        Rs {formatPurchaseTotal(purchase)}
+      </TableCell>
+      <TableCell className="text-sm font-medium text-navy">
+        {formatNepaliDateForTable(purchase.purchaseDate)}
+      </TableCell>
+      <TableCell>{renderPurchaseActions(purchase)}</TableCell>
+    </TableRow>
+  );
+
+  const renderPurchaseRows = () =>
+    paginatedGroups.flatMap((group) => {
+      if (group.purchases.length === 1) {
+        const purchase = group.purchases[0];
+        return [
+          <TableRow
+            key={group.supplier}
+            className="hover:bg-muted/60 transition-colors duration-150"
+          >
+            {renderExpandCell()}
+            <TableCell className="text-sm font-medium text-navy">
+              {toTitleCase(group.supplier)}
+            </TableCell>
+            <TableCell className="text-sm font-medium tabular-nums text-navy">
+              {purchase.items?.length || 0}
+            </TableCell>
+            <TableCell className="text-sm font-medium tabular-nums text-navy">
+              Rs {(purchase.items?.[0]?.purchasePrice || 0).toFixed(2)}
+            </TableCell>
+            <TableCell className="text-sm font-medium tabular-nums text-navy">
+              Rs {formatPurchaseTotal(purchase)}
+            </TableCell>
+            <TableCell className="text-sm font-medium text-navy">
+              {formatNepaliDateForTable(purchase.purchaseDate)}
+            </TableCell>
+            <TableCell>{renderPurchaseActions(purchase)}</TableCell>
+          </TableRow>,
+        ];
+      }
+
+      const isExpanded = expandedSuppliers.has(group.supplier);
+      const groupTotal = group.purchases.reduce(
+        (sum, purchase) => sum + getPurchaseTotal(purchase),
+        0,
+      );
+
+      const headerRow = (
+        <TableRow
+          key={`group-${group.supplier}`}
+          className="bg-muted/20 hover:bg-muted/50 dark:hover:bg-muted/60 cursor-pointer transition-colors duration-150"
+          onClick={() => toggleExpanded(group.supplier)}
+        >
+          {renderExpandCell(
+            <button
+              type="button"
+              className="flex h-7 w-7 items-center justify-center rounded-md text-navy hover:bg-muted hover:text-navy"
+              aria-label={isExpanded ? "Collapse purchases" : "Expand purchases"}
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleExpanded(group.supplier);
+              }}
+            >
+              {isExpanded ? (
+                <ChevronDown className="h-4 w-4" />
+              ) : (
+                <ChevronRight className="h-4 w-4" />
+              )}
+            </button>,
+          )}
+          <TableCell>
+            <div className="min-w-[140px]">
+              <p className="text-sm font-medium text-navy">
+                {toTitleCase(group.supplier)}
+              </p>
+              <p className="mt-0.5 text-xs font-normal text-muted-foreground">
+                {group.purchases.length}{" "}
+                {group.purchases.length === 1 ? "purchase" : "purchases"}
+              </p>
+            </div>
+          </TableCell>
+          <TableCell />
+          <TableCell />
+          <TableCell className="text-sm font-medium tabular-nums text-navy">
+            Rs {groupTotal.toLocaleString()}
+          </TableCell>
+          <TableCell />
+          <TableCell />
+        </TableRow>
+      );
+
+      if (!isExpanded) return [headerRow];
+
+      return [headerRow, ...group.purchases.map(renderPurchaseDetailRow)];
+    });
 
   const renderTable = (emptyMessage: string) => (
     <div className="overflow-x-auto">
       <Table>
         <TableHeader>
-          <TableRow className="bg-gray-50 dark:bg-gray-700">
-            <TableHead className="font-semibold text-sm text-gray-700 dark:text-gray-300">
-              Items
-            </TableHead>
-            <TableHead className="font-semibold text-sm text-gray-700 dark:text-gray-300">
-              Supplier
-            </TableHead>
-            <TableHead className="font-semibold text-sm text-gray-700 dark:text-gray-300">
-              Quantity
-            </TableHead>
-            <TableHead className="font-semibold text-sm text-gray-700 dark:text-gray-300">
-              Unit Price
-            </TableHead>
-            <TableHead className="font-semibold text-sm text-gray-700 dark:text-gray-300">
-              Total
-            </TableHead>
-            <TableHead className="font-semibold text-sm text-gray-700 dark:text-gray-300">
-              Date
-            </TableHead>
-            <TableHead className="font-semibold text-sm text-gray-700 dark:text-gray-300">
-              Actions
-            </TableHead>
+          <TableRow className={tableHeadRowClass}>
+            <TableHead className="w-10 min-w-10 max-w-10 p-2" />
+            <TableHead>Supplier</TableHead>
+            <TableHead>Items</TableHead>
+            <TableHead>Unit Price</TableHead>
+            <TableHead>Total</TableHead>
+            <TableHead>Date</TableHead>
+            <TableHead>Actions</TableHead>
           </TableRow>
         </TableHeader>
-        <TableBody>
-          {paginatedGroups.map((group) => {
-            const selectedPurchase = getSelectedPurchase(group);
-            if (!selectedPurchase) return null;
-
-            const quantity =
-              selectedPurchase.items?.reduce(
-                (total, item) => total + (item.quantityPurchased || 0),
-                0,
-              ) || 0;
-
-            return (
-              <TableRow
-                key={group.supplier}
-                className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-150"
-              >
-                <TableCell className="font-medium">
-                  {selectedPurchase.items?.length || 0}
-                </TableCell>
-                <TableCell className="font-medium">
-                  <div className="space-y-2 min-w-[180px]">
-                    <span className="text-gray-700 dark:text-gray-100">
-                      {toTitleCase(group.supplier)}
-                    </span>
-                    {group.purchases.length > 1 ? (
-                      <Select
-                        value={selectedPurchase.id}
-                        onValueChange={(value) =>
-                          setSelectedPurchases((prev) => ({
-                            ...prev,
-                            [group.supplier]: value,
-                          }))
-                        }
-                      >
-                        <SelectTrigger className="h-8 w-full text-xs border-gray-200 dark:border-gray-600 dark:bg-gray-700/50 dark:text-gray-200">
-                          <SelectValue placeholder="Select purchase">
-                            {formatPurchaseOptionLabel(selectedPurchase)}
-                          </SelectValue>
-                        </SelectTrigger>
-                        <SelectContent className="dark:bg-gray-800 dark:border-gray-700">
-                          {group.purchases.map((purchase) => (
-                            <SelectItem key={purchase.id} value={purchase.id}>
-                              {formatPurchaseOptionLabel(purchase)}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    ) : null}
-                    {group.purchases.length > 1 && (
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
-                        {group.purchases.length} purchases · Total Rs{" "}
-                        {group.purchases
-                          .reduce(
-                            (sum, purchase) => sum + getPurchaseTotal(purchase),
-                            0,
-                          )
-                          .toLocaleString()}
-                      </p>
-                    )}
-                  </div>
-                </TableCell>
-                <TableCell className="font-medium">{quantity}</TableCell>
-                <TableCell className="text-gray-700">
-                  Rs {(selectedPurchase.items?.[0]?.purchasePrice || 0).toFixed(2)}
-                </TableCell>
-                <TableCell className="text-gray-700">
-                  Rs {formatPurchaseTotal(selectedPurchase)}
-                </TableCell>
-                <TableCell className="text-gray-700">
-                  {formatNepaliDateForTable(selectedPurchase.purchaseDate)}
-                </TableCell>
-                <TableCell>
-                  <div className="flex space-x-2">
-                    <Button
-                      size="sm"
-                      variant="neutralOutline"
-                      onClick={() => onView(selectedPurchase)}
-                      className="hover:bg-blue-50 hover:border-blue-300 dark:hover:bg-blue-900/20 dark:hover:border-blue-600 text-blue-600 dark:text-blue-400 transition-colors"
-                    >
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="neutralOutline"
-                      onClick={() => onEdit(selectedPurchase)}
-                      className="hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="neutralOutline"
-                      onClick={() => onDelete(selectedPurchase)}
-                      className="hover:bg-red-50 hover:border-red-300 dark:hover:bg-red-900/20 dark:hover:border-red-600 text-red-600 dark:text-red-400 transition-colors"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </TableCell>
-              </TableRow>
-            );
-          })}
-        </TableBody>
+        <TableBody>{renderPurchaseRows()}</TableBody>
       </Table>
       {groupedPurchases.length === 0 && (
         <div className="text-center py-8 animate-in fade-in-0 duration-300">
-          <p className="text-gray-500">{emptyMessage}</p>
+          <p className="text-sm font-normal italic text-muted-foreground">{emptyMessage}</p>
         </div>
       )}
     </div>
   );
 
   return (
-    <Card className="dark:bg-gray-800 dark:border-gray-700 overflow-hidden">
+    <Card className="overflow-hidden">
       <CardHeader className="pb-3">
-        <CardTitle className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-          Purchase Orders
-        </CardTitle>
-        <CardDescription className="text-gray-600 dark:text-gray-400 mt-1">
+        <CardTitle>Purchase Orders</CardTitle>
+        <CardDescription>
           Track all purchase orders and inventory restocking by supplier type
         </CardDescription>
 
-        <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
+        <div className={pageToolbarClass}>
+          <div className={searchWrapClass}>
+            <Search className={searchIconClass} />
             <Input
               placeholder="Search by supplier, product, or invoice..."
               value={searchTerm}
               onChange={(e) => onSearchTermChange(e.target.value)}
-              className="h-10 pl-10 border-gray-200 dark:border-gray-600 dark:bg-gray-700/50 dark:text-gray-200 focus:border-slate-400"
+              className={searchInputClass}
             />
           </div>
           {searchTerm.trim() !== "" && (
@@ -297,7 +325,7 @@ export default function PurchasesTable({
               variant="neutralOutline"
               size="sm"
               onClick={() => onSearchTermChange("")}
-              className="h-10 shrink-0 gap-1.5 text-gray-600 dark:text-gray-300"
+              className="h-10 shrink-0 gap-1.5"
             >
               <X className="h-4 w-4" />
               Clear
@@ -311,43 +339,25 @@ export default function PurchasesTable({
           onValueChange={onActiveTabChange}
           className="w-full"
         >
-          <TabsList className="grid w-full grid-cols-3 mb-4 bg-gray-100 dark:bg-gray-800 p-1 rounded-lg h-11">
-            <TabsTrigger
-              value="all"
-              className="flex items-center justify-center space-x-2 data-[state=active]:bg-white dark:data-[state=active]:bg-gray-700 data-[state=active]:shadow-lg data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-400 data-[state=active]:font-semibold transition-all duration-300 ease-in-out rounded-lg px-3 py-2.5 h-full"
-            >
+          <TabsList className={tabsListClass}>
+            <TabsTrigger value="all" className={tabsTriggerClass}>
               <TrendingUp className="h-4 w-4" />
               <span>All Purchases</span>
-              <Badge
-                variant="secondary"
-                className="ml-1 bg-blue-100 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400 text-xs px-1.5 py-0.5"
-              >
+              <Badge variant="secondary" className={tabsCountBadgeClass}>
                 {purchasesCounts.allCount}
               </Badge>
             </TabsTrigger>
-            <TabsTrigger
-              value="individual"
-              className="flex items-center justify-center space-x-2 data-[state=active]:bg-white dark:data-[state=active]:bg-gray-700 data-[state=active]:shadow-lg data-[state=active]:text-teal-600 dark:data-[state=active]:text-teal-400 data-[state=active]:font-semibold transition-all duration-300 ease-in-out rounded-lg px-3 py-2.5 h-full"
-            >
+            <TabsTrigger value="individual" className={tabsTriggerClass}>
               <Users className="h-4 w-4" />
               <span>Individual</span>
-              <Badge
-                variant="secondary"
-                className="ml-1 bg-teal-100 text-teal-700 dark:bg-teal-900/20 dark:text-teal-400 text-xs px-1.5 py-0.5"
-              >
+              <Badge variant="secondary" className={tabsCountBadgeClass}>
                 {purchasesCounts.individualCount}
               </Badge>
             </TabsTrigger>
-            <TabsTrigger
-              value="company"
-              className="flex items-center justify-center space-x-2 data-[state=active]:bg-white dark:data-[state=active]:bg-gray-700 data-[state=active]:shadow-lg data-[state=active]:text-orange-600 dark:data-[state=active]:text-orange-400 data-[state=active]:font-semibold transition-all duration-300 ease-in-out rounded-lg px-3 py-2.5 h-full"
-            >
+            <TabsTrigger value="company" className={tabsTriggerClass}>
               <Building2 className="h-4 w-4" />
               <span>Company</span>
-              <Badge
-                variant="secondary"
-                className="ml-1 bg-orange-100 text-orange-700 dark:bg-orange-900/20 dark:text-orange-400 text-xs px-1.5 py-0.5"
-              >
+              <Badge variant="secondary" className={tabsCountBadgeClass}>
                 {purchasesCounts.companyCount}
               </Badge>
             </TabsTrigger>

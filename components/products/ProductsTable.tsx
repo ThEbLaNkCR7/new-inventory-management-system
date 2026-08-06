@@ -63,17 +63,17 @@ export default function ProductsTable({
   }
 
   return (
-    <Card className="shadow-sm border border-gray-100 dark:border-gray-700 bg-white/80 dark:bg-gray-800 backdrop-blur-sm overflow-hidden">
+    <Card className="shadow-sm border border-border bg-card backdrop-blur-sm overflow-hidden">
       <CardHeader className="pb-3">
         <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <CardTitle className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+            <CardTitle>
               Products Details
-              <span className="ml-1.5 text-sm font-medium text-gray-500 dark:text-gray-400">
+              <span className="ml-1.5 text-sm font-medium text-muted-foreground">
                 ({groupedProducts.length})
               </span>
             </CardTitle>
-            <CardDescription className="text-gray-600 dark:text-gray-400 mt-1">
+            <CardDescription className="text-muted-foreground mt-1">
               Manage your product inventory and stock levels
             </CardDescription>
           </div>
@@ -81,23 +81,23 @@ export default function ProductsTable({
 
         <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               placeholder="Search by name, category, or supplier..."
               value={searchTerm}
               onChange={(e) => onSearchTermChange(e.target.value)}
-              className="h-10 pl-10 border-gray-200 dark:border-gray-600 dark:bg-gray-700/50 dark:text-gray-200 focus:border-slate-400"
+              className="h-10 pl-10 border-border focus:border-navy/40"
             />
           </div>
           <div className="flex items-center gap-2">
             <Select value={categoryFilter} onValueChange={onCategoryFilterChange}>
-              <SelectTrigger className="h-10 w-full sm:w-52 border-gray-200 dark:border-gray-600 dark:bg-gray-700/50 dark:text-gray-200">
+              <SelectTrigger className="h-10 w-full sm:w-52 border-border">
                 <div className="flex items-center gap-2">
-                  <Filter className="h-4 w-4 shrink-0 text-gray-400" />
+                  <Filter className="h-4 w-4 shrink-0 text-muted-foreground" />
                   <SelectValue placeholder="All Categories" />
                 </div>
               </SelectTrigger>
-              <SelectContent className="dark:bg-gray-800 dark:border-gray-700">
+              <SelectContent>
                 <SelectItem value="all">All Categories</SelectItem>
                 {categories.map((category) => (
                   <SelectItem key={category} value={category}>
@@ -112,7 +112,7 @@ export default function ProductsTable({
                 variant="neutralOutline"
                 size="sm"
                 onClick={clearFilters}
-                className="h-10 shrink-0 gap-1.5 text-gray-600 dark:text-gray-300"
+                className="h-10 shrink-0 gap-1.5 text-muted-foreground"
               >
                 <X className="h-4 w-4" />
                 Clear
@@ -123,16 +123,16 @@ export default function ProductsTable({
       </CardHeader>
 
       <CardContent className="p-0">
-        <div className="overflow-x-auto border-t border-gray-100 dark:border-gray-700">
+        <div className="overflow-x-auto border-t border-border">
           <Table>
             <TableHeader>
-              <TableRow className="bg-gray-50 dark:bg-gray-700/80 hover:bg-gray-50 dark:hover:bg-gray-700/80">
-                <TableHead className="font-semibold text-sm text-gray-700 dark:text-gray-300">Product Name</TableHead>
-                <TableHead className="font-semibold text-sm text-gray-700 dark:text-gray-300">Category</TableHead>
-                <TableHead className="font-semibold text-sm text-gray-700 dark:text-gray-300">No. of units</TableHead>
-                <TableHead className="font-semibold text-sm text-gray-700 dark:text-gray-300">Unit Weight</TableHead>
-                <TableHead className="font-semibold text-sm text-gray-700 dark:text-gray-300">Unit Price</TableHead>
-                <TableHead className="font-semibold text-sm text-gray-700 dark:text-gray-300">Actions</TableHead>
+              <TableRow className="bg-muted/80 hover:bg-muted/60">
+                <TableHead>Product Name</TableHead>
+                <TableHead>Category</TableHead>
+                <TableHead>No. of units</TableHead>
+                <TableHead>Unit Weight</TableHead>
+                <TableHead>Unit Price</TableHead>
+                <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -143,11 +143,11 @@ export default function ProductsTable({
                 return (
                   <TableRow
                     key={group.name}
-                    className="hover:bg-slate-50/50 dark:hover:bg-gray-700/50 transition-colors"
+                    className="hover:bg-muted/60 transition-colors"
                   >
                     <TableCell>
                       <p
-                        className="text-gray-900 dark:text-gray-300 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                        className="cursor-pointer font-medium text-navy underline-offset-4 transition-colors hover:underline hover:text-navy/80"
                         onClick={() => onProductClick(selectedVariant)}
                       >
                         {toTitleCase(group.name)}
@@ -155,7 +155,7 @@ export default function ProductsTable({
                     </TableCell>
                     <TableCell>
                       <p
-                        className="text-gray-900 dark:text-gray-100 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                        className="cursor-pointer font-medium text-navy underline-offset-4 transition-colors hover:underline hover:text-navy/80"
                         onClick={() => onCategoryClick(group.category)}
                       >
                         {toTitleCase(group.category)}
@@ -164,7 +164,7 @@ export default function ProductsTable({
                     <TableCell>
                       <div className="flex items-center space-x-2">
                         {selectedVariant.stockQuantity <= 5 && <AlertTriangle className="h-4 w-4 text-amber-500" />}
-                        <span className={`${selectedVariant.stockQuantity <= 5 ? "text-amber-600 dark:text-amber-400" : "text-gray-900 dark:text-slate-400"}`}>
+                        <span className={`${selectedVariant.stockQuantity <= 5 ? "text-navy" : "text-navy dark:text-muted-foreground"}`}>
                           {selectedVariant.stockQuantity}
                         </span>
                       </div>
@@ -201,7 +201,7 @@ export default function ProductsTable({
                           size="sm"
                           variant="neutralOutline"
                           onClick={() => onView(selectedVariant)}
-                          className="hover:bg-blue-50 hover:border-blue-300 dark:hover:bg-blue-900/20 dark:hover:border-blue-600 text-blue-600 dark:text-blue-400 transition-colors"
+                          className="text-muted-foreground hover:bg-muted hover:border-navy/30 hover:text-navy dark:hover:bg-muted dark:hover:border-white/30 transition-colors"
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
@@ -209,7 +209,7 @@ export default function ProductsTable({
                           size="sm"
                           variant="neutralOutline"
                           onClick={() => onEdit(selectedVariant)}
-                          className="hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                          className="hover:bg-muted dark:hover:bg-muted transition-colors"
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
@@ -217,7 +217,7 @@ export default function ProductsTable({
                           size="sm"
                           variant="neutralOutline"
                           onClick={() => onDelete(selectedVariant)}
-                          className="hover:bg-red-50 hover:border-red-300 dark:hover:bg-red-900/20 dark:hover:border-red-600 text-red-600 dark:text-red-400 transition-colors"
+                          className="hover:bg-red-50 hover:border-red-300 dark:hover:bg-red-900/20 dark:hover:border-red-600 text-navy transition-colors"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -230,10 +230,10 @@ export default function ProductsTable({
           </Table>
           {groupedProducts.length === 0 && (
             <div className="text-center py-8">
-              <div className="text-gray-400 dark:text-gray-500 mb-4">
+              <div className="text-muted-foreground mb-4">
                 <Package className="h-12 w-12 mx-auto" />
               </div>
-              <p className="text-gray-500 dark:text-gray-400 text-lg">
+              <p className="text-sm font-normal italic text-muted-foreground">
                 {hasActiveFilters ? "No products match your filters" : "No products found"}
               </p>
               {hasActiveFilters && (

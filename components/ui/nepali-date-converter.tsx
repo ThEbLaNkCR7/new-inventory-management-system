@@ -119,7 +119,7 @@ export function NepaliDateConverter() {
           {/* Current Date Display */}
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold">Current Date</h3>
+              <h3 className="form-section-title">Current Date</h3>
               <Button onClick={getCurrentDate} variant="outline">
                 Get Current Date
               </Button>
@@ -145,7 +145,7 @@ export function NepaliDateConverter() {
 
           {/* English to Nepali Conversion */}
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold">English to Nepali</h3>
+            <h3 className="form-section-title">English to Nepali</h3>
             <div className="flex gap-4">
               <div className="flex-1">
                 <Label htmlFor="english-date">English Date</Label>
@@ -167,7 +167,7 @@ export function NepaliDateConverter() {
 
           {/* Nepali to English Conversion */}
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold">Nepali to English</h3>
+            <h3 className="form-section-title">Nepali to English</h3>
             <div className="grid grid-cols-3 gap-4">
               <div>
                 <Label htmlFor="nepali-year">Year (BS)</Label>
@@ -221,7 +221,7 @@ export function NepaliDateConverter() {
           {/* Result Display */}
           {convertedDate && (
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold">Conversion Result</h3>
+              <h3 className="form-section-title">Conversion Result</h3>
               <div className="p-4 border rounded-lg bg-muted/50">
                 {convertedDate.type === 'english-to-nepali' && (
                   <div className="space-y-2">
@@ -278,7 +278,7 @@ export function NepaliDateConverter() {
 
           {/* Format Examples */}
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold">Format Examples</h3>
+            <h3 className="form-section-title">Format Examples</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {Object.entries(NEPALI_DATE_FORMATS).map(([key, format]) => (
                 <div key={key} className="p-3 border rounded-lg">

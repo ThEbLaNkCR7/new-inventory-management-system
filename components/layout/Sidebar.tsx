@@ -2,6 +2,15 @@
 
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/contexts/AuthContext"
+import {
+  sidebarChromeHoverClass,
+  sidebarNavIconActiveClass,
+  sidebarNavIconInactiveClass,
+  sidebarNavItemActiveClass,
+  sidebarNavItemClass,
+  sidebarNavItemInactiveClass,
+} from "@/lib/ui-styles"
+import { cn } from "@/lib/utils"
 import { BarChart3, BookOpen, CheckCircle, ChevronLeft, Home, Package, ShoppingCart, TrendingUp, Truck, Users, X } from "lucide-react"
 
 interface SidebarProps {
@@ -30,15 +39,12 @@ export default function Sidebar({ activeTab, setActiveTab, isOpen, setIsOpen, is
   ]
 
   const filteredMenuItems = menuItems.filter((item) => {
-    // Show all non-admin items
     if (!item.adminOnly) return true
-    // Show admin items only if user is admin
     return user?.role === "admin"
   })
 
   const handleMenuItemClick = (itemId: string) => {
     setActiveTab(itemId)
-    // Close sidebar on mobile after menu item click
     if (isMobile) {
       setIsOpen(false)
     }
@@ -46,54 +52,40 @@ export default function Sidebar({ activeTab, setActiveTab, isOpen, setIsOpen, is
 
   return (
     <>
-      {/* Mobile overlay */}
       {isOpen && isMobile && (
         <div
-          className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
+          className="fixed inset-0 z-40 bg-black/20 lg:hidden"
           onClick={() => setIsOpen(false)}
         />
       )}
 
-      {/* Sidebar */}
-      <div
-        className={`
-          fixed inset-y-0 left-0 z-50 w-64 shadow-2xl transform transition-transform duration-300 ease-in-out
-          bg-gray-900 dark:bg-gray-950 flex flex-col
-          ${isMobile
-            ? (isOpen ? "translate-x-0" : "-translate-x-full")
-            : (isOpen ? "translate-x-0" : "-translate-x-full")
-          }
-        `}
+      <aside
+        className={`fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-border bg-card
+ transition-transform duration-300 ease-in-out
+ ${isOpen ? "translate-x-0" : "-translate-x-full"}`}
       >
-        {/* Header - Fixed */}
-        <div className="flex items-center justify-between h-16 px-4 border-b border-gray-700 dark:border-gray-600 flex-shrink-0">
-          {/* Animated Title */}
-          <div className={`flex-1 transition-all duration-700 ease-in-out pr-2 ${!isMobile && isOpen
-              ? 'opacity-100 scale-100 transform translate-x-0 delay-200'
-              : 'opacity-0 scale-95 transform translate-x-16'
-            }`}>
-            <h1 className="text-responsive-xl font-bold text-white truncate">
+        <div className="flex h-16 flex-shrink-0 items-center justify-between border-b border-border bg-card px-4">
+          <div className={`min-w-0 flex-1 pr-2 transition-opacity duration-300 ${isOpen ? "opacity-100" : "opacity-0"}`}>
+            <p className="truncate font-sans text-base font-semibold tracking-tight text-navy">
               Sheel Waterproofing
-            </h1>
+            </p>
+            <p className="truncate font-sans text-xs text-muted-foreground">Inventory</p>
           </div>
-          <div className="flex items-center gap-2 flex-shrink-0">
-            {/* Mobile close button */}
-            {isMobile && (
+          <div className="flex flex-shrink-0 items-center gap-1">
+            {isMobile ? (
               <Button
                 variant="ghost"
                 size="icon"
-                className="text-gray-300 hover:text-white hover:bg-gray-700 dark:hover:bg-gray-600 h-8 w-8"
+                className={cn("h-8 w-8", sidebarChromeHoverClass)}
                 onClick={() => setIsOpen(false)}
               >
                 <X className="h-4 w-4" />
               </Button>
-            )}
-            {/* Desktop collapse button */}
-            {!isMobile && (
+            ) : (
               <Button
                 variant="ghost"
                 size="icon"
-                className="text-gray-300 hover:text-white hover:bg-gray-700 dark:hover:bg-gray-600 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 h-8 w-8"
+                className={cn("h-8 w-8", sidebarChromeHoverClass)}
                 onClick={() => setIsOpen(false)}
               >
                 <ChevronLeft className="h-4 w-4" />
@@ -102,37 +94,40 @@ export default function Sidebar({ activeTab, setActiveTab, isOpen, setIsOpen, is
           </div>
         </div>
 
-        {/* Navigation - Scrollable */}
-        <nav className="flex-1 overflow-y-auto overflow-x-hidden">
-          <div className="px-3 py-4">
+        <nav className="flex-1 overflow-x-hidden overflow-y-auto px-3 py-3">
+          <div className="space-y-1">
             {filteredMenuItems.map((item) => {
               const Icon = item.icon
+              const isActive = activeTab === item.id
               return (
-                <Button
+                <button
                   key={item.id}
-                  variant={activeTab === item.id ? "default" : "ghost"}
-                  className={`w-full justify-start mb-2 transition-all duration-200 ${activeTab === item.id
-                      ? "text-white shadow-lg bg-gray-700 hover:bg-gray-600"
-                      : "text-gray-300 hover:text-white hover:bg-gray-700 dark:hover:bg-gray-600"
-                    }`}
+                  type="button"
                   onClick={() => handleMenuItemClick(item.id)}
+                  className={cn(
+                    sidebarNavItemClass,
+                    isActive ? sidebarNavItemActiveClass : sidebarNavItemInactiveClass,
+                  )}
                 >
-                  <Icon className="mr-3 h-5 w-5" />
+                  <Icon
+                    className={
+                      isActive ? sidebarNavIconActiveClass : sidebarNavIconInactiveClass
+                    }
+                  />
                   {item.label}
-                </Button>
+                </button>
               )
             })}
           </div>
         </nav>
 
-        {/* User Profile - Fixed at bottom */}
-        <div className="flex-shrink-0 p-4 border-t border-gray-700 dark:border-gray-600">
-          <div className="bg-gray-800 dark:bg-gray-700 backdrop-blur-sm rounded-lg p-4 border border-gray-600 dark:border-gray-500">
-            <p className="text-sm font-medium text-white">{user?.name || "User Name"}</p>
-            <p className="text-xs text-gray-300 capitalize">{user?.role || "guest"}</p>
+        <div className="flex-shrink-0 border-t border-border bg-muted/50 p-3">
+          <div className="rounded-md border border-border bg-card px-3 py-2.5">
+            <p className="truncate font-sans text-sm font-medium text-navy">{user?.name || "User"}</p>
+            <p className="truncate font-sans text-xs capitalize text-muted-foreground">{user?.role || "guest"}</p>
           </div>
         </div>
-      </div>
+      </aside>
     </>
   )
 }

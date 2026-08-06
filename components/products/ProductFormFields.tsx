@@ -11,11 +11,11 @@ import type { ProductFormData, WeightUnit } from "./types"
 import { normalizeWeightUnit } from "./utils"
 import { useMemo } from "react"
 
-const labelClass = "text-sm font-semibold text-gray-700 dark:text-gray-300"
+const labelClass = "text-sm font-semibold text-navy"
 const inputClass =
-  "border-2 focus:border-slate-500 transition-colors dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
+  "border border-border bg-card text-navy transition-colors focus:border-navy/40"
 const selectTriggerClass = inputClass
-const errorTextClass = "text-sm text-red-600 dark:text-red-400"
+const errorTextClass = "text-sm text-navy"
 
 interface ProductFormFieldsProps {
   idPrefix?: string
@@ -72,14 +72,12 @@ export default function ProductFormFields({
   const weightUnit = normalizeWeightUnit(formData.weightUnit)
   const weightUnitLabel = weightUnit === "liter" ? "Liter" : "kg"
   const fieldErrorClass = (field: string) =>
-    fieldErrors[field] ? "border-red-500 focus:border-red-500 dark:border-red-500" : ""
+    fieldErrors[field] ? "border-navy focus:border-navy" : ""
   const renderFieldError = (field: string) =>
     fieldErrors[field] ? <p className={errorTextClass}>{fieldErrors[field]}</p> : null
 
   const selectContentClass =
-    variant === "quick"
-      ? "z-[110] dark:bg-gray-800 dark:border-gray-700"
-      : "dark:bg-gray-800 dark:border-gray-700"
+    variant === "quick" ? "z-[110] bg-popover border-border" : "bg-popover border-border"
 
   const supplierOptions = useMemo(() => {
     if (!formData.supplier) return suppliers

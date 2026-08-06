@@ -28,7 +28,7 @@ export default function ProductApprovalDialog({
 }: ProductApprovalDialogProps) {
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto p-5 sm:p-6">
         <DialogHeader>
           <DialogTitle>Submit for Approval</DialogTitle>
           <DialogDescription>Please provide a reason for this product request</DialogDescription>

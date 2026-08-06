@@ -35,9 +35,9 @@ import { useMemo, useState } from "react"
 import { MaterialDatePicker } from "@/components/ui/MaterialDatePicker"
 
 const inputClass =
-  "h-8 px-2 py-1 text-xs border focus:border-slate-500 transition-colors dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
+  "h-8 px-2 py-1 text-xs border border-border bg-background focus:border-navy/50 focus-visible:ring-1 focus-visible:ring-navy/20"
 const selectClass = `${inputClass} min-h-8`
-const errorTextClass = "text-[11px] leading-tight text-red-600 dark:text-red-400 mt-0.5"
+const errorTextClass = "text-[11px] leading-tight text-navy mt-0.5"
 const columns = [
   { label: "Date", width: "10%" },
   { label: "Type", width: "7%" },

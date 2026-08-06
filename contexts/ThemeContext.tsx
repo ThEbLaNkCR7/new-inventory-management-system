@@ -56,6 +56,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
     // Update data attribute for better CSS targeting
     root.setAttribute("data-theme", effectiveTheme)
+    root.style.colorScheme = effectiveTheme
 
     // Save to localStorage
     localStorage.setItem("theme", theme)
@@ -73,6 +74,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       root.classList.remove("light", "dark")
       root.classList.add(effectiveTheme)
       root.setAttribute("data-theme", effectiveTheme)
+      root.style.colorScheme = effectiveTheme
       setActualTheme(effectiveTheme)
     }
 
@@ -80,19 +82,11 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     return () => mediaQuery.removeEventListener("change", handleChange)
   }, [theme, mounted])
 
-  // Prevent hydration mismatch by not rendering until mounted
-  if (!mounted) {
-    return (
-      <div 
-        className="min-h-screen bg-background text-foreground"
-        style={{ visibility: "hidden" }}
-      >
-        {children}
-      </div>
-    )
-  }
-
-  return <ThemeContext.Provider value={{ theme, setTheme, actualTheme }}>{children}</ThemeContext.Provider>
+  return (
+    <ThemeContext.Provider value={{ theme, setTheme, actualTheme }}>
+      {children}
+    </ThemeContext.Provider>
+  )
 }
 
 export function useTheme() {

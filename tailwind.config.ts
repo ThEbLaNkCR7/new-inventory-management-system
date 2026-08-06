@@ -11,10 +11,24 @@ const config: Config = {
   theme: {
   	extend: {
   		fontFamily: {
-  			outfit: ['var(--font-outfit)', 'Outfit', 'system-ui', 'sans-serif'],
-  			sans: ['var(--font-outfit)', 'Outfit', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'sans-serif'],
+  			plex: ['var(--font-plex)', 'IBM Plex Sans', 'system-ui', 'sans-serif'],
+  			outfit: ['var(--font-plex)', 'IBM Plex Sans', 'system-ui', 'sans-serif'],
+  			sans: ['var(--font-plex)', 'IBM Plex Sans', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
   		},
   		colors: {
+			/* Monochrome ink — flips with theme via CSS variables */
+			brand: {
+				DEFAULT: 'hsl(var(--brand))',
+				foreground: 'hsl(var(--brand-foreground))',
+				light: 'hsl(var(--brand-light))',
+				dark: 'hsl(var(--brand-dark))',
+			},
+			navy: {
+				DEFAULT: 'hsl(var(--navy))',
+				foreground: 'hsl(var(--navy-foreground))',
+				light: 'hsl(var(--navy-light))',
+				dark: 'hsl(var(--navy-dark))',
+			},
   			background: 'hsl(var(--background))',
   			foreground: 'hsl(var(--foreground))',
   			card: {

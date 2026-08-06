@@ -39,12 +39,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return
       }
 
+      const controller = new AbortController()
+      const timeoutId = window.setTimeout(() => controller.abort(), 8000)
+
       const response = await fetch('/api/auth', {
         method: 'GET',
         headers: {
           Authorization: `Bearer ${token}`,
         },
+        signal: controller.signal,
       })
+      window.clearTimeout(timeoutId)
 
       if (response.ok) {
         const data = await response.json()
