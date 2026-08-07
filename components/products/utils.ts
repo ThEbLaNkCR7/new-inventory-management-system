@@ -146,7 +146,7 @@ export function groupProductsByName(filteredProducts: Product[]): ProductGroup[]
         ...variants.map((v) => new Date(v.createdAt || 0).getTime()),
       ),
     }))
-    .sort((a, b) => b.latestCreatedAt - a.latestCreatedAt)
+    .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }))
 }
 
 export function exportAllProductsToCSV(products: Product[]): void {

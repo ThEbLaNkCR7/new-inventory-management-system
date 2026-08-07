@@ -11,6 +11,12 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { MaterialDatePicker } from "@/components/ui/MaterialDatePicker"
@@ -22,7 +28,8 @@ import { usePersistentForm } from "@/contexts/FormPersistenceContext"
 import { Sale, useInventory } from "@/contexts/InventoryContext"
 import { useBatch } from "@/contexts/BatchContext"
 import { useSaleChange } from "@/hooks/useSaleChange"
-import { cn } from "@/lib/utils"
+import { cn, formatNepaliDateForTable, toTitleCase } from "@/lib/utils"
+import { exportStyledTableToExcel } from "@/utils/exportUtils"
 import {
   formActionLinkClass,
   formDescriptionClass,
@@ -32,12 +39,10 @@ import {
   formDialogHeaderClass,
   formErrorTextClass,
   formFieldClass,
-  formFileInputClass,
   formGridClass,
   formHintClass,
   formInputClass,
   formItemCardClass,
-  formItemLabelClass,
   formLabelClass,
   formSectionClass,
   formSectionTitleClass,
@@ -45,27 +50,37 @@ import {
   formTitleClass,
 } from "@/lib/form-styles"
 import {
+  Calendar,
   CheckCircle,
+  ChevronDown,
   Clock,
+  Download,
+  FileSpreadsheet,
+  FileText,
   ImagePlus,
   Loader2,
   Package,
   Plus,
-  Receipt,
+  Printer,
   Tags,
   Trash2,
   Users,
+  X,
 } from "lucide-react"
-import React, { useEffect, useState } from "react"
+import React, { useEffect, useRef, useState } from "react"
 import { formatProductNetWeight } from "@/components/products/utils"
-import { mapSaleItemErrorsToEditFields, validateSaleFormData } from "./utils"
+import {
+  getSaleTotal,
+  mapSaleItemErrorsToEditFields,
+  validateSaleFormData,
+} from "./utils"
 import { createBatchTrackingContext, getBatchItemRemaining, getSoldQuantityForBatchItem } from "@/components/batches/utils"
 import ClientHistoryDialog from "./ClientHistoryDialog"
 import AddClientDialog from "@/components/clients/AddClientDialog"
 import DeleteSaleDialog from "./DeleteSaleDialog"
 import EditSaleDialog from "./EditSaleDialog"
 import ProductHistoryDialog from "./ProductHistoryDialog"
-import SalesTable from "./SalesTable"
+import SalesTable, { type SalesTableHandle } from "./SalesTable"
 import ViewSaleDialog from "./ViewSaleDialog"
 
 type SaleItem = {
@@ -78,6 +93,15 @@ type ItemKey = keyof SaleItem
 const inputClass = formInputClass
 const selectTriggerClass = formSelectTriggerClass
 const errorTextClass = formErrorTextClass
+/** Add Sale form only — labels unbold, between input (sm) and section title (base) */
+const addSaleLabelClass = cn(formLabelClass, "!text-[15px] !font-normal leading-5")
+const addSaleBodyClass = cn(formDialogBodyClass, "gap-5")
+const addSaleSectionClass = cn(formSectionClass, "gap-2.5")
+const addSaleItemClass = cn(formItemCardClass, "gap-2")
+/** Equal two-column rows — keeps Sale Type/Batch, Client/Type, Qty/Price, Payment/Date consistent */
+const addSalePairClass = formGridClass
+const addSaleMultiGridClass =
+  "grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1fr)_7rem_8.5rem_2.5rem] sm:gap-x-3 sm:gap-y-2"
 
 export default function SalesPage() {
   const { user } = useAuth()
@@ -85,6 +109,7 @@ export default function SalesPage() {
   const { batches } = useBatch()
   const { requestSaleChange } = useSaleChange()
   const { toast } = useToast()
+  const salesTableRef = useRef<SalesTableHandle>(null)
   const [searchTerm, setSearchTerm] = useState("")
   const [saleTypeFilter, setSaleTypeFilter] = useState<"all" | "client" | "site">("all")
   const [paymentStatusFilter, setPaymentStatusFilter] = useState<"all" | "Pending" | "Received">("all")
@@ -224,14 +249,25 @@ export default function SalesPage() {
   )
 
   const clientOptions = React.useMemo(() => {
-    if (!formData.client) return clients
-    const exists = clients.some((client) => client.name === formData.client)
-    if (exists) return clients
+    // Deduplicate by name so Radix Select never gets duplicate values
+    // (duplicate values portal the label into SelectValue more than once).
+    const uniqueByName = Array.from(
+      new Map(clients.map((client) => [client.name, client])).values(),
+    )
+    if (!formData.client) return uniqueByName
+    const exists = uniqueByName.some((client) => client.name === formData.client)
+    if (exists) return uniqueByName
     return [
-      ...clients,
+      ...uniqueByName,
       { id: `pending-${formData.client}`, name: formData.client },
     ]
   }, [clients, formData.client])
+
+  const selectedClientId = React.useMemo(() => {
+    if (!formData.client) return undefined
+    const match = clientOptions.find((client) => client.name === formData.client)
+    return match ? String(match.id) : `pending-${formData.client}`
+  }, [clientOptions, formData.client])
 
   useEffect(() => {
     if (showSuccessAlert) {
@@ -330,7 +366,11 @@ export default function SalesPage() {
       setIsAddClientDialogOpen(true)
       return
     }
-    updateForm({ client: value, customClient: "" })
+    const selected = clientOptions.find(
+      (client) => String(client.id) === String(value),
+    )
+    if (!selected?.name) return
+    updateForm({ client: selected.name, customClient: "" })
   }
 
   const handleBatchChange = (value: string) => {
@@ -367,6 +407,61 @@ export default function SalesPage() {
     setTotalSteps(total)
   }
 
+  const buildSalesExportRows = (salesData: any[]) =>
+    salesData.flatMap((sale) => {
+      const items =
+        Array.isArray(sale.items) && sale.items.length > 0
+          ? sale.items
+          : [
+              {
+                productName: sale.productName || "",
+                quantitySold: sale.quantitySold || 0,
+                salePrice: sale.salePrice || 0,
+              },
+            ]
+
+      const saleType =
+        sale.saleType === "site"
+          ? "Site"
+          : sale.saleType === "client"
+            ? "Client"
+            : sale.saleType || "Client"
+
+      return items.map((item: any) => {
+        const quantity = Number(item.quantitySold) || 0
+        const unitPrice = Number(item.salePrice) || 0
+        return {
+          date: formatNepaliDateForTable(sale.saleDate) || sale.saleDate || "",
+          product: item.productName || "",
+          client: sale.client || "",
+          clientType: sale.clientType || "",
+          saleType,
+          project: sale.projectName || "",
+          paymentStatus: sale.paymentStatus || "Pending",
+          quantitySold: quantity,
+          unitPrice,
+          lineTotal: quantity * unitPrice,
+          vatIncluded: sale.isVat ? "Yes" : "No",
+          billUrl: sale.billUrl || "",
+        }
+      })
+    })
+
+  const salesExportColumns = [
+    { key: "date", header: "Date", width: 18 },
+    { key: "product", header: "Product", width: 28 },
+    { key: "client", header: "Client", width: 22 },
+    { key: "clientType", header: "Client Type", width: 14 },
+    { key: "saleType", header: "Sale Type", width: 12 },
+    { key: "project", header: "Project", width: 18 },
+    { key: "paymentStatus", header: "Payment Status", width: 14 },
+    { key: "quantitySold", header: "Quantity Sold", width: 14 },
+    { key: "unitPrice", header: "Unit Price", width: 12 },
+    { key: "lineTotal", header: "Line Total", width: 12 },
+    { key: "vatIncluded", header: "VAT Included", width: 12 },
+    { key: "billUrl", header: "Bill URL", width: 28 },
+  ]
+
   const exportSalesToCSV = (salesData: any[]) => {
     if (!salesData || salesData.length === 0) {
       toast({
@@ -377,29 +472,128 @@ export default function SalesPage() {
       return
     }
 
-    const headers = ["Date", "Product", "Client", "Client Type", "Quantity Sold", "Unit Price", "Total Value", "Bill URL"]
+    const rows = buildSalesExportRows(salesData)
+    const escapeCsv = (value: unknown) => {
+      const text = value == null ? "" : String(value)
+      return `"${text.replace(/"/g, '""')}"`
+    }
 
-    const rows = salesData.map((sale) => [
-      sale.saleDate,
-      sale.productName,
-      sale.client,
-      sale.clientType,
-      sale.quantitySold,
-      sale.salePrice,
-      sale.quantitySold * sale.salePrice,
-      sale.billUrl || "",
-    ])
+    const csvContent = [
+      salesExportColumns.map((col) => col.header),
+      ...rows.map((row) =>
+        salesExportColumns.map((col) => row[col.key as keyof typeof row]),
+      ),
+    ]
+      .map((row) => row.map(escapeCsv).join(","))
+      .join("\n")
 
-    const csvContent = [headers, ...rows].map((row) => row.map((v) => `"${v}"`).join(",")).join("\n")
-
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" })
+    const blob = new Blob(["\uFEFF" + csvContent], {
+      type: "text/csv;charset=utf-8;",
+    })
     const url = URL.createObjectURL(blob)
 
     const link = document.createElement("a")
     link.href = url
     link.download = `sales_${new Date().toISOString().split("T")[0]}.csv`
+    link.style.visibility = "hidden"
+    document.body.appendChild(link)
     link.click()
+    document.body.removeChild(link)
     URL.revokeObjectURL(url)
+  }
+
+  const exportSalesToExcel = async (salesData: any[]) => {
+    if (!salesData || salesData.length === 0) {
+      toast({
+        title: "No sales data",
+        description: "There are no sales to export.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    // Match Sales table display: SN | Client | Payment Status | Items | Date | Total
+    const rows = salesData.map((sale, index) => {
+      const productNames = (sale.items || [])
+        .map((item: any) => item.productName)
+        .filter(Boolean)
+        .map((name: string) => toTitleCase(name))
+
+      const items =
+        productNames.length > 0
+          ? productNames.join(", ")
+          : sale.productName
+            ? toTitleCase(sale.productName)
+            : "—"
+
+      const itemCount =
+        Array.isArray(sale.items) && sale.items.length > 0
+          ? sale.items.length
+          : sale.productName
+            ? 1
+            : 0
+
+      return {
+        sn: index + 1,
+        client: {
+          richText: [
+            {
+              text: `${toTitleCase(sale.client)}\n`,
+              font: { name: "Calibri", size: 11, bold: true, color: { argb: "FF171717" } },
+            },
+            {
+              text: `${itemCount} ${itemCount === 1 ? "item" : "items"}`,
+              font: { name: "Calibri", size: 9, color: { argb: "FF71717A" } },
+            },
+          ],
+        },
+        paymentStatus: sale.paymentStatus || "Pending",
+        items,
+        date: formatNepaliDateForTable(sale.saleDate) || sale.saleDate || "",
+        total: getSaleTotal(sale),
+      }
+    })
+
+    const grandTotal = rows.reduce(
+      (sum, row) => sum + (typeof row.total === "number" ? row.total : 0),
+      0,
+    )
+
+    const filename = `sales_${new Date().toISOString().split("T")[0]}`
+    try {
+      await exportStyledTableToExcel(rows, filename, {
+        sheetName: "Sales",
+        title: "Sales Transactions",
+        sideMargin: 4,
+        columns: [
+          { key: "sn", header: "SN", width: 6, align: "center" },
+          { key: "client", header: "Client", width: 24, wrap: true },
+          { key: "paymentStatus", header: "Payment Status", width: 16 },
+          { key: "items", header: "Items", width: 40, wrap: true },
+          { key: "date", header: "Date", width: 16 },
+          { key: "total", header: "Total (Rs)", width: 14, align: "right", bold: true },
+        ],
+        totalsRow: {
+          sn: "",
+          client: "Grand Total",
+          paymentStatus: "",
+          items: "",
+          date: "",
+          total: grandTotal,
+        },
+      })
+      toast({
+        title: "Exported",
+        description: "Sales downloaded as Excel file.",
+      })
+    } catch (error) {
+      console.error(error)
+      toast({
+        title: "Export failed",
+        description: "Could not create the Excel file.",
+        variant: "destructive",
+      })
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -842,7 +1036,6 @@ export default function SalesPage() {
       <div className="relative">
         <div className="space-y-2">
           <h1 className="section-title">Sales</h1>
-          <p className="page-desc">Manage sales transactions and revenue tracking</p>
           {user?.role !== "admin" && (
             <div className="mt-2">
               <Badge variant="outline" className="bg-blue-50 text-navy border-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-700">
@@ -853,13 +1046,38 @@ export default function SalesPage() {
           )}
         </div>
         <div className="absolute top-0 right-0 flex space-x-3">
-          <Button
-            type="button"
-            onClick={() => exportSalesToCSV(filteredSales)}
-            className="px-4 py-2"
-          >
-            Export Sales CSV
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button type="button" variant="neutralOutline" className="gap-1.5 px-4 py-2">
+                <Download className="h-4 w-4" />
+                Export
+                <ChevronDown className="h-4 w-4 opacity-70" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="min-w-[11rem]">
+              <DropdownMenuItem
+                className="cursor-pointer gap-2"
+                onClick={() => exportSalesToCSV(filteredSales)}
+              >
+                <FileText className="h-4 w-4" />
+                Export CSV
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="cursor-pointer gap-2"
+                onClick={() => exportSalesToExcel(filteredSales)}
+              >
+                <FileSpreadsheet className="h-4 w-4" />
+                Export Excel
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="cursor-pointer gap-2"
+                onClick={() => salesTableRef.current?.print()}
+              >
+                <Printer className="h-4 w-4" />
+                Print
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
             <DialogTrigger asChild>
               <Button
@@ -877,31 +1095,41 @@ export default function SalesPage() {
                 Add Sale
               </Button>
             </DialogTrigger>
-            <DialogContent className={formDialogClass}>
+            <DialogContent
+              className={cn(formDialogClass, "max-w-4xl sm:max-w-4xl")}
+            >
               <DialogHeader className={formDialogHeaderClass}>
-                <DialogTitle className={formTitleClass}>
-                  Add New Sale
+                <DialogTitle
+                  className={cn(
+                    formTitleClass,
+                    "mb-2 border-b border-border pb-2",
+                  )}
+                >
+                  Add New Sale Transaction
                 </DialogTitle>
-                <DialogDescription className={formDescriptionClass}>
-                  Record a new sale transaction
-                  {user?.role !== "admin" && (
-                    <span className="mt-2 flex items-center gap-2 rounded-md bg-muted px-3 py-2 font-sans text-sm font-medium leading-5 text-navy">
+                {user?.role !== "admin" ? (
+                  <DialogDescription className={formDescriptionClass}>
+                    <span className="flex items-center gap-2 rounded-md bg-muted px-3 py-2 font-sans text-sm font-medium leading-5 text-navy">
                       <Clock className="h-4 w-4 shrink-0 text-navy" />
                       Changes require admin approval
                     </span>
-                  )}
-                </DialogDescription>
+                  </DialogDescription>
+                ) : (
+                  <DialogDescription className="sr-only">
+                    Add a new sale transaction
+                  </DialogDescription>
+                )}
               </DialogHeader>
               <form onSubmit={handleSubmit}>
-                <div className={formDialogBodyClass}>
-                <section className={formSectionClass}>
+                <div className={addSaleBodyClass}>
+                <section className={addSaleSectionClass}>
                   <h3 className={formSectionTitleClass}>
                     <Tags className="h-4 w-4 text-navy/70" />
                     Sale details
                   </h3>
-                <div className={formGridClass}>
+                <div className={addSalePairClass}>
                   <div className={formFieldClass}>
-                    <Label htmlFor="saleType" className={formLabelClass}>Sale Type *</Label>
+                    <Label htmlFor="saleType" className={addSaleLabelClass}>Sale Type *</Label>
                     <Select
                       value={formData.saleType || "client"}
                       onValueChange={(value) =>
@@ -911,7 +1139,7 @@ export default function SalesPage() {
                         })
                       }
                     >
-                      <SelectTrigger className={cn(selectTriggerClass, fieldErrorClass("saleType"))}>
+                      <SelectTrigger className={cn(selectTriggerClass, "w-full", fieldErrorClass("saleType"))}>
                         <SelectValue placeholder="Select sale type" />
                       </SelectTrigger>
                       <SelectContent>
@@ -923,12 +1151,12 @@ export default function SalesPage() {
                   </div>
 
                   <div className={formFieldClass}>
-                    <Label htmlFor="batch" className={formLabelClass}>Batch (optional)</Label>
+                    <Label htmlFor="batch" className={addSaleLabelClass}>Batch (optional)</Label>
                     <Select
                       value={formData.batchId || "__none__"}
                       onValueChange={handleBatchChange}
                     >
-                      <SelectTrigger className={cn(selectTriggerClass, fieldErrorClass("batchId"))}>
+                      <SelectTrigger className={cn(selectTriggerClass, "w-full", fieldErrorClass("batchId"))}>
                         <SelectValue placeholder="No batch" />
                       </SelectTrigger>
                       <SelectContent>
@@ -949,132 +1177,410 @@ export default function SalesPage() {
                 </div>
                 </section>
 
-                <section className={formSectionClass}>
+                <section className={addSaleSectionClass}>
+                  <h3 className={formSectionTitleClass}>
+                    <Users className="h-4 w-4 text-navy/70" />
+                    Client
+                  </h3>
+                  <div className={addSalePairClass}>
+                    <div className={formFieldClass}>
+                      <Label htmlFor="client" className={addSaleLabelClass}>Client *</Label>
+                      <Select
+                        value={selectedClientId}
+                        onValueChange={handleClientChange}
+                      >
+                        <SelectTrigger className={cn(selectTriggerClass, "w-full", fieldErrorClass("client"))}>
+                          <SelectValue placeholder="Select client" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {clientOptions.map((client) => (
+                            <SelectItem key={client.id} value={String(client.id)}>
+                              {client.name}
+                            </SelectItem>
+                          ))}
+                          <SelectItem value="__new__">Add new client...</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      {renderFieldError("client")}
+                    </div>
+
+                    <div className={formFieldClass}>
+                      <Label htmlFor="clientType" className={addSaleLabelClass}>Client Type *</Label>
+                      <Select
+                        value={formData.clientType || undefined}
+                        onValueChange={(value) => updateForm({ clientType: value })}
+                      >
+                        <SelectTrigger className={cn(selectTriggerClass, "w-full", fieldErrorClass("clientType"))}>
+                          <SelectValue placeholder="Select client type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Individual">Individual</SelectItem>
+                          <SelectItem value="Company">Company</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      {renderFieldError("clientType")}
+                    </div>
+                  </div>
+
+                  {formData.saleType === "site" && (
+                    <div className={formFieldClass}>
+                      <Label htmlFor="projectName" className={addSaleLabelClass}>Project Name *</Label>
+                      <Input
+                        id="projectName"
+                        placeholder="Enter project name"
+                        value={formData.projectName || ""}
+                        onChange={(e) => updateForm({ projectName: e.target.value })}
+                        className={cn(inputClass, fieldErrorClass("projectName"))}
+                      />
+                      {renderFieldError("projectName")}
+                    </div>
+                  )}
+                </section>
+
+                <section className={addSaleSectionClass}>
                   <h3 className={formSectionTitleClass}>
                     <Package className="h-4 w-4 text-navy/70" />
-                    Products *
+                    Products
                   </h3>
 
-                  {formData.items.map((item: any, index: number) => {
-                    const selectedProduct = products.find(p => p.id === item.productId)
+                  {formData.items.length === 1 ? (
+                    <div className={addSaleItemClass}>
+                      {(() => {
+                        const index = 0
+                        const item = formData.items[0]
+                        const selectedProduct = products.find((p) => p.id === item.productId)
+                        return (
+                          <>
+                            <div className={formFieldClass}>
+                              <Label
+                                htmlFor={`add-sale-product-${index}`}
+                                className={addSaleLabelClass}
+                              >
+                                Product *
+                              </Label>
+                              <Select
+                                value={item.productId || undefined}
+                                onValueChange={(value) =>
+                                  updateItem(index, "productId", value)
+                                }
+                              >
+                                <SelectTrigger
+                                  id={`add-sale-product-${index}`}
+                                  className={cn(
+                                    selectTriggerClass,
+                                    "w-full",
+                                    fieldErrorClass(`items.${index}.productId`),
+                                  )}
+                                >
+                                  <SelectValue placeholder="Select product">
+                                    {selectedProduct
+                                      ? `${selectedProduct.name} (${formatProductNetWeight(selectedProduct)}) — Stock: ${selectedProduct.stockQuantity}`
+                                      : null}
+                                  </SelectValue>
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {filteredProducts.map((product) => {
+                                    const batchItem = selectedBatch?.items.find(
+                                      (entry) => entry.productId === product.id,
+                                    )
+                                    const batchContext =
+                                      formData.batchId && selectedBatch && batchItem
+                                        ? createBatchTrackingContext(
+                                            formData.batchId,
+                                            selectedBatch.batchNumber,
+                                            selectedBatch.items,
+                                            product,
+                                          )
+                                        : null
+                                    const remainingInBatch =
+                                      batchContext && batchItem
+                                        ? getBatchItemRemaining(
+                                            sales,
+                                            product.id,
+                                            batchItem.quantity,
+                                            batchContext,
+                                          )
+                                        : product.stockQuantity
+                                    return (
+                                      <SelectItem key={product.id} value={product.id}>
+                                        {product.name} ({formatProductNetWeight(product)}) — Stock:{" "}
+                                        {product.stockQuantity}
+                                        {formData.batchId
+                                          ? ` · Batch left: ${remainingInBatch}`
+                                          : ""}
+                                      </SelectItem>
+                                    )
+                                  })}
+                                </SelectContent>
+                              </Select>
+                              {renderFieldError(`items.${index}.productId`)}
+                            </div>
+                            <div className={addSalePairClass}>
+                              <div className={formFieldClass}>
+                                <Label
+                                  htmlFor={`add-sale-qty-${index}`}
+                                  className={addSaleLabelClass}
+                                >
+                                  Quantity *
+                                </Label>
+                                <Input
+                                  id={`add-sale-qty-${index}`}
+                                  type="number"
+                                  min={1}
+                                  placeholder="Qty"
+                                  value={item.quantitySold || ""}
+                                  onChange={(e) =>
+                                    updateItem(
+                                      index,
+                                      "quantitySold",
+                                      Number(e.target.value),
+                                    )
+                                  }
+                                  className={cn(
+                                    inputClass,
+                                    "w-full",
+                                    fieldErrorClass(`items.${index}.quantitySold`),
+                                  )}
+                                />
+                                {renderFieldError(`items.${index}.quantitySold`)}
+                              </div>
+                              <div className={formFieldClass}>
+                                <Label
+                                  htmlFor={`add-sale-price-${index}`}
+                                  className={addSaleLabelClass}
+                                >
+                                  Unit Price *
+                                </Label>
+                                <Input
+                                  id={`add-sale-price-${index}`}
+                                  type="number"
+                                  min={0}
+                                  step="0.01"
+                                  placeholder="Price"
+                                  value={item.salePrice || ""}
+                                  onChange={(e) =>
+                                    updateItem(
+                                      index,
+                                      "salePrice",
+                                      Number(e.target.value),
+                                    )
+                                  }
+                                  className={cn(
+                                    inputClass,
+                                    "w-full",
+                                    fieldErrorClass(`items.${index}.salePrice`),
+                                  )}
+                                />
+                                {renderFieldError(`items.${index}.salePrice`)}
+                              </div>
+                            </div>
+                            {selectedProduct &&
+                              formData.batchId &&
+                              selectedBatch &&
+                              (() => {
+                                const batchItem = selectedBatch.items.find(
+                                  (entry) => entry.productId === selectedProduct.id,
+                                )
+                                if (!batchItem) return null
+                                const batchContext = createBatchTrackingContext(
+                                  formData.batchId,
+                                  selectedBatch.batchNumber,
+                                  selectedBatch.items,
+                                  selectedProduct,
+                                )
+                                const sold = getSoldQuantityForBatchItem(
+                                  sales,
+                                  selectedProduct.id,
+                                  batchContext,
+                                )
+                                const remaining = getBatchItemRemaining(
+                                  sales,
+                                  selectedProduct.id,
+                                  batchItem.quantity,
+                                  batchContext,
+                                )
+                                return (
+                                  <p className={formHintClass}>
+                                    Batch: {sold} sold, {remaining} in stock
+                                  </p>
+                                )
+                              })()}
+                          </>
+                        )
+                      })()}
+                    </div>
+                  ) : (
+                    <div className={addSaleMultiGridClass}>
+                      <span className={cn(addSaleLabelClass, "hidden sm:block")}>
+                        Product *
+                      </span>
+                      <span className={cn(addSaleLabelClass, "hidden sm:block")}>
+                        Quantity *
+                      </span>
+                      <span className={cn(addSaleLabelClass, "hidden sm:block")}>
+                        Unit Price *
+                      </span>
+                      <span className="hidden sm:block" aria-hidden />
 
-                    return (
-                      <div key={index} className={formItemCardClass}>
-                        <div className="flex justify-between items-center">
-                          <span className={formItemLabelClass}>
-                            Item #{index + 1}
-                          </span>
+                      {formData.items.map((item: any, index: number) => {
+                        const selectedProduct = products.find(
+                          (p) => p.id === item.productId,
+                        )
+                        return (
+                          <React.Fragment key={index}>
+                            <div className="min-w-0">
+                              <Label
+                                htmlFor={`add-sale-product-${index}`}
+                                className={cn(addSaleLabelClass, "mb-1.5 sm:hidden")}
+                              >
+                                Product {index + 1} *
+                              </Label>
+                              <Select
+                                value={item.productId || undefined}
+                                onValueChange={(value) =>
+                                  updateItem(index, "productId", value)
+                                }
+                              >
+                                <SelectTrigger
+                                  id={`add-sale-product-${index}`}
+                                  className={cn(
+                                    selectTriggerClass,
+                                    "w-full",
+                                    fieldErrorClass(`items.${index}.productId`),
+                                  )}
+                                >
+                                  <SelectValue placeholder="Select product">
+                                    {selectedProduct
+                                      ? `${selectedProduct.name} (${formatProductNetWeight(selectedProduct)}) — Stock: ${selectedProduct.stockQuantity}`
+                                      : null}
+                                  </SelectValue>
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {filteredProducts.map((product) => {
+                                    const batchItem = selectedBatch?.items.find(
+                                      (entry) => entry.productId === product.id,
+                                    )
+                                    const batchContext =
+                                      formData.batchId && selectedBatch && batchItem
+                                        ? createBatchTrackingContext(
+                                            formData.batchId,
+                                            selectedBatch.batchNumber,
+                                            selectedBatch.items,
+                                            product,
+                                          )
+                                        : null
+                                    const remainingInBatch =
+                                      batchContext && batchItem
+                                        ? getBatchItemRemaining(
+                                            sales,
+                                            product.id,
+                                            batchItem.quantity,
+                                            batchContext,
+                                          )
+                                        : product.stockQuantity
+                                    return (
+                                      <SelectItem key={product.id} value={product.id}>
+                                        {product.name} ({formatProductNetWeight(product)}) —
+                                        Stock: {product.stockQuantity}
+                                        {formData.batchId
+                                          ? ` · Batch left: ${remainingInBatch}`
+                                          : ""}
+                                      </SelectItem>
+                                    )
+                                  })}
+                                </SelectContent>
+                              </Select>
+                              {renderFieldError(`items.${index}.productId`)}
+                            </div>
 
-                          {formData.items.length > 1 && (
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              className="h-7 gap-1 px-2 text-xs text-red-600 hover:bg-red-50 hover:text-red-700 dark:hover:bg-red-900/20"
-                              onClick={() => removeItem(index)}
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                              Remove
-                            </Button>
-                          )}
-                        </div>
-
-                        {/* PRODUCT SELECT */}
-                        <Select
-                          value={item.productId || undefined}
-                          onValueChange={(value) =>
-                            updateItem(index, "productId", value)
-                          }
-                        >
-                          <SelectTrigger className={cn(selectTriggerClass, fieldErrorClass(`items.${index}.productId`))}>
-                            <SelectValue placeholder="Select product">
-                              {selectedProduct
-                                ? `${selectedProduct.name} (${formatProductNetWeight(selectedProduct)}) — Stock: ${selectedProduct.stockQuantity}`
-                                : null}
-                            </SelectValue>
-                          </SelectTrigger>
-
-                          <SelectContent>
-                            {filteredProducts.map((product) => {
-                              const batchItem = selectedBatch?.items.find((entry) => entry.productId === product.id)
-                              const batchContext = formData.batchId && selectedBatch && batchItem
-                                ? createBatchTrackingContext(
-                                    formData.batchId,
-                                    selectedBatch.batchNumber,
-                                    selectedBatch.items,
-                                    product,
+                            <div className="min-w-0">
+                              <Label
+                                htmlFor={`add-sale-qty-${index}`}
+                                className={cn(addSaleLabelClass, "mb-1.5 sm:hidden")}
+                              >
+                                Quantity *
+                              </Label>
+                              <Input
+                                id={`add-sale-qty-${index}`}
+                                type="number"
+                                min={1}
+                                placeholder="Qty"
+                                value={item.quantitySold || ""}
+                                onChange={(e) =>
+                                  updateItem(
+                                    index,
+                                    "quantitySold",
+                                    Number(e.target.value),
                                   )
-                                : null
-                              const remainingInBatch = batchContext && batchItem
-                                ? getBatchItemRemaining(sales, product.id, batchItem.quantity, batchContext)
-                                : product.stockQuantity
+                                }
+                                className={cn(
+                                  inputClass,
+                                  "w-full",
+                                  fieldErrorClass(`items.${index}.quantitySold`),
+                                )}
+                              />
+                              {renderFieldError(`items.${index}.quantitySold`)}
+                            </div>
 
-                              return (
-                                <SelectItem key={product.id} value={product.id}>
-                                  {product.name} ({formatProductNetWeight(product)}) — Stock: {product.stockQuantity}
-                                  {formData.batchId ? ` · Batch left: ${remainingInBatch}` : ""}
-                                </SelectItem>
-                              )
-                            })}
-                          </SelectContent>
-                        </Select>
-                        {renderFieldError(`items.${index}.productId`)}
+                            <div className="min-w-0">
+                              <Label
+                                htmlFor={`add-sale-price-${index}`}
+                                className={cn(addSaleLabelClass, "mb-1.5 sm:hidden")}
+                              >
+                                Unit Price *
+                              </Label>
+                              <Input
+                                id={`add-sale-price-${index}`}
+                                type="number"
+                                min={0}
+                                step="0.01"
+                                placeholder="Price"
+                                value={item.salePrice || ""}
+                                onChange={(e) =>
+                                  updateItem(
+                                    index,
+                                    "salePrice",
+                                    Number(e.target.value),
+                                  )
+                                }
+                                className={cn(
+                                  inputClass,
+                                  "w-full",
+                                  fieldErrorClass(`items.${index}.salePrice`),
+                                )}
+                              />
+                              {renderFieldError(`items.${index}.salePrice`)}
+                            </div>
 
-                        {/* QUANTITY + PRICE */}
-                        <div className="grid grid-cols-2 gap-3">
-                          <div className={formFieldClass}>
-                            <Input
-                              type="number"
-                              min={1}
-                              placeholder="Quantity *"
-                              value={item.quantitySold || ""}
-                              onChange={(e) =>
-                                updateItem(index, "quantitySold", Number(e.target.value))
-                              }
-                              className={cn(inputClass, fieldErrorClass(`items.${index}.quantitySold`))}
-                            />
-                            {renderFieldError(`items.${index}.quantitySold`)}
-                          </div>
+                            <div className="flex h-10 items-center justify-end sm:justify-center">
+                              <Button
+                                type="button"
+                                variant="neutralOutline"
+                                size="sm"
+                                title={`Remove product ${index + 1}`}
+                                aria-label={`Remove product ${index + 1}`}
+                                className="h-9 w-9 shrink-0 border-red-200 bg-red-50 p-0 text-red-600 shadow-none hover:border-red-300 hover:bg-red-100 hover:text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/40"
+                                onClick={() => removeItem(index)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </React.Fragment>
+                        )
+                      })}
+                    </div>
+                  )}
 
-                          <div className={formFieldClass}>
-                            <Input
-                              type="number"
-                              min={0}
-                              step="0.01"
-                              placeholder="Unit Price *"
-                              value={item.salePrice || ""}
-                              onChange={(e) =>
-                                updateItem(index, "salePrice", Number(e.target.value))
-                              }
-                              className={cn(inputClass, fieldErrorClass(`items.${index}.salePrice`))}
-                            />
-                            {renderFieldError(`items.${index}.salePrice`)}
-                          </div>
-                        </div>
-
-                        {selectedProduct && (
-                          <p className={formHintClass}>
-                            {formatProductNetWeight(selectedProduct)} — Stock: {selectedProduct.stockQuantity}
-                            {formData.batchId && selectedBatch && (() => {
-                              const batchItem = selectedBatch.items.find((entry) => entry.productId === selectedProduct.id)
-                              if (!batchItem) return null
-                              const batchContext = createBatchTrackingContext(
-                                formData.batchId,
-                                selectedBatch.batchNumber,
-                                selectedBatch.items,
-                                selectedProduct,
-                              )
-                              const sold = getSoldQuantityForBatchItem(sales, selectedProduct.id, batchContext)
-                              const remaining = getBatchItemRemaining(sales, selectedProduct.id, batchItem.quantity, batchContext)
-                              return ` · Batch: ${sold} sold, ${remaining} in stock`
-                            })()}
-                          </p>
-                        )}
-                      </div>
-                    )
-                  })}
-
-                  <Button type="button" variant="ghost" size="sm" className={formActionLinkClass} onClick={addItem}>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className={cn(
+                      formActionLinkClass,
+                      "self-start justify-start !font-normal italic",
+                    )}
+                    onClick={addItem}
+                  >
                     <Plus className="h-4 w-4 mr-1.5" />
                     Add another product
                   </Button>
@@ -1083,14 +1589,14 @@ export default function SalesPage() {
                 {formData.items?.[0]?.productId &&
                   selectedProductWeights.length > 1 && (
                     <div className={formFieldClass}>
-                      <Label htmlFor="netWeight" className={formLabelClass}>Net Weight (kg) *</Label>
+                      <Label htmlFor="netWeight" className={addSaleLabelClass}>Net Weight (kg) *</Label>
 
                       <Select
                         value={String(selectedProductWeights[0] || "")}
                         onValueChange={() => { }}
                         disabled
                       >
-                        <SelectTrigger>
+                        <SelectTrigger className={selectTriggerClass}>
                           <SelectValue placeholder="Select net weight" />
                         </SelectTrigger>
 
@@ -1105,87 +1611,61 @@ export default function SalesPage() {
                     </div>
                   )}
 
-                <section className={formSectionClass}>
+                <section className={addSaleSectionClass}>
                   <h3 className={formSectionTitleClass}>
-                    <Users className="h-4 w-4 text-navy/70" />
-                    Client & payment
+                    <CheckCircle className="h-4 w-4 text-navy/70" />
+                    Payment
                   </h3>
-                <div className={formGridClass}>
+                <div className={addSalePairClass}>
                   <div className={formFieldClass}>
-                    <Label htmlFor="client" className={formLabelClass}>Client *</Label>
-                    <Select
-                      value={formData.client || undefined}
-                      onValueChange={handleClientChange}
-                    >
-                      <SelectTrigger className={cn(selectTriggerClass, fieldErrorClass("client"))}>
-                        <SelectValue placeholder="Select client" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {clientOptions.map((client) => (
-                          <SelectItem key={client.id} value={client.name}>
-                            {client.name}
-                          </SelectItem>
-                        ))}
-                        <SelectItem value="__new__">Add new client...</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    {renderFieldError("client")}
-                  </div>
-
-                  <div className={formFieldClass}>
-                    <Label htmlFor="clientType" className={formLabelClass}>Client Type *</Label>
-                    <Select
-                      value={formData.clientType || undefined}
-                      onValueChange={(value) => updateForm({ clientType: value })}
-                    >
-                      <SelectTrigger className={cn(selectTriggerClass, fieldErrorClass("clientType"))}>
-                        <SelectValue placeholder="Select client type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Individual">Individual</SelectItem>
-                        <SelectItem value="Company">Company</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    {renderFieldError("clientType")}
-                  </div>
-                </div>
-
-                {formData.saleType === "site" && (
-                  <div className={formFieldClass}>
-                    <Label htmlFor="projectName" className={formLabelClass}>Project Name *</Label>
-                    <Input
-                      id="projectName"
-                      placeholder="Enter project name"
-                      value={formData.projectName || ""}
-                      onChange={(e) => updateForm({ projectName: e.target.value })}
-                      className={cn(inputClass, fieldErrorClass("projectName"))}
-                    />
-                    {renderFieldError("projectName")}
-                  </div>
-                )}
-
-                <div className={formGridClass}>
-                  <div className={formFieldClass}>
-                    <Label htmlFor="paymentStatus" className={formLabelClass}>Payment Status *</Label>
+                    <Label htmlFor="paymentStatus" className={addSaleLabelClass}>Payment Status *</Label>
                     <Select
                       value={formData.paymentStatus || "Pending"}
                       onValueChange={(value) =>
                         updateForm({ paymentStatus: value as "Pending" | "Received" })
                       }
                     >
-                      <SelectTrigger className={cn(selectTriggerClass, fieldErrorClass("paymentStatus"))}>
-                        <SelectValue placeholder="Select payment status" />
+                      <SelectTrigger
+                        className={cn(
+                          selectTriggerClass,
+                          "w-full",
+                          fieldErrorClass("paymentStatus"),
+                        )}
+                      >
+                        <SelectValue placeholder="Select payment status">
+                          <span
+                            className={cn(
+                              "inline-flex items-center gap-2",
+                              (formData.paymentStatus || "Pending") === "Received"
+                                ? "text-emerald-700 dark:text-emerald-400"
+                                : "text-amber-700 dark:text-amber-400",
+                            )}
+                          >
+                            {(formData.paymentStatus || "Pending") === "Received" ? (
+                              <CheckCircle className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+                            ) : (
+                              <Clock className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
+                            )}
+                            {formData.paymentStatus || "Pending"}
+                          </span>
+                        </SelectValue>
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="Pending">
-                          <span className="inline-flex items-center gap-2">
-                            <Clock className="h-3.5 w-3.5 text-navy" />
+                        <SelectItem
+                          value="Pending"
+                          className="text-amber-700 focus:bg-amber-50 focus:text-amber-900 dark:text-amber-400 dark:focus:bg-amber-900/25 dark:focus:text-amber-200"
+                        >
+                          <span className="inline-flex items-center gap-2 text-amber-700 dark:text-amber-400">
+                            <Clock className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
                             Pending
                           </span>
                         </SelectItem>
-                        <SelectItem value="Received">
-                          <span className="inline-flex items-center gap-2">
-                            <CheckCircle className="h-3.5 w-3.5 text-brand" />
+                        <SelectItem
+                          value="Received"
+                          className="text-emerald-700 focus:bg-emerald-50 focus:text-emerald-900 dark:text-emerald-400 dark:focus:bg-emerald-900/25 dark:focus:text-emerald-200"
+                        >
+                          <span className="inline-flex items-center gap-2 text-emerald-700 dark:text-emerald-400">
+                            <CheckCircle className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
                             Received
                           </span>
                         </SelectItem>
@@ -1195,29 +1675,29 @@ export default function SalesPage() {
                   </div>
 
                   <div className={formFieldClass}>
-                    <Label htmlFor="date" className={formLabelClass}>Sale Date *</Label>
-                    <MaterialDatePicker
-                      className={inputClass}
-                      value={formData.saleDate ? new Date(formData.saleDate) : undefined}
-                      onChange={(date) =>
-                        updateForm({
-                          saleDate: date ? date.toISOString().split("T")[0] : "",
-                        })
-                      }
-                    />
+                    <Label htmlFor="date" className={addSaleLabelClass}>Sale Date *</Label>
+                    <div className="relative">
+                      <MaterialDatePicker
+                        className={cn(
+                          selectTriggerClass,
+                          "w-full justify-start pr-9 shadow-sm",
+                        )}
+                        value={formData.saleDate ? new Date(formData.saleDate) : undefined}
+                        onChange={(date) =>
+                          updateForm({
+                            saleDate: date ? date.toISOString().split("T")[0] : "",
+                          })
+                        }
+                      />
+                      <Calendar className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground opacity-50" />
+                    </div>
                     {renderFieldError("saleDate")}
                   </div>
                 </div>
-                </section>
 
-                <section className={formSectionClass}>
-                  <h3 className={formSectionTitleClass}>
-                    <Receipt className="h-4 w-4 text-navy/70" />
-                    Options
-                  </h3>
-                <div className={formGridClass}>
+                <div className={cn(formGridClass, "sm:items-end")}>
                   <div className={formFieldClass}>
-                    <Label className={formLabelClass}>Include VAT? *</Label>
+                    <Label className={addSaleLabelClass}>Include VAT? *</Label>
                     <div className="flex h-10 items-center gap-5">
                       <div className="flex items-center">
                         <input
@@ -1251,18 +1731,57 @@ export default function SalesPage() {
                   </div>
 
                   <div className={formFieldClass}>
-                    <Label htmlFor="bill" className={formLabelClass}>
-                      <span className="inline-flex items-center gap-1.5">
-                        <ImagePlus className="h-3.5 w-3.5 text-muted-foreground" />
-                        Upload Bill Image
-                      </span>
+                    <Label htmlFor="bill" className={addSaleLabelClass}>
+                      Upload Bill Image
                     </Label>
+                    <div className="flex h-10 min-w-0 items-center gap-2 overflow-hidden">
+                      <Button
+                        type="button"
+                        variant="neutralOutline"
+                        className="h-10 shrink-0 gap-2 border-primary/30 bg-primary/5 px-3 text-primary shadow-none hover:border-primary/50 hover:bg-primary/10 hover:text-primary"
+                        onClick={() => document.getElementById("bill")?.click()}
+                      >
+                        <ImagePlus className="h-4 w-4" />
+                        <span className="hidden sm:inline">Choose bill image</span>
+                        <span className="sm:hidden">Choose</span>
+                      </Button>
+                      {billImage ? (
+                        <div className="flex min-w-0 flex-1 items-center gap-0.5 overflow-hidden">
+                          <span
+                            className="min-w-0 truncate text-sm text-navy"
+                            title={billImage.name}
+                          >
+                            {billImage.name}
+                          </span>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            title="Clear file"
+                            className="h-7 w-7 shrink-0 p-0 text-muted-foreground hover:bg-red-50 hover:text-red-600"
+                            onClick={() => {
+                              setBillImage(null)
+                              const input = document.getElementById(
+                                "bill",
+                              ) as HTMLInputElement | null
+                              if (input) input.value = ""
+                            }}
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <span className="min-w-0 truncate text-sm !text-muted-foreground/50">
+                          No file chosen
+                        </span>
+                      )}
+                    </div>
                     <input
                       type="file"
                       id="bill"
                       accept="image/*"
                       onChange={(e) => setBillImage(e.target.files?.[0] || null)}
-                      className={formFileInputClass}
+                      className="sr-only"
                     />
                   </div>
                 </div>
@@ -1270,7 +1789,12 @@ export default function SalesPage() {
                 </div>
 
                 <div className={formDialogFooterClass}>
-                  <Button type="button" variant="neutralOutline" onClick={clearForm}>
+                  <Button
+                    type="button"
+                    variant="neutralOutline"
+                    onClick={clearForm}
+                    className="hover:border-red-300 hover:bg-red-50 hover:text-red-600 dark:hover:border-red-500 dark:hover:bg-red-900/20 dark:hover:text-red-400"
+                  >
                     Cancel
                   </Button>
                   <Button type="submit">
@@ -1290,6 +1814,7 @@ export default function SalesPage() {
 
       {/* Sales Table Component */}
       <SalesTable
+        ref={salesTableRef}
         filteredSales={filteredSales}
         activeTab={activeTab}
         onActiveTabChange={setActiveTab}

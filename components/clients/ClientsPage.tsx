@@ -632,10 +632,10 @@ export default function ClientsPage() {
           </div>
         </CardHeader>
         <CardContent className="p-0">
-          <div className="overflow-x-auto border-t border-border">
+          <div className="overflow-x-auto">
             <Table>
               <TableHeader>
-                <TableRow className="bg-muted/80 hover:bg-muted/60">
+                <TableRow className="border-0">
                   <TableHead>Client Name</TableHead>
                   <TableHead>Contact</TableHead>
                   <TableHead>Payment</TableHead>

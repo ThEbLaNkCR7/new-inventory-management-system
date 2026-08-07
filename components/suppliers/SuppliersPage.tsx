@@ -492,10 +492,10 @@ export default function SuppliersPage() {
           </div>
         </CardHeader>
         <CardContent className="p-0">
-          <div className="overflow-x-auto border-t border-border">
+          <div className="overflow-x-auto">
             <Table>
               <TableHeader>
-                <TableRow className="bg-muted/80 hover:bg-muted/60">
+                <TableRow className="border-0">
                   <TableHead>Supplier Name</TableHead>
                   <TableHead>Contact</TableHead>
                   <TableHead>Total Spent</TableHead>

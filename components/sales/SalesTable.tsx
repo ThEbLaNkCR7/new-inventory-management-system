@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -26,27 +25,36 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { formatNepaliDateForTable, toTitleCase } from "@/lib/utils";
+import { cn, formatNepaliDateForTable, toTitleCase } from "@/lib/utils";
 import {
   filterSelectClass,
   pageToolbarClass,
   searchIconClass,
   searchInputClass,
   searchWrapClass,
-  tableHeadRowClass,
   tabsCountBadgeClass,
   tabsListClass,
   tabsTriggerClass,
 } from "@/lib/ui-styles";
 import { usePagination } from "@/hooks/usePagination";
 import { Building2, ChevronDown, ChevronRight, Edit, Eye, Filter, Search, Trash2, TrendingUp, Users, X } from "lucide-react";
-import React from "react";
+import React, {
+  forwardRef,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+  useState,
+} from "react";
 import DataPagination from "@/components/ui/data-pagination";
-import { formatSaleTotal, getSaleTotal } from "./utils";
+import { formatSaleTotal, getSaleTotal, printSaleExactView } from "./utils";
 
 type SaleGroup = {
   client: string;
   sales: any[];
+};
+
+export type SalesTableHandle = {
+  print: () => void;
 };
 
 interface SalesTableProps {
@@ -72,25 +80,69 @@ interface SalesTableProps {
   onClientClick: (client: string) => void;
 }
 
-export default function SalesTable({
-  filteredSales,
-  activeTab,
-  onActiveTabChange,
-  salesCounts,
-  products,
-  searchTerm,
-  onSearchTermChange,
-  saleTypeFilter,
-  onSaleTypeFilterChange,
-  paymentStatusFilter,
-  onPaymentStatusFilterChange,
-  onView,
-  onEdit,
-  onDelete,
-  onProductClick: _onProductClick,
-  onClientClick: _onClientClick,
-}: SalesTableProps) {
-  const [expandedClients, setExpandedClients] = React.useState<Set<string>>(
+const headCellClass = "h-14 text-base font-semibold text-navy";
+
+function formatSaleProductNames(sale: any): string {
+  const names = (sale.items || [])
+    .map((item: any) => item.productName)
+    .filter(Boolean)
+    .map((name: string) => toTitleCase(name));
+  if (names.length === 0) {
+    return sale.productName ? toTitleCase(sale.productName) : "—";
+  }
+  return names.join(", ");
+}
+
+function getSaleItemCount(sale: any) {
+  return sale.items?.length || (sale.productName ? 1 : 0);
+}
+
+function renderItemsCell(sale: any) {
+  const names = formatSaleProductNames(sale);
+  return (
+    <div className="min-w-0 max-w-[7.5rem] overflow-hidden sm:max-w-[11rem] lg:max-w-none lg:min-w-[12rem]">
+      <p
+        className="whitespace-normal break-words text-sm font-normal leading-snug text-navy"
+        title={names !== "—" ? names : undefined}
+      >
+        {names}
+      </p>
+    </div>
+  );
+}
+
+const SalesTable = forwardRef<SalesTableHandle, SalesTableProps>(
+  function SalesTable(
+    {
+      filteredSales,
+      activeTab,
+      onActiveTabChange,
+      salesCounts,
+      products: _products,
+      searchTerm,
+      onSearchTermChange,
+      saleTypeFilter,
+      onSaleTypeFilterChange,
+      paymentStatusFilter,
+      onPaymentStatusFilterChange,
+      onView,
+      onEdit,
+      onDelete,
+      onProductClick: _onProductClick,
+      onClientClick: _onClientClick,
+    },
+    ref,
+  ) {
+  const printRootRef = useRef<HTMLDivElement>(null);
+  const printRestoreRef = useRef<{
+    expanded: Set<string>;
+    page: number;
+    pageSize: number;
+  } | null>(null);
+  const printStartedRef = useRef(false);
+  const [awaitingPrint, setAwaitingPrint] = useState(false);
+
+  const [expandedClients, setExpandedClients] = useState<Set<string>>(
     new Set(),
   );
 
@@ -116,10 +168,20 @@ export default function SalesTable({
       groups.set(clientKey, existing);
     });
 
-    return Array.from(groups.entries()).map(([client, sales]) => ({
-      client,
-      sales,
-    })) as SaleGroup[];
+    return Array.from(groups.entries())
+      .map(([client, sales]) => ({
+        client,
+        sales: [...sales].sort(
+          (a, b) =>
+            new Date(b.saleDate || 0).getTime() -
+            new Date(a.saleDate || 0).getTime(),
+        ),
+      }))
+      .sort((a, b) => {
+        const aLatest = new Date(a.sales[0]?.saleDate || 0).getTime()
+        const bLatest = new Date(b.sales[0]?.saleDate || 0).getTime()
+        return bLatest - aLatest
+      }) as SaleGroup[];
   }, [tabSales]);
 
   const hasActiveFilters =
@@ -147,11 +209,69 @@ export default function SalesTable({
     resetKey: `${searchTerm}|${activeTab}|${saleTypeFilter}|${paymentStatusFilter}`,
   });
 
-  const saleTypeBadge = (saleType?: string) => (
-    <Badge variant="outline" className="font-normal">
-      {saleType === "site" ? "Site" : "Client"}
-    </Badge>
-  );
+  useImperativeHandle(ref, () => ({
+    print: () => {
+      printRestoreRef.current = {
+        expanded: new Set(expandedClients),
+        page,
+        pageSize,
+      };
+      printStartedRef.current = false;
+      setExpandedClients(
+        new Set(groupedSales.map((group) => group.client)),
+      );
+      setPageSize(Math.max(groupedSales.length, 1));
+      setPage(1);
+      setAwaitingPrint(true);
+    },
+  }));
+
+  useEffect(() => {
+    if (!awaitingPrint) {
+      printStartedRef.current = false;
+      return;
+    }
+    if (printStartedRef.current) return;
+
+    const allExpanded = groupedSales.every(
+      (group) =>
+        group.sales.length === 1 || expandedClients.has(group.client),
+    );
+    const showingAll = pageSize >= groupedSales.length && page === 1;
+    if (!allExpanded || !showingAll) return;
+
+    printStartedRef.current = true;
+    const timer = window.setTimeout(() => {
+      if (!printRootRef.current) {
+        setAwaitingPrint(false);
+        return;
+      }
+      printSaleExactView(printRootRef.current, {
+        wide: true,
+        tableVariant: "sales",
+        onAfterPrint: () => {
+          const prev = printRestoreRef.current;
+          if (prev) {
+            setExpandedClients(prev.expanded);
+            setPage(prev.page);
+            setPageSize(prev.pageSize);
+          }
+          printRestoreRef.current = null;
+          setAwaitingPrint(false);
+        },
+      });
+    }, 80);
+
+    return () => window.clearTimeout(timer);
+  }, [
+    awaitingPrint,
+    expandedClients,
+    groupedSales,
+    page,
+    pageSize,
+    setPage,
+    setPageSize,
+  ]);
 
   const paymentStatusBadge = (paymentStatus?: string) => {
     const status = paymentStatus || "Pending";
@@ -159,7 +279,12 @@ export default function SalesTable({
     return (
       <Badge
         variant="secondary"
-        className="border border-border bg-card text-navy"
+        className={cn(
+          "border font-normal",
+          isReceived
+            ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-900/20 dark:text-emerald-300"
+            : "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-300",
+        )}
       >
         {status}
       </Badge>
@@ -176,104 +301,131 @@ export default function SalesTable({
   };
 
   const renderSaleActions = (sale: any) => (
-    <div className="flex items-center space-x-2">
+    <div className="flex items-center space-x-2 print:hidden" data-print-hide>
       <Button
         size="sm"
         variant="neutralOutline"
+        title="View"
         onClick={(e) => {
           e.stopPropagation();
           onView(sale);
         }}
-        className="text-muted-foreground hover:bg-muted hover:border-navy/30 hover:text-navy dark:hover:bg-muted dark:hover:border-white/30 transition-colors"
+        className="text-muted-foreground transition-colors hover:border-primary/40 hover:bg-primary/10 hover:text-primary"
       >
         <Eye className="h-4 w-4" />
       </Button>
       <Button
         size="sm"
         variant="neutralOutline"
+        title="Edit"
         onClick={(e) => {
           e.stopPropagation();
           onEdit(sale);
         }}
-        className="hover:bg-muted dark:hover:bg-muted transition-colors"
+        className="text-muted-foreground transition-colors hover:border-amber-400 hover:bg-amber-50 hover:text-amber-700 dark:hover:border-amber-500 dark:hover:bg-amber-900/20 dark:hover:text-amber-300"
       >
         <Edit className="h-4 w-4" />
       </Button>
       <Button
         size="sm"
         variant="neutralOutline"
+        title="Delete"
         onClick={(e) => {
           e.stopPropagation();
           onDelete(sale);
         }}
-        className="text-navy transition-colors hover:bg-muted hover:border-border"
+        className="text-muted-foreground transition-colors hover:border-red-400 hover:bg-red-50 hover:text-red-600 dark:hover:border-red-500 dark:hover:bg-red-900/20 dark:hover:text-red-400"
       >
         <Trash2 className="h-4 w-4" />
       </Button>
     </div>
   );
 
-  // Fixed expand slot so single-sale rows align with grouped rows
+  // Fixed expand slot — pl-6 aligns chevron with search icon
   const renderExpandCell = (content?: React.ReactNode) => (
-    <TableCell className="w-10 min-w-10 max-w-10 p-2 align-middle">
+    <TableCell
+      className="w-10 min-w-10 max-w-10 py-2 pl-6 pr-2 align-middle print:hidden"
+      data-print-hide
+    >
       <div className="flex h-7 w-7 shrink-0 items-center justify-center">
         {content}
       </div>
     </TableCell>
   );
 
-  const renderSaleDetailRow = (sale: any) => (
+  const renderSaleDetailRow = (sale: any) => {
+    const itemCount = getSaleItemCount(sale);
+    return (
     <TableRow
       key={sale.id}
-      className="hover:bg-muted/60 transition-colors duration-150"
+      className="bg-white transition-colors duration-150 hover:bg-muted/40 dark:bg-card"
     >
       {renderExpandCell()}
-      <TableCell className="pl-6 text-sm font-medium text-navy">
-        {sale.saleType === "site" && sale.projectName
-          ? sale.projectName
-          : "Client sale"}
+      <TableCell>
+        <div className="min-w-[100px]">
+          {sale.saleType === "site" && sale.projectName ? (
+            <p className="text-sm font-normal text-navy">
+              Material for : {sale.projectName}
+            </p>
+          ) : (
+            <p className="text-sm font-normal text-navy">Client sale</p>
+          )}
+          <p className="mt-0.5 text-[11px] tabular-nums text-muted-foreground">
+            {itemCount} {itemCount === 1 ? "item" : "items"}
+          </p>
+        </div>
       </TableCell>
-      <TableCell>{saleTypeBadge(sale.saleType)}</TableCell>
       <TableCell>{paymentStatusBadge(sale.paymentStatus)}</TableCell>
-      <TableCell className="text-sm font-medium tabular-nums text-navy">
-        {sale.items?.length || 0}
+      <TableCell className="min-w-0 max-w-[7.5rem] sm:max-w-[11rem] lg:max-w-none">
+        {renderItemsCell(sale)}
       </TableCell>
-      <TableCell className="text-sm font-medium tabular-nums text-navy">
-        Rs {formatSaleTotal(sale)}
-      </TableCell>
-      <TableCell className="text-sm font-medium text-navy">
+      <TableCell className="text-sm font-normal text-navy">
         {formatNepaliDateForTable(sale.saleDate)}
       </TableCell>
-      <TableCell>{renderSaleActions(sale)}</TableCell>
+      <TableCell className="whitespace-nowrap text-right text-sm font-semibold tabular-nums text-navy">
+        Rs {formatSaleTotal(sale)}
+      </TableCell>
+      <TableCell className="print:hidden" data-print-hide>
+        {renderSaleActions(sale)}
+      </TableCell>
     </TableRow>
-  );
+    );
+  };
 
   const renderSaleRows = () =>
     paginatedGroups.flatMap((group) => {
-      // Single sale — full detail row (same columns as image)
       if (group.sales.length === 1) {
         const sale = group.sales[0];
+        const itemCount = getSaleItemCount(sale);
         return [
           <TableRow
             key={group.client}
-            className="hover:bg-muted/60 transition-colors duration-150"
+            className="bg-white transition-colors duration-150 hover:bg-muted/40 dark:bg-card"
           >
             {renderExpandCell()}
-            <TableCell className="text-sm font-medium text-navy">
-              {toTitleCase(group.client)}
+            <TableCell>
+              <div className="min-w-[100px]">
+                <p className="text-sm font-semibold text-navy">
+                  {toTitleCase(group.client)}
+                </p>
+                <p className="mt-0.5 text-[11px] font-normal tabular-nums text-muted-foreground">
+                  {itemCount} {itemCount === 1 ? "item" : "items"}
+                </p>
+              </div>
             </TableCell>
-            <TableCell>{saleTypeBadge(sale.saleType)}</TableCell>
             <TableCell>{paymentStatusBadge(sale.paymentStatus)}</TableCell>
-            <TableCell className="text-sm font-medium tabular-nums text-navy">
-              {sale.items?.length || 0}
+            <TableCell className="min-w-0 max-w-[7.5rem] sm:max-w-[11rem] lg:max-w-none">
+              {renderItemsCell(sale)}
             </TableCell>
-            <TableCell className="text-sm font-medium tabular-nums text-navy">
-              Rs {formatSaleTotal(sale)}
-            </TableCell>
-            <TableCell className="text-sm font-medium text-navy">
+            <TableCell className="text-sm font-normal text-navy">
               {formatNepaliDateForTable(sale.saleDate)}
             </TableCell>
-            <TableCell>{renderSaleActions(sale)}</TableCell>
+            <TableCell className="whitespace-nowrap text-right text-sm font-semibold tabular-nums text-navy">
+              Rs {formatSaleTotal(sale)}
+            </TableCell>
+            <TableCell className="print:hidden" data-print-hide>
+              {renderSaleActions(sale)}
+            </TableCell>
           </TableRow>,
         ];
       }
@@ -286,7 +438,7 @@ export default function SalesTable({
       const headerRow = (
         <TableRow
           key={`group-${group.client}`}
-          className="bg-muted/20 hover:bg-muted/50 dark:hover:bg-muted/60 cursor-pointer transition-colors duration-150"
+          className="cursor-pointer bg-white transition-colors duration-150 hover:bg-muted/40 dark:bg-card dark:hover:bg-muted/60"
           onClick={() => toggleExpanded(group.client)}
         >
           {renderExpandCell(
@@ -308,7 +460,7 @@ export default function SalesTable({
           )}
           <TableCell>
             <div className="min-w-[140px]">
-              <p className="text-sm font-medium text-navy">
+              <p className="text-sm font-semibold text-navy">
                 {toTitleCase(group.client)}
               </p>
               <p className="mt-0.5 text-xs font-normal text-muted-foreground">
@@ -318,13 +470,12 @@ export default function SalesTable({
             </div>
           </TableCell>
           <TableCell />
+          <TableCell className="min-w-0 max-w-[7.5rem] sm:max-w-[11rem] lg:max-w-none" />
           <TableCell />
-          <TableCell />
-          <TableCell className="text-sm font-medium tabular-nums text-navy">
+          <TableCell className="whitespace-nowrap text-right text-sm font-semibold tabular-nums text-navy">
             Rs {groupTotal.toLocaleString()}
           </TableCell>
-          <TableCell />
-          <TableCell />
+          <TableCell className="print:hidden" data-print-hide />
         </TableRow>
       );
 
@@ -335,28 +486,41 @@ export default function SalesTable({
 
   const tableHeader = (
     <TableHeader>
-      <TableRow className={tableHeadRowClass}>
-        <TableHead className="w-10 min-w-10 max-w-10 p-2" />
-        <TableHead>Client</TableHead>
-        <TableHead>Sale Type</TableHead>
-        <TableHead>Payment Status</TableHead>
-        <TableHead>Items</TableHead>
-        <TableHead>Total</TableHead>
-        <TableHead>Date</TableHead>
-        <TableHead>Actions</TableHead>
+      <TableRow className="border-0">
+        <TableHead
+          className="h-14 w-10 min-w-10 max-w-10 py-2 pl-6 pr-2 print:hidden"
+          data-print-hide
+        />
+        <TableHead className={headCellClass}>Client</TableHead>
+        <TableHead className={headCellClass}>Payment Status</TableHead>
+        <TableHead className={headCellClass}>Items</TableHead>
+        <TableHead className={headCellClass}>Date</TableHead>
+        <TableHead className={cn(headCellClass, "text-right")}>Total</TableHead>
+        <TableHead className={cn(headCellClass, "print:hidden")} data-print-hide>
+          Actions
+        </TableHead>
       </TableRow>
     </TableHeader>
   );
 
-  return (
-    <Card className="overflow-hidden">
-      <CardHeader className="pb-3">
-        <CardTitle>Sales Transactions</CardTitle>
-        <CardDescription>
-          Track all sales transactions and revenue by client type
-        </CardDescription>
+  const emptyState = (message: string) => (
+    <div className="py-8 text-center animate-in fade-in-0 duration-300">
+      <p className="text-sm font-normal italic text-muted-foreground">{message}</p>
+    </div>
+  );
 
-        <div className={pageToolbarClass}>
+  return (
+    <Card className="overflow-hidden border border-border bg-card shadow-sm">
+      <div ref={printRootRef} className="sales-table-print-root">
+      <CardHeader className="px-3 pb-3 pt-5">
+        <CardTitle className="pl-3 font-semibold text-navy">
+          Sales Transactions
+          <span className="ml-1.5 text-sm font-semibold text-navy">
+            ({tabSales.length})
+          </span>
+        </CardTitle>
+
+        <div className={cn(pageToolbarClass, "print:hidden")} data-print-hide>
           <div className={searchWrapClass}>
             <Search className={searchIconClass} />
             <Input
@@ -379,7 +543,7 @@ export default function SalesTable({
                   <SelectValue placeholder="Sale type" />
                 </div>
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-white dark:bg-card">
                 <SelectItem value="all">All Types</SelectItem>
                 <SelectItem value="client">Client</SelectItem>
                 <SelectItem value="site">Site</SelectItem>
@@ -391,13 +555,13 @@ export default function SalesTable({
                 onPaymentStatusFilterChange(value)
               }
             >
-              <SelectTrigger className="h-10 w-full border-border bg-background sm:w-44">
+              <SelectTrigger className="h-10 w-full border-border bg-white dark:bg-card sm:w-44">
                 <div className="flex items-center gap-2">
                   <Filter className="h-4 w-4 shrink-0 text-muted-foreground" />
                   <SelectValue placeholder="Payment status" />
                 </div>
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-white dark:bg-card">
                 <SelectItem value="all">All Payments</SelectItem>
                 <SelectItem value="Pending">Pending</SelectItem>
                 <SelectItem value="Received">Received</SelectItem>
@@ -409,7 +573,7 @@ export default function SalesTable({
                 variant="neutralOutline"
                 size="sm"
                 onClick={clearFilters}
-                className="h-10 shrink-0 gap-1.5"
+                className="h-10 shrink-0 gap-1.5 border-rose-200 text-rose-600 hover:border-rose-300 hover:bg-rose-50 hover:text-rose-700 dark:border-rose-800 dark:text-rose-400 dark:hover:bg-rose-950/40 dark:hover:text-rose-300"
               >
                 <X className="h-4 w-4" />
                 Clear
@@ -418,98 +582,120 @@ export default function SalesTable({
           </div>
         </div>
       </CardHeader>
-      <CardContent>
+
+      <CardContent className="p-0">
         <Tabs
           value={activeTab}
           onValueChange={onActiveTabChange}
           className="w-full"
         >
-          <TabsList className={tabsListClass}>
-            <TabsTrigger value="all" className={tabsTriggerClass}>
-              <TrendingUp className="h-4 w-4" />
-              <span>All Sales</span>
-              <Badge variant="secondary" className={tabsCountBadgeClass}>
-                {salesCounts.allCount}
-              </Badge>
-            </TabsTrigger>
-            <TabsTrigger value="individual" className={tabsTriggerClass}>
-              <Users className="h-4 w-4" />
-              <span>Individual</span>
-              <Badge variant="secondary" className={tabsCountBadgeClass}>
-                {salesCounts.individualCount}
-              </Badge>
-            </TabsTrigger>
-            <TabsTrigger value="company" className={tabsTriggerClass}>
-              <Building2 className="h-4 w-4" />
-              <span>Company</span>
-              <Badge variant="secondary" className={tabsCountBadgeClass}>
-                {salesCounts.companyCount}
-              </Badge>
-            </TabsTrigger>
-          </TabsList>
+          <div className="px-3 pb-3 print:hidden" data-print-hide>
+            <TabsList className={cn(tabsListClass, "mb-0")}>
+              <TabsTrigger
+                value="all"
+                className={cn(
+                  tabsTriggerClass,
+                  "data-[state=inactive]:bg-transparent data-[state=inactive]:shadow-none",
+                )}
+              >
+                <TrendingUp className="h-4 w-4 shrink-0" />
+                <span>All Sales</span>
+                <span className={tabsCountBadgeClass(activeTab === "all")}>
+                  ({salesCounts.allCount})
+                </span>
+              </TabsTrigger>
+              <TabsTrigger
+                value="individual"
+                className={cn(
+                  tabsTriggerClass,
+                  "data-[state=inactive]:bg-transparent data-[state=inactive]:shadow-none",
+                )}
+              >
+                <Users className="h-4 w-4 shrink-0" />
+                <span>Individual</span>
+                <span className={tabsCountBadgeClass(activeTab === "individual")}>
+                  ({salesCounts.individualCount})
+                </span>
+              </TabsTrigger>
+              <TabsTrigger
+                value="company"
+                className={cn(
+                  tabsTriggerClass,
+                  "data-[state=inactive]:bg-transparent data-[state=inactive]:shadow-none",
+                )}
+              >
+                <Building2 className="h-4 w-4 shrink-0" />
+                <span>Company</span>
+                <span className={tabsCountBadgeClass(activeTab === "company")}>
+                  ({salesCounts.companyCount})
+                </span>
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
           <TabsContent
             value="all"
-            className="space-y-4 animate-in fade-in-0 slide-in-from-left-2 duration-300"
+            className="mt-0 animate-in fade-in-0 slide-in-from-left-2 duration-300"
           >
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto bg-white dark:bg-card">
               <Table>
                 {tableHeader}
-                <TableBody>{renderSaleRows()}</TableBody>
+                <TableBody className="bg-white dark:bg-card">
+                  {renderSaleRows()}
+                </TableBody>
               </Table>
-              {groupedSales.length === 0 && (
-                <div className="text-center py-8 animate-in fade-in-0 duration-300">
-                  <p className="text-sm font-normal italic text-muted-foreground">No sales found</p>
-                </div>
-              )}
+              {groupedSales.length === 0 && emptyState("No sales found")}
             </div>
           </TabsContent>
 
           <TabsContent
             value="individual"
-            className="space-y-4 animate-in fade-in-0 slide-in-from-left-2 duration-300"
+            className="mt-0 animate-in fade-in-0 slide-in-from-left-2 duration-300"
           >
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto bg-white dark:bg-card">
               <Table>
                 {tableHeader}
-                <TableBody>{renderSaleRows()}</TableBody>
+                <TableBody className="bg-white dark:bg-card">
+                  {renderSaleRows()}
+                </TableBody>
               </Table>
-              {groupedSales.length === 0 && (
-                <div className="text-center py-8 animate-in fade-in-0 duration-300">
-                  <p className="text-sm font-normal italic text-muted-foreground">No individual sales found</p>
-                </div>
-              )}
+              {groupedSales.length === 0 && emptyState("No individual sales found")}
             </div>
           </TabsContent>
 
           <TabsContent
             value="company"
-            className="space-y-4 animate-in fade-in-0 slide-in-from-left-2 duration-300"
+            className="mt-0 animate-in fade-in-0 slide-in-from-left-2 duration-300"
           >
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto bg-white dark:bg-card">
               <Table>
                 {tableHeader}
-                <TableBody>{renderSaleRows()}</TableBody>
+                <TableBody className="bg-white dark:bg-card">
+                  {renderSaleRows()}
+                </TableBody>
               </Table>
-              {groupedSales.length === 0 && (
-                <div className="text-center py-8 animate-in fade-in-0 duration-300">
-                  <p className="text-sm font-normal italic text-muted-foreground">No company sales found</p>
-                </div>
-              )}
+              {groupedSales.length === 0 && emptyState("No company sales found")}
             </div>
           </TabsContent>
         </Tabs>
-        <DataPagination
-          page={page}
-          totalPages={totalPages}
-          totalItems={totalItems}
-          startItem={startItem}
-          endItem={endItem}
-          pageSize={pageSize}
-          onPageChange={setPage}
-          onPageSizeChange={setPageSize}
-        />
+
+        <div className="print:hidden" data-print-hide>
+          <DataPagination
+            page={page}
+            totalPages={totalPages}
+            totalItems={totalItems}
+            startItem={startItem}
+            endItem={endItem}
+            pageSize={pageSize}
+            onPageChange={setPage}
+            onPageSizeChange={setPageSize}
+            className="!pl-6 !pr-3"
+          />
+        </div>
       </CardContent>
+      </div>
     </Card>
   );
-}
+});
+
+export default SalesTable;

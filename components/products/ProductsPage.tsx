@@ -552,7 +552,6 @@ export default function ProductsPage() {
       <div className="relative">
         <div className="space-y-2">
           <h1 className="section-title">Products</h1>
-          <p className="page-desc">Manage your product inventory with ease</p>
         </div>
         <div className="absolute top-0 right-0 flex space-x-3">
           <Button onClick={() => exportAllProductsToCSV(products)}>Export All Products</Button>

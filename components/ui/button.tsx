@@ -9,9 +9,9 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        /* foreground/background always invert correctly in light + dark */
+        /* Primary accent (#165e6c) for solid CTAs */
         default:
-          "bg-foreground text-background hover:bg-foreground/90",
+          "bg-primary text-primary-foreground hover:bg-primary/90",
         destructive:
           "border border-border bg-card text-foreground hover:bg-muted",
         outline:
@@ -20,8 +20,8 @@ const buttonVariants = cva(
           "bg-secondary text-secondary-foreground hover:bg-muted",
         ghost: "text-foreground hover:bg-muted hover:text-foreground",
         link: "text-foreground underline-offset-4 hover:underline hover:text-foreground/80",
-        brand: "bg-foreground text-background hover:bg-foreground/90",
-        neutral: "bg-foreground text-background hover:bg-foreground/90",
+        brand: "bg-primary text-primary-foreground hover:bg-primary/90",
+        neutral: "bg-primary text-primary-foreground hover:bg-primary/90",
         neutralOutline:
           "border border-border bg-card text-foreground hover:bg-muted",
       },

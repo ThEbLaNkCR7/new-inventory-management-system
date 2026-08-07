@@ -1,7 +1,7 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -64,18 +64,15 @@ export default function ProductsTable({
 
   return (
     <Card className="shadow-sm border border-border bg-card backdrop-blur-sm overflow-hidden">
-      <CardHeader className="pb-3">
+      <CardHeader className="px-3 pb-3 pt-5">
         <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <CardTitle>
+            <CardTitle className="pl-3 font-semibold text-navy">
               Products Details
-              <span className="ml-1.5 text-sm font-medium text-muted-foreground">
+              <span className="ml-1.5 text-sm font-semibold text-navy">
                 ({groupedProducts.length})
               </span>
             </CardTitle>
-            <CardDescription className="text-muted-foreground mt-1">
-              Manage your product inventory and stock levels
-            </CardDescription>
           </div>
         </div>
 
@@ -123,16 +120,19 @@ export default function ProductsTable({
       </CardHeader>
 
       <CardContent className="p-0">
-        <div className="overflow-x-auto border-t border-border">
+        <div className="overflow-x-auto">
           <Table>
             <TableHeader>
-              <TableRow className="bg-muted/80 hover:bg-muted/60">
-                <TableHead>Product Name</TableHead>
-                <TableHead>Category</TableHead>
-                <TableHead>No. of units</TableHead>
-                <TableHead>Unit Weight</TableHead>
-                <TableHead>Unit Price</TableHead>
-                <TableHead>Actions</TableHead>
+              <TableRow className="border-0">
+                {/* pl matches search icon: CardHeader px-3 + icon left-3 */}
+                <TableHead className="h-14 pl-6 text-base font-semibold text-navy">
+                  Product Name
+                </TableHead>
+                <TableHead className="h-14 text-base font-semibold text-navy">Category</TableHead>
+                <TableHead className="h-14 text-base font-semibold text-navy">No. of units</TableHead>
+                <TableHead className="h-14 text-base font-semibold text-navy">Unit Weight</TableHead>
+                <TableHead className="h-14 text-base font-semibold text-navy">Unit Price</TableHead>
+                <TableHead className="h-14 text-base font-semibold text-navy">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -145,9 +145,9 @@ export default function ProductsTable({
                     key={group.name}
                     className="hover:bg-muted/60 transition-colors"
                   >
-                    <TableCell>
+                    <TableCell className="pl-6">
                       <p
-                        className="cursor-pointer font-medium text-navy underline-offset-4 transition-colors hover:underline hover:text-navy/80"
+                        className="cursor-pointer font-semibold text-navy underline-offset-4 transition-colors hover:underline hover:text-navy/80"
                         onClick={() => onProductClick(selectedVariant)}
                       >
                         {toTitleCase(group.name)}
@@ -155,7 +155,7 @@ export default function ProductsTable({
                     </TableCell>
                     <TableCell>
                       <p
-                        className="cursor-pointer font-medium text-navy underline-offset-4 transition-colors hover:underline hover:text-navy/80"
+                        className="cursor-pointer font-normal text-navy underline-offset-4 transition-colors hover:underline hover:text-navy/80"
                         onClick={() => onCategoryClick(group.category)}
                       >
                         {toTitleCase(group.category)}
@@ -201,7 +201,8 @@ export default function ProductsTable({
                           size="sm"
                           variant="neutralOutline"
                           onClick={() => onView(selectedVariant)}
-                          className="text-muted-foreground hover:bg-muted hover:border-navy/30 hover:text-navy dark:hover:bg-muted dark:hover:border-white/30 transition-colors"
+                          title="View"
+                          className="text-muted-foreground transition-colors hover:border-primary/40 hover:bg-primary/10 hover:text-primary"
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
@@ -209,7 +210,8 @@ export default function ProductsTable({
                           size="sm"
                           variant="neutralOutline"
                           onClick={() => onEdit(selectedVariant)}
-                          className="hover:bg-muted dark:hover:bg-muted transition-colors"
+                          title="Edit"
+                          className="text-muted-foreground transition-colors hover:border-amber-400 hover:bg-amber-50 hover:text-amber-700 dark:hover:border-amber-500 dark:hover:bg-amber-900/20 dark:hover:text-amber-300"
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
@@ -217,7 +219,8 @@ export default function ProductsTable({
                           size="sm"
                           variant="neutralOutline"
                           onClick={() => onDelete(selectedVariant)}
-                          className="hover:bg-red-50 hover:border-red-300 dark:hover:bg-red-900/20 dark:hover:border-red-600 text-navy transition-colors"
+                          title="Delete"
+                          className="text-muted-foreground transition-colors hover:border-red-400 hover:bg-red-50 hover:text-red-600 dark:hover:border-red-500 dark:hover:bg-red-900/20 dark:hover:text-red-400"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -259,6 +262,7 @@ export default function ProductsTable({
           pageSize={pageSize}
           onPageChange={setPage}
           onPageSizeChange={setPageSize}
+          className="!pl-6 !pr-3"
         />
       </CardContent>
     </Card>

@@ -14,6 +14,12 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { MaterialDatePicker } from "@/components/ui/MaterialDatePicker"
@@ -25,7 +31,8 @@ import { usePersistentForm } from "@/contexts/FormPersistenceContext"
 import type { Product, Purchase } from "@/contexts/InventoryContext"
 import { useInventory } from "@/contexts/InventoryContext"
 import { usePurchaseChange } from "@/hooks/usePurchaseChange"
-import { cn, formatNepaliDateForTable } from "@/lib/utils"
+import { cn, formatNepaliDateForTable, toTitleCase } from "@/lib/utils"
+import { exportStyledTableToExcel } from "@/utils/exportUtils"
 import {
   formActionLinkClass,
   formDescriptionClass,
@@ -35,12 +42,10 @@ import {
   formDialogHeaderClass,
   formErrorTextClass,
   formFieldClass,
-  formFileInputClass,
   formGridClass,
   formHintClass,
   formInputClass,
   formItemCardClass,
-  formItemLabelClass,
   formLabelClass,
   formSectionClass,
   formSectionTitleClass,
@@ -49,23 +54,34 @@ import {
 } from "@/lib/form-styles"
 import {
   AlertTriangle,
+  Calendar,
   CheckCircle,
+  ChevronDown,
   Clock,
+  Download,
+  FileSpreadsheet,
+  FileText,
   ImagePlus,
   Loader2,
   Package,
   Plus,
+  Printer,
   Receipt,
   Trash2,
   Truck,
+  X,
 } from "lucide-react"
-import { useEffect, useMemo, useState, type FormEvent } from "react"
+import React, { useEffect, useMemo, useRef, useState, type FormEvent } from "react"
 import DeletePurchaseDialog from "./DeletePurchaseDialog"
 import EditPurchaseDialog from "./EditPurchaseDialog"
-import PurchasesTable from "./PurchasesTable"
+import PurchasesTable, { type PurchasesTableHandle } from "./PurchasesTable"
 import SupplierHistoryDialog from "./SupplierHistoryDialog"
 import ViewPurchaseDialog from "./ViewPurchaseDialog"
-import { mapPurchaseItemErrorsToEditFields, validatePurchaseFormData } from "./utils"
+import {
+  getPurchaseTotal,
+  mapPurchaseItemErrorsToEditFields,
+  validatePurchaseFormData,
+} from "./utils"
 
 type PurchaseItem = {
   productId: string
@@ -93,6 +109,13 @@ const shouldPreventPurchaseDialogClose = (
 const inputClass = formInputClass
 const selectTriggerClass = formSelectTriggerClass
 const errorTextClass = formErrorTextClass
+const addPurchaseLabelClass = cn(formLabelClass, "!text-[15px] !font-normal leading-5")
+const addPurchaseBodyClass = cn(formDialogBodyClass, "gap-5")
+const addPurchaseSectionClass = cn(formSectionClass, "gap-2.5")
+const addPurchaseItemClass = cn(formItemCardClass, "gap-2")
+const addPurchasePairClass = formGridClass
+const addPurchaseMultiGridClass =
+  "grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1fr)_7rem_8.5rem_2.5rem] sm:gap-x-3 sm:gap-y-2"
 
 const getEmptyPurchaseForm = () => ({
   items: [
@@ -114,6 +137,7 @@ export default function PurchasesPage() {
   const { user } = useAuth()
   const { requestPurchaseChange } = usePurchaseChange()
   const { toast } = useToast()
+  const purchasesTableRef = useRef<PurchasesTableHandle>(null)
   const [searchTerm, setSearchTerm] = useState("")
   const [activeTab, setActiveTab] = useState("all")
   const [billImage, setBillImage] = useState<File | null>(null);
@@ -183,6 +207,18 @@ export default function PurchasesPage() {
     updateForm({ items: updated })
   }
 
+  const updateItemFields = (
+    index: number,
+    fields: Partial<PurchaseItem>,
+  ) => {
+    clearFieldErrors(
+      ...Object.keys(fields).map((key) => `items.${index}.${key}`),
+    )
+    const updated = [...formData.items]
+    updated[index] = { ...updated[index], ...fields }
+    updateForm({ items: updated })
+  }
+
   const openQuickAddProduct = (index: number) => {
     setAddingProductItemIndex(index)
     setIsQuickAddProductOpen(true)
@@ -204,11 +240,24 @@ export default function PurchasesPage() {
   const getPurchaseSupplierName = () => formData.supplier
 
   const supplierOptions = useMemo(() => {
-    if (!formData.supplier || formData.supplier === "custom") return suppliers
-    const exists = suppliers.some((supplier) => supplier.name === formData.supplier)
-    if (exists) return suppliers
+    const seen = new Set<string>()
+    const unique = suppliers.filter((supplier) => {
+      const key = supplier.name.trim().toLowerCase()
+      if (!key || seen.has(key)) return false
+      seen.add(key)
+      return true
+    })
+
+    if (!formData.supplier || formData.supplier === "custom") return unique
+
+    const selectedKey = formData.supplier.trim().toLowerCase()
+    const exists = unique.some(
+      (supplier) => supplier.name.trim().toLowerCase() === selectedKey,
+    )
+    if (exists) return unique
+
     return [
-      ...suppliers,
+      ...unique,
       { id: `pending-${formData.supplier}`, name: formData.supplier },
     ]
   }, [suppliers, formData.supplier])
@@ -343,7 +392,11 @@ export default function PurchasesPage() {
 
   const exportPurchasesToCSV = (purchasesData: any[]) => {
     if (!purchasesData || purchasesData.length === 0) {
-      toast({ title: "No purchase data", description: "There are no purchases to export.", variant: "destructive" })
+      toast({
+        title: "No purchase data",
+        description: "There are no purchases to export.",
+        variant: "destructive",
+      })
       return
     }
 
@@ -354,31 +407,171 @@ export default function PurchasesPage() {
       "Supplier Type",
       "Quantity Purchased",
       "Unit Price",
-      "Total Value"
+      "Line Total",
+      "VAT Included",
+      "Bill URL",
     ]
 
-    const rows = purchasesData.map(purchase => [
-      formatNepaliDateForTable(purchase.purchaseDate),
-      purchase.productName,
-      purchase.supplier,
-      purchase.supplierType,
-      purchase.quantityPurchased,
-      purchase.purchasePrice,
-      purchase.quantityPurchased * purchase.purchasePrice
-    ])
+    const escapeCsv = (value: unknown) => {
+      const text = value == null ? "" : String(value)
+      return `"${text.replace(/"/g, '""')}"`
+    }
+
+    const rows = purchasesData.flatMap((purchase) => {
+      const items =
+        Array.isArray(purchase.items) && purchase.items.length > 0
+          ? purchase.items
+          : [
+              {
+                productName: purchase.productName || "",
+                quantityPurchased: purchase.quantityPurchased || 0,
+                purchasePrice: purchase.purchasePrice || 0,
+              },
+            ]
+
+      return items.map((item: any) => {
+        const quantity = Number(item.quantityPurchased) || 0
+        const unitPrice = Number(item.purchasePrice) || 0
+        return [
+          formatNepaliDateForTable(purchase.purchaseDate) ||
+            purchase.purchaseDate ||
+            "",
+          item.productName || "",
+          purchase.supplier || "",
+          purchase.supplierType || "",
+          quantity,
+          unitPrice,
+          quantity * unitPrice,
+          purchase.isVat ? "Yes" : "No",
+          purchase.billUrl || "",
+        ]
+      })
+    })
 
     const csvContent = [headers, ...rows]
-      .map(row => row.map(v => `"${v}"`).join(","))
+      .map((row) => row.map(escapeCsv).join(","))
       .join("\n")
 
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" })
+    const blob = new Blob(["\uFEFF" + csvContent], {
+      type: "text/csv;charset=utf-8;",
+    })
     const url = URL.createObjectURL(blob)
-
     const link = document.createElement("a")
     link.href = url
     link.download = `purchases_${new Date().toISOString().split("T")[0]}.csv`
+    link.style.visibility = "hidden"
+    document.body.appendChild(link)
     link.click()
+    document.body.removeChild(link)
     URL.revokeObjectURL(url)
+  }
+
+  const exportPurchasesToExcel = async (purchasesData: any[]) => {
+    if (!purchasesData || purchasesData.length === 0) {
+      toast({
+        title: "No purchase data",
+        description: "There are no purchases to export.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    const rows = purchasesData.map((purchase, index) => {
+      const productNames = (purchase.items || [])
+        .map((item: any) => item.productName)
+        .filter(Boolean)
+        .map((name: string) => toTitleCase(name))
+
+      const items =
+        productNames.length > 0
+          ? productNames.join(", ")
+          : purchase.productName
+            ? toTitleCase(purchase.productName)
+            : "—"
+
+      const itemCount =
+        Array.isArray(purchase.items) && purchase.items.length > 0
+          ? purchase.items.length
+          : purchase.productName
+            ? 1
+            : 0
+
+      return {
+        sn: index + 1,
+        supplier: {
+          richText: [
+            {
+              text: `${toTitleCase(purchase.supplier)}\n`,
+              font: {
+                name: "Calibri",
+                size: 11,
+                bold: true,
+                color: { argb: "FF171717" },
+              },
+            },
+            {
+              text: `${itemCount} ${itemCount === 1 ? "item" : "items"}`,
+              font: {
+                name: "Calibri",
+                size: 9,
+                color: { argb: "FF71717A" },
+              },
+            },
+          ],
+        },
+        items,
+        date:
+          formatNepaliDateForTable(purchase.purchaseDate) ||
+          purchase.purchaseDate ||
+          "",
+        total: getPurchaseTotal(purchase),
+      }
+    })
+
+    const grandTotal = rows.reduce(
+      (sum, row) => sum + (typeof row.total === "number" ? row.total : 0),
+      0,
+    )
+
+    const filename = `purchases_${new Date().toISOString().split("T")[0]}`
+    try {
+      await exportStyledTableToExcel(rows, filename, {
+        sheetName: "Purchases",
+        title: "Purchase Orders",
+        sideMargin: 4,
+        columns: [
+          { key: "sn", header: "SN", width: 6, align: "center" },
+          { key: "supplier", header: "Supplier", width: 24, wrap: true },
+          { key: "items", header: "Items", width: 42, wrap: true },
+          { key: "date", header: "Date", width: 16 },
+          {
+            key: "total",
+            header: "Total (Rs)",
+            width: 14,
+            align: "right",
+            bold: true,
+          },
+        ],
+        totalsRow: {
+          sn: "",
+          supplier: "Grand Total",
+          items: "",
+          date: "",
+          total: grandTotal,
+        },
+      })
+      toast({
+        title: "Exported",
+        description: "Purchases downloaded as Excel file.",
+      })
+    } catch (error) {
+      console.error(error)
+      toast({
+        title: "Export failed",
+        description: "Could not create the Excel file.",
+        variant: "destructive",
+      })
+    }
   }
 
   const handleSubmit = async (e: FormEvent) => {
@@ -711,13 +904,38 @@ export default function PurchasesPage() {
           )}
         </div>
         <div className="absolute top-0 right-0 z-10 flex space-x-3">
-          <Button
-            type="button"
-            onClick={() => exportPurchasesToCSV(filteredPurchases)}
-            className="px-4 py-2"
-          >
-            Export Purchases CSV
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button type="button" variant="neutralOutline" className="gap-1.5 px-4 py-2">
+                <Download className="h-4 w-4" />
+                Export
+                <ChevronDown className="h-4 w-4 opacity-70" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="min-w-[11rem]">
+              <DropdownMenuItem
+                className="cursor-pointer gap-2"
+                onClick={() => exportPurchasesToCSV(filteredPurchases)}
+              >
+                <FileText className="h-4 w-4" />
+                Export CSV
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="cursor-pointer gap-2"
+                onClick={() => exportPurchasesToExcel(filteredPurchases)}
+              >
+                <FileSpreadsheet className="h-4 w-4" />
+                Export Excel
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="cursor-pointer gap-2"
+                onClick={() => purchasesTableRef.current?.print()}
+              >
+                <Printer className="h-4 w-4" />
+                Print
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Dialog open={isAddDialogOpen} onOpenChange={handleAddDialogOpenChange}>
             <DialogTrigger asChild>
               <Button
@@ -732,7 +950,7 @@ export default function PurchasesPage() {
               </Button>
             </DialogTrigger>
             <DialogContent
-              className={formDialogClass}
+              className={cn(formDialogClass, "max-w-4xl sm:max-w-4xl")}
               onPointerDownOutside={(event) => {
                 if (shouldPreventPurchaseDialogClose(event.target, isAddSupplierDialogOpen, isQuickAddProductOpen)) {
                   event.preventDefault()
@@ -745,184 +963,47 @@ export default function PurchasesPage() {
               }}
             >
               <DialogHeader className={formDialogHeaderClass}>
-                <DialogTitle className={formTitleClass}>
+                <DialogTitle
+                  className={cn(formTitleClass, "mb-2 border-b border-border pb-2")}
+                >
                   Add New Purchase
                 </DialogTitle>
-                <DialogDescription className={formDescriptionClass}>
-                  Record a new purchase order
-                  {user?.role !== "admin" && (
-                    <span className="mt-2 flex items-center gap-2 rounded-md bg-muted px-3 py-2 font-sans text-sm font-medium leading-5 text-navy">
+                {user?.role !== "admin" ? (
+                  <DialogDescription className={formDescriptionClass}>
+                    <span className="flex items-center gap-2 rounded-md bg-muted px-3 py-2 font-sans text-sm font-medium leading-5 text-navy">
                       <Clock className="h-4 w-4 shrink-0 text-navy" />
                       Changes require admin approval
                     </span>
-                  )}
-                </DialogDescription>
+                  </DialogDescription>
+                ) : (
+                  <DialogDescription className="sr-only">
+                    Record a new purchase order
+                  </DialogDescription>
+                )}
               </DialogHeader>
               <form onSubmit={handleSubmit}>
-                <div className={formDialogBodyClass}>
-                <section className={formSectionClass}>
-                  <h3 className={formSectionTitleClass}>
-                    <Package className="h-4 w-4 text-navy/70" />
-                    Products *
-                  </h3>
-
-                  {formData.items.map((item: any, index: number) => {
-                    const selectedProduct = products.find(p => p.id === item.productId)
-
-                    return (
-                      <div key={index} className={formItemCardClass}>
-                        <div className="flex justify-between items-center">
-                          <span className={formItemLabelClass}>
-                            Item #{index + 1}
-                          </span>
-
-                          {formData.items.length > 1 && (
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              className="h-7 gap-1 px-2 text-xs text-red-600 hover:bg-red-50 hover:text-red-700 dark:hover:bg-red-900/20"
-                              onClick={() => removeItem(index)}
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                              Remove
-                            </Button>
-                          )}
-                        </div>
-
-                        {/* PRODUCT SELECT */}
-                        <div className={formFieldClass}>
-                          <Select
-                            value={item.productId || undefined}
-                            onValueChange={(value) => {
-                              if (value === "__new__") {
-                                updateItem(index, "productId", value)
-                                return
-                              }
-                              updateItem(index, "productId", value)
-                              const product = products.find((p) => p.id === value)
-                              if (product && !item.purchasePrice) {
-                                updateItem(index, "purchasePrice", product.unitPrice)
-                              }
-                            }}
-                          >
-                            <SelectTrigger className={cn(selectTriggerClass, fieldErrorClass(`items.${index}.productId`))}>
-                              <SelectValue placeholder="Select product" />
-                            </SelectTrigger>
-
-                            <SelectContent>
-                              <SelectItem value="__new__">+ Add New Product</SelectItem>
-                              {products.map((product) => (
-                                <SelectItem key={product.id} value={product.id}>
-                                  {product.name} ({formatProductNetWeight(product)}) — Stock: {product.stockQuantity}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          {item.productId === "__new__" && (
-                            <Button
-                              type="button"
-                              variant="neutralOutline"
-                              size="sm"
-                              className="w-full"
-                              onClick={() => openQuickAddProduct(index)}
-                            >
-                              <Plus className="h-4 w-4 mr-2" />
-                              Add New Product
-                            </Button>
-                          )}
-                          {renderFieldError(`items.${index}.productId`)}
-                        </div>
-
-                        {/* QUANTITY + PRICE */}
-                        <div className="grid grid-cols-2 gap-3">
-                          <div className={formFieldClass}>
-                            <Input
-                              type="number"
-                              min={1}
-                              placeholder="Quantity *"
-                              value={item.quantityPurchased || ""}
-                              onChange={(e) =>
-                                updateItem(index, "quantityPurchased", Number(e.target.value))
-                              }
-                              onBlur={(e) => {
-                                const quantity = Number(e.target.value)
-                                if (
-                                  selectedProduct &&
-                                  quantity > 0 &&
-                                  quantity > selectedProduct.stockQuantity
-                                ) {
-                                  notifyStockExceeded(selectedProduct, quantity)
-                                }
-                              }}
-                              className={cn(inputClass, fieldErrorClass(`items.${index}.quantityPurchased`))}
-                            />
-                            {renderFieldError(`items.${index}.quantityPurchased`)}
-                          </div>
-
-                          <div className={formFieldClass}>
-                            <Input
-                              type="number"
-                              min={0}
-                              step="0.01"
-                              placeholder="Unit Price *"
-                              value={item.purchasePrice || ""}
-                              onChange={(e) =>
-                                updateItem(index, "purchasePrice", Number(e.target.value))
-                              }
-                              className={cn(inputClass, fieldErrorClass(`items.${index}.purchasePrice`))}
-                            />
-                            {renderFieldError(`items.${index}.purchasePrice`)}
-                          </div>
-                        </div>
-
-                        {selectedProduct &&
-                          item.quantityPurchased > 0 &&
-                          item.quantityPurchased > selectedProduct.stockQuantity && (
-                            <Alert className="border-border bg-muted py-2">
-                              <AlertTriangle className="h-4 w-4 text-navy" />
-                              <AlertDescription className="text-navy text-xs">
-                                Quantity ({item.quantityPurchased}) exceeds current stock (
-                                {selectedProduct.stockQuantity}).
-                              </AlertDescription>
-                            </Alert>
-                          )}
-
-                        {selectedProduct &&
-                          item.quantityPurchased > 0 &&
-                          item.quantityPurchased <= selectedProduct.stockQuantity && (
-                            <p className={formHintClass}>
-                              Stock: {selectedProduct.stockQuantity}
-                            </p>
-                          )}
-                      </div>
-                    )
-                  })}
-
-                  <Button type="button" variant="ghost" size="sm" className={formActionLinkClass} onClick={addItem}>
-                    <Plus className="h-4 w-4 mr-1.5" />
-                    Add another product
-                  </Button>
-                </section>
-
-                <section className={formSectionClass}>
+                <div className={addPurchaseBodyClass}>
+                <section className={addPurchaseSectionClass}>
                   <h3 className={formSectionTitleClass}>
                     <Truck className="h-4 w-4 text-navy/70" />
-                    Supplier & details
+                    Supplier
                   </h3>
-                  <div className={formGridClass}>
+                  <div className={addPurchasePairClass}>
                     <div className={formFieldClass}>
-                      <Label htmlFor="supplier" className={formLabelClass}>Supplier *</Label>
+                      <Label htmlFor="supplier" className={addPurchaseLabelClass}>Supplier *</Label>
                       <Select
                         value={formData.supplier || undefined}
                         onValueChange={handleSupplierChange}
                       >
-                        <SelectTrigger className={cn(selectTriggerClass, fieldErrorClass("supplier"))}>
+                        <SelectTrigger className={cn(selectTriggerClass, "w-full", fieldErrorClass("supplier"))}>
                           <SelectValue placeholder="Select supplier" />
                         </SelectTrigger>
                         <SelectContent>
                           {supplierOptions.map((supplier) => (
-                            <SelectItem key={supplier.id} value={supplier.name}>
+                            <SelectItem
+                              key={supplier.id || supplier.name}
+                              value={supplier.name}
+                            >
                               {supplier.name}
                             </SelectItem>
                           ))}
@@ -933,12 +1014,12 @@ export default function PurchasesPage() {
                     </div>
 
                     <div className={formFieldClass}>
-                      <Label htmlFor="supplierType" className={formLabelClass}>Supplier Type *</Label>
+                      <Label htmlFor="supplierType" className={addPurchaseLabelClass}>Supplier Type *</Label>
                       <Select
                         value={formData.supplierType || undefined}
                         onValueChange={(value) => updateForm({ supplierType: value })}
                       >
-                        <SelectTrigger className={cn(selectTriggerClass, fieldErrorClass("supplierType"))}>
+                        <SelectTrigger className={cn(selectTriggerClass, "w-full", fieldErrorClass("supplierType"))}>
                           <SelectValue placeholder="Select supplier type" />
                         </SelectTrigger>
                         <SelectContent>
@@ -949,30 +1030,374 @@ export default function PurchasesPage() {
                       {renderFieldError("supplierType")}
                     </div>
                   </div>
-
-                  <div className={formGridClass}>
-                    <div className={formFieldClass}>
-                      <Label htmlFor="date" className={formLabelClass}>Purchase Date *</Label>
-                      <MaterialDatePicker
-                        className={inputClass}
-                        value={formData.purchaseDate ? new Date(formData.purchaseDate) : undefined}
-                        onChange={(date: Date | undefined) =>
-                          updateForm({ purchaseDate: date ? date.toISOString().split("T")[0] : "" })
-                        }
-                      />
-                      {renderFieldError("purchaseDate")}
-                    </div>
-                  </div>
                 </section>
 
-                <section className={formSectionClass}>
+                <section className={addPurchaseSectionClass}>
+                  <h3 className={formSectionTitleClass}>
+                    <Package className="h-4 w-4 text-navy/70" />
+                    Products
+                  </h3>
+
+                  {formData.items.length === 1 ? (
+                    <div className={addPurchaseItemClass}>
+                      {(() => {
+                        const index = 0
+                        const item = formData.items[0]
+                        const selectedProduct = products.find((p) => p.id === item.productId)
+                        return (
+                          <>
+                            <div className={formFieldClass}>
+                              <Label
+                                htmlFor={`add-purchase-product-${index}`}
+                                className={addPurchaseLabelClass}
+                              >
+                                Product *
+                              </Label>
+                              <Select
+                                value={
+                                  item.productId && item.productId !== "__new__"
+                                    ? item.productId
+                                    : undefined
+                                }
+                                onValueChange={(value) => {
+                                  if (value === "__new__") {
+                                    updateItemFields(index, { productId: value })
+                                    return
+                                  }
+                                  const product = products.find((p) => p.id === value)
+                                  updateItemFields(index, {
+                                    productId: value,
+                                    ...(product && !item.purchasePrice
+                                      ? { purchasePrice: product.unitPrice }
+                                      : {}),
+                                  })
+                                }}
+                              >
+                                <SelectTrigger
+                                  id={`add-purchase-product-${index}`}
+                                  className={cn(
+                                    selectTriggerClass,
+                                    "w-full",
+                                    fieldErrorClass(`items.${index}.productId`),
+                                  )}
+                                >
+                                  <SelectValue placeholder="Select product">
+                                    {selectedProduct
+                                      ? `${selectedProduct.name} (${formatProductNetWeight(selectedProduct)}) — Stock: ${selectedProduct.stockQuantity}`
+                                      : null}
+                                  </SelectValue>
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="__new__">+ Add New Product</SelectItem>
+                                  {products.map((product) => (
+                                    <SelectItem key={product.id} value={product.id}>
+                                      {product.name} ({formatProductNetWeight(product)}) — Stock:{" "}
+                                      {product.stockQuantity}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              {item.productId === "__new__" && (
+                                <Button
+                                  type="button"
+                                  variant="neutralOutline"
+                                  size="sm"
+                                  className="w-full"
+                                  onClick={() => openQuickAddProduct(index)}
+                                >
+                                  <Plus className="h-4 w-4 mr-2" />
+                                  Add New Product
+                                </Button>
+                              )}
+                              {renderFieldError(`items.${index}.productId`)}
+                            </div>
+                            <div className={addPurchasePairClass}>
+                              <div className={formFieldClass}>
+                                <Label
+                                  htmlFor={`add-purchase-qty-${index}`}
+                                  className={addPurchaseLabelClass}
+                                >
+                                  Quantity *
+                                </Label>
+                                <Input
+                                  id={`add-purchase-qty-${index}`}
+                                  type="number"
+                                  min={1}
+                                  placeholder="Qty"
+                                  value={item.quantityPurchased || ""}
+                                  onChange={(e) =>
+                                    updateItem(index, "quantityPurchased", Number(e.target.value))
+                                  }
+                                  onBlur={(e) => {
+                                    const quantity = Number(e.target.value)
+                                    if (
+                                      selectedProduct &&
+                                      quantity > 0 &&
+                                      quantity > selectedProduct.stockQuantity
+                                    ) {
+                                      notifyStockExceeded(selectedProduct, quantity)
+                                    }
+                                  }}
+                                  className={cn(
+                                    inputClass,
+                                    "w-full",
+                                    fieldErrorClass(`items.${index}.quantityPurchased`),
+                                  )}
+                                />
+                                {renderFieldError(`items.${index}.quantityPurchased`)}
+                              </div>
+                              <div className={formFieldClass}>
+                                <Label
+                                  htmlFor={`add-purchase-price-${index}`}
+                                  className={addPurchaseLabelClass}
+                                >
+                                  Unit Price *
+                                </Label>
+                                <Input
+                                  id={`add-purchase-price-${index}`}
+                                  type="number"
+                                  min={0}
+                                  step="0.01"
+                                  placeholder="Price"
+                                  value={item.purchasePrice || ""}
+                                  onChange={(e) =>
+                                    updateItem(index, "purchasePrice", Number(e.target.value))
+                                  }
+                                  className={cn(
+                                    inputClass,
+                                    "w-full",
+                                    fieldErrorClass(`items.${index}.purchasePrice`),
+                                  )}
+                                />
+                                {renderFieldError(`items.${index}.purchasePrice`)}
+                              </div>
+                            </div>
+                            {selectedProduct &&
+                              item.quantityPurchased > 0 &&
+                              item.quantityPurchased > selectedProduct.stockQuantity && (
+                                <Alert className="border-border bg-muted py-2">
+                                  <AlertTriangle className="h-4 w-4 text-navy" />
+                                  <AlertDescription className="text-navy text-xs">
+                                    Quantity ({item.quantityPurchased}) exceeds current stock (
+                                    {selectedProduct.stockQuantity}).
+                                  </AlertDescription>
+                                </Alert>
+                              )}
+                            {selectedProduct &&
+                              item.quantityPurchased > 0 &&
+                              item.quantityPurchased <= selectedProduct.stockQuantity && (
+                                <p className={formHintClass}>
+                                  Stock: {selectedProduct.stockQuantity}
+                                </p>
+                              )}
+                          </>
+                        )
+                      })()}
+                    </div>
+                  ) : (
+                    <div className={addPurchaseMultiGridClass}>
+                      <span className={cn(addPurchaseLabelClass, "hidden sm:block")}>
+                        Product *
+                      </span>
+                      <span className={cn(addPurchaseLabelClass, "hidden sm:block")}>
+                        Quantity *
+                      </span>
+                      <span className={cn(addPurchaseLabelClass, "hidden sm:block")}>
+                        Unit Price *
+                      </span>
+                      <span className="hidden sm:block" aria-hidden />
+
+                      {formData.items.map((item: any, index: number) => {
+                        const selectedProduct = products.find((p) => p.id === item.productId)
+                        return (
+                          <React.Fragment key={index}>
+                            <div className="min-w-0">
+                              <Label
+                                htmlFor={`add-purchase-product-${index}`}
+                                className={cn(addPurchaseLabelClass, "mb-1.5 sm:hidden")}
+                              >
+                                Product {index + 1} *
+                              </Label>
+                              <Select
+                                value={
+                                  item.productId && item.productId !== "__new__"
+                                    ? item.productId
+                                    : undefined
+                                }
+                                onValueChange={(value) => {
+                                  if (value === "__new__") {
+                                    updateItemFields(index, { productId: value })
+                                    return
+                                  }
+                                  const product = products.find((p) => p.id === value)
+                                  updateItemFields(index, {
+                                    productId: value,
+                                    ...(product && !item.purchasePrice
+                                      ? { purchasePrice: product.unitPrice }
+                                      : {}),
+                                  })
+                                }}
+                              >
+                                <SelectTrigger
+                                  id={`add-purchase-product-${index}`}
+                                  className={cn(
+                                    selectTriggerClass,
+                                    "w-full",
+                                    fieldErrorClass(`items.${index}.productId`),
+                                  )}
+                                >
+                                  <SelectValue placeholder="Select product">
+                                    {selectedProduct
+                                      ? `${selectedProduct.name} (${formatProductNetWeight(selectedProduct)}) — Stock: ${selectedProduct.stockQuantity}`
+                                      : null}
+                                  </SelectValue>
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="__new__">+ Add New Product</SelectItem>
+                                  {products.map((product) => (
+                                    <SelectItem key={product.id} value={product.id}>
+                                      {product.name} ({formatProductNetWeight(product)}) — Stock:{" "}
+                                      {product.stockQuantity}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              {item.productId === "__new__" && (
+                                <Button
+                                  type="button"
+                                  variant="neutralOutline"
+                                  size="sm"
+                                  className="mt-1.5 w-full"
+                                  onClick={() => openQuickAddProduct(index)}
+                                >
+                                  <Plus className="h-4 w-4 mr-2" />
+                                  Add New Product
+                                </Button>
+                              )}
+                              {renderFieldError(`items.${index}.productId`)}
+                            </div>
+
+                            <div className="min-w-0">
+                              <Label
+                                htmlFor={`add-purchase-qty-${index}`}
+                                className={cn(addPurchaseLabelClass, "mb-1.5 sm:hidden")}
+                              >
+                                Quantity *
+                              </Label>
+                              <Input
+                                id={`add-purchase-qty-${index}`}
+                                type="number"
+                                min={1}
+                                placeholder="Qty"
+                                value={item.quantityPurchased || ""}
+                                onChange={(e) =>
+                                  updateItem(index, "quantityPurchased", Number(e.target.value))
+                                }
+                                onBlur={(e) => {
+                                  const quantity = Number(e.target.value)
+                                  if (
+                                    selectedProduct &&
+                                    quantity > 0 &&
+                                    quantity > selectedProduct.stockQuantity
+                                  ) {
+                                    notifyStockExceeded(selectedProduct, quantity)
+                                  }
+                                }}
+                                className={cn(
+                                  inputClass,
+                                  "w-full",
+                                  fieldErrorClass(`items.${index}.quantityPurchased`),
+                                )}
+                              />
+                              {renderFieldError(`items.${index}.quantityPurchased`)}
+                            </div>
+
+                            <div className="min-w-0">
+                              <Label
+                                htmlFor={`add-purchase-price-${index}`}
+                                className={cn(addPurchaseLabelClass, "mb-1.5 sm:hidden")}
+                              >
+                                Unit Price *
+                              </Label>
+                              <Input
+                                id={`add-purchase-price-${index}`}
+                                type="number"
+                                min={0}
+                                step="0.01"
+                                placeholder="Price"
+                                value={item.purchasePrice || ""}
+                                onChange={(e) =>
+                                  updateItem(index, "purchasePrice", Number(e.target.value))
+                                }
+                                className={cn(
+                                  inputClass,
+                                  "w-full",
+                                  fieldErrorClass(`items.${index}.purchasePrice`),
+                                )}
+                              />
+                              {renderFieldError(`items.${index}.purchasePrice`)}
+                            </div>
+
+                            <div className="flex h-10 items-center justify-end sm:justify-center">
+                              <Button
+                                type="button"
+                                variant="neutralOutline"
+                                size="sm"
+                                title={`Remove product ${index + 1}`}
+                                aria-label={`Remove product ${index + 1}`}
+                                className="h-9 w-9 shrink-0 border-red-200 bg-red-50 p-0 text-red-600 shadow-none hover:border-red-300 hover:bg-red-100 hover:text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/40"
+                                onClick={() => removeItem(index)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </React.Fragment>
+                        )
+                      })}
+                    </div>
+                  )}
+
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className={cn(
+                      formActionLinkClass,
+                      "self-start justify-start !font-normal italic",
+                    )}
+                    onClick={addItem}
+                  >
+                    <Plus className="h-4 w-4 mr-1.5" />
+                    Add another product
+                  </Button>
+                </section>
+
+                <section className={addPurchaseSectionClass}>
                   <h3 className={formSectionTitleClass}>
                     <Receipt className="h-4 w-4 text-navy/70" />
-                    Options
+                    Details
                   </h3>
-                  <div className={formGridClass}>
+                  <div className={addPurchasePairClass}>
                     <div className={formFieldClass}>
-                      <Label className={formLabelClass}>Include VAT? *</Label>
+                      <Label htmlFor="date" className={addPurchaseLabelClass}>Purchase Date *</Label>
+                      <div className="relative">
+                        <MaterialDatePicker
+                          className={cn(
+                            selectTriggerClass,
+                            "w-full justify-start pr-9 shadow-sm",
+                          )}
+                          value={formData.purchaseDate ? new Date(formData.purchaseDate) : undefined}
+                          onChange={(date: Date | undefined) =>
+                            updateForm({ purchaseDate: date ? date.toISOString().split("T")[0] : "" })
+                          }
+                        />
+                        <Calendar className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground opacity-50" />
+                      </div>
+                      {renderFieldError("purchaseDate")}
+                    </div>
+
+                    <div className={formFieldClass}>
+                      <Label className={addPurchaseLabelClass}>Include VAT? *</Label>
                       <div className="flex h-10 items-center gap-5">
                         <div className="flex items-center">
                           <input
@@ -1004,29 +1429,73 @@ export default function PurchasesPage() {
                         </div>
                       </div>
                     </div>
+                  </div>
 
-                    <div className={formFieldClass}>
-                      <Label htmlFor="bill" className={formLabelClass}>
-                        <span className="inline-flex items-center gap-1.5">
-                          <ImagePlus className="h-3.5 w-3.5 text-muted-foreground" />
-                          Upload Bill Image
+                  <div className={formFieldClass}>
+                    <Label htmlFor="bill" className={addPurchaseLabelClass}>
+                      Upload Bill Image
+                    </Label>
+                    <div className="flex h-10 min-w-0 items-center gap-2 overflow-hidden">
+                      <Button
+                        type="button"
+                        variant="neutralOutline"
+                        className="h-10 shrink-0 gap-2 border-primary/30 bg-primary/5 px-3 text-primary shadow-none hover:border-primary/50 hover:bg-primary/10 hover:text-primary"
+                        onClick={() => document.getElementById("bill")?.click()}
+                      >
+                        <ImagePlus className="h-4 w-4" />
+                        <span className="hidden sm:inline">Choose bill image</span>
+                        <span className="sm:hidden">Choose</span>
+                      </Button>
+                      {billImage ? (
+                        <div className="flex min-w-0 flex-1 items-center gap-0.5 overflow-hidden">
+                          <span
+                            className="min-w-0 truncate text-sm text-navy"
+                            title={billImage.name}
+                          >
+                            {billImage.name}
+                          </span>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            title="Clear file"
+                            className="h-7 w-7 shrink-0 p-0 text-muted-foreground hover:bg-red-50 hover:text-red-600"
+                            onClick={() => {
+                              setBillImage(null)
+                              const input = document.getElementById(
+                                "bill",
+                              ) as HTMLInputElement | null
+                              if (input) input.value = ""
+                            }}
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <span className="min-w-0 truncate text-sm !text-muted-foreground/50">
+                          No file chosen
                         </span>
-                      </Label>
-                      <input
-                        key={billInputKey}
-                        type="file"
-                        id="bill"
-                        accept="image/*"
-                        onChange={(e) => setBillImage(e.target.files?.[0] || null)}
-                        className={formFileInputClass}
-                      />
+                      )}
                     </div>
+                    <input
+                      key={billInputKey}
+                      type="file"
+                      id="bill"
+                      accept="image/*"
+                      onChange={(e) => setBillImage(e.target.files?.[0] || null)}
+                      className="sr-only"
+                    />
                   </div>
                 </section>
                 </div>
 
                 <div className={formDialogFooterClass}>
-                  <Button type="button" variant="neutralOutline" onClick={clearForm}>
+                  <Button
+                    type="button"
+                    variant="neutralOutline"
+                    onClick={clearForm}
+                    className="hover:border-red-300 hover:bg-red-50 hover:text-red-600 dark:hover:border-red-500 dark:hover:bg-red-900/20 dark:hover:text-red-400"
+                  >
                     Cancel
                   </Button>
                   <Button type="submit">
@@ -1045,6 +1514,7 @@ export default function PurchasesPage() {
       </div>
 
       <PurchasesTable
+        ref={purchasesTableRef}
         filteredPurchases={filteredPurchases}
         activeTab={activeTab}
         onActiveTabChange={setActiveTab}

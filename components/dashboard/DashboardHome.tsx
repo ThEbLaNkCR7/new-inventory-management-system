@@ -9,7 +9,6 @@ import {
   AlertTriangle,
   ArrowRight,
   CheckCircle,
-  Clock,
   Package,
   ShoppingCart,
   TrendingDown,
@@ -27,7 +26,17 @@ function formatRs(value: number) {
  * Hover/accent tone matches meaning — not always brand green.
  * Status colors only show at rest when something needs attention.
  */
-type Tone = "sales" | "purchases" | "profit" | "alert" | "clients" | "suppliers" | "inventory" | "expense" | "danger"
+type Tone =
+  | "sales"
+  | "purchases"
+  | "profit"
+  | "alert"
+  | "clients"
+  | "suppliers"
+  | "inventory"
+  | "expense"
+  | "danger"
+  | "neutral"
 
 const toneStyles: Record<
   Tone,
@@ -61,15 +70,121 @@ const toneStyles: Record<
     panelIconHover: "group-hover/panel:bg-muted group-hover/panel:text-navy",
   }
   return {
-    sales: plain,
-    purchases: plain,
-    profit: plain,
-    alert: plain,
+    // Colored KPI cards: neutral bg at rest → tinted bg only on hover.
+    sales: {
+      hoverCard:
+        "border-emerald-500 hover:border-emerald-700 hover:bg-emerald-50 dark:border-emerald-400 dark:hover:border-emerald-300 dark:hover:bg-emerald-950",
+      bar: "bg-emerald-500 dark:bg-emerald-400",
+      barHover: "group-hover:bg-emerald-700 dark:group-hover:bg-emerald-300",
+      iconRest:
+        "bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300",
+      iconActive:
+        "bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300",
+      iconHover:
+        "group-hover:bg-emerald-200 group-hover:text-emerald-900 dark:group-hover:bg-emerald-800 dark:group-hover:text-emerald-100",
+      value:
+        "text-emerald-700 transition-colors group-hover:text-emerald-900 dark:text-emerald-300 dark:group-hover:text-emerald-100",
+      linkHover:
+        "text-emerald-700 hover:text-emerald-900 dark:text-emerald-300 dark:hover:text-emerald-100",
+      amountHover:
+        "text-emerald-700 group-hover:text-emerald-900 dark:text-emerald-300 dark:group-hover:text-emerald-100",
+      panelHover:
+        "border-emerald-500 hover:border-emerald-700 hover:bg-emerald-50 dark:border-emerald-400 dark:hover:border-emerald-300 dark:hover:bg-emerald-950",
+      panelBarHover: "group-hover/panel:bg-emerald-700 dark:group-hover/panel:bg-emerald-300",
+      panelIconHover:
+        "group-hover/panel:bg-emerald-200 group-hover/panel:text-emerald-900 dark:group-hover/panel:bg-emerald-800 dark:group-hover/panel:text-emerald-100",
+    },
+    purchases: {
+      hoverCard:
+        "border-amber-500 hover:border-amber-700 hover:bg-amber-50 dark:border-amber-400 dark:hover:border-amber-300 dark:hover:bg-amber-950",
+      bar: "bg-amber-500 dark:bg-amber-400",
+      barHover: "group-hover:bg-amber-700 dark:group-hover:bg-amber-300",
+      iconRest:
+        "bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300",
+      iconActive:
+        "bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300",
+      iconHover:
+        "group-hover:bg-amber-200 group-hover:text-amber-900 dark:group-hover:bg-amber-800 dark:group-hover:text-amber-100",
+      value:
+        "text-amber-700 transition-colors group-hover:text-amber-900 dark:text-amber-300 dark:group-hover:text-amber-100",
+      linkHover:
+        "text-amber-700 hover:text-amber-900 dark:text-amber-300 dark:hover:text-amber-100",
+      amountHover:
+        "text-amber-700 group-hover:text-amber-900 dark:text-amber-300 dark:group-hover:text-amber-100",
+      panelHover:
+        "border-amber-500 hover:border-amber-700 hover:bg-amber-50 dark:border-amber-400 dark:hover:border-amber-300 dark:hover:bg-amber-950",
+      panelBarHover: "group-hover/panel:bg-amber-700 dark:group-hover/panel:bg-amber-300",
+      panelIconHover:
+        "group-hover/panel:bg-amber-200 group-hover/panel:text-amber-900 dark:group-hover/panel:bg-amber-800 dark:group-hover/panel:text-amber-100",
+    },
+    profit: {
+      hoverCard:
+        "border-teal-500 hover:border-teal-700 hover:bg-teal-50 dark:border-teal-400 dark:hover:border-teal-300 dark:hover:bg-teal-950",
+      bar: "bg-teal-500 dark:bg-teal-400",
+      barHover: "group-hover:bg-teal-700 dark:group-hover:bg-teal-300",
+      iconRest: "bg-teal-100 text-teal-700 dark:bg-teal-900 dark:text-teal-300",
+      iconActive: "bg-teal-100 text-teal-700 dark:bg-teal-900 dark:text-teal-300",
+      iconHover:
+        "group-hover:bg-teal-200 group-hover:text-teal-900 dark:group-hover:bg-teal-800 dark:group-hover:text-teal-100",
+      value:
+        "text-teal-700 transition-colors group-hover:text-teal-900 dark:text-teal-300 dark:group-hover:text-teal-100",
+      linkHover:
+        "text-teal-700 hover:text-teal-900 dark:text-teal-300 dark:hover:text-teal-100",
+      amountHover:
+        "text-teal-700 group-hover:text-teal-900 dark:text-teal-300 dark:group-hover:text-teal-100",
+      panelHover:
+        "border-teal-500 hover:border-teal-700 hover:bg-teal-50 dark:border-teal-400 dark:hover:border-teal-300 dark:hover:bg-teal-950",
+      panelBarHover: "group-hover/panel:bg-teal-700 dark:group-hover/panel:bg-teal-300",
+      panelIconHover:
+        "group-hover/panel:bg-teal-200 group-hover/panel:text-teal-900 dark:group-hover/panel:bg-teal-800 dark:group-hover/panel:text-teal-100",
+    },
+    danger: {
+      hoverCard:
+        "border-red-500 hover:border-red-700 hover:bg-red-50 dark:border-red-400 dark:hover:border-red-300 dark:hover:bg-red-950",
+      bar: "bg-red-500 dark:bg-red-400",
+      barHover: "group-hover:bg-red-700 dark:group-hover:bg-red-300",
+      iconRest: "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300",
+      iconActive: "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300",
+      iconHover:
+        "group-hover:bg-red-200 group-hover:text-red-900 dark:group-hover:bg-red-800 dark:group-hover:text-red-100",
+      value:
+        "text-red-700 transition-colors group-hover:text-red-900 dark:text-red-300 dark:group-hover:text-red-100",
+      linkHover:
+        "text-red-700 hover:text-red-900 dark:text-red-300 dark:hover:text-red-100",
+      amountHover:
+        "text-red-700 group-hover:text-red-900 dark:text-red-300 dark:group-hover:text-red-100",
+      panelHover:
+        "border-red-500 hover:border-red-700 hover:bg-red-50 dark:border-red-400 dark:hover:border-red-300 dark:hover:bg-red-950",
+      panelBarHover: "group-hover/panel:bg-red-700 dark:group-hover/panel:bg-red-300",
+      panelIconHover:
+        "group-hover/panel:bg-red-200 group-hover/panel:text-red-900 dark:group-hover/panel:bg-red-800 dark:group-hover/panel:text-red-100",
+    },
+    alert: {
+      hoverCard:
+        "border-orange-500 hover:border-orange-700 hover:bg-orange-50 dark:border-orange-400 dark:hover:border-orange-300 dark:hover:bg-orange-950",
+      bar: "bg-orange-500 dark:bg-orange-400",
+      barHover: "group-hover:bg-orange-700 dark:group-hover:bg-orange-300",
+      iconRest: "bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300",
+      iconActive: "bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300",
+      iconHover:
+        "group-hover:bg-orange-200 group-hover:text-orange-900 dark:group-hover:bg-orange-800 dark:group-hover:text-orange-100",
+      value:
+        "text-orange-700 transition-colors group-hover:text-orange-900 dark:text-orange-300 dark:group-hover:text-orange-100",
+      linkHover:
+        "text-orange-700 hover:text-orange-900 dark:text-orange-300 dark:hover:text-orange-100",
+      amountHover:
+        "text-orange-700 group-hover:text-orange-900 dark:text-orange-300 dark:group-hover:text-orange-100",
+      panelHover:
+        "border-orange-500 hover:border-orange-700 hover:bg-orange-50 dark:border-orange-400 dark:hover:border-orange-300 dark:hover:bg-orange-950",
+      panelBarHover: "group-hover/panel:bg-orange-700 dark:group-hover/panel:bg-orange-300",
+      panelIconHover:
+        "group-hover/panel:bg-orange-200 group-hover/panel:text-orange-900 dark:group-hover/panel:bg-orange-800 dark:group-hover/panel:text-orange-100",
+    },
     clients: plain,
     suppliers: plain,
     inventory: plain,
     expense: plain,
-    danger: plain,
+    neutral: plain,
   }
 })()
 
@@ -81,6 +196,7 @@ function Kpi({
   tone = "sales",
   active = false,
   onClick,
+  iconWrapperClassName,
 }: {
   label: string
   value: string | number
@@ -90,6 +206,7 @@ function Kpi({
   /** Show tone color at rest (alerts, loss, etc.) */
   active?: boolean
   onClick?: () => void
+  iconWrapperClassName?: string
 }) {
   const t = toneStyles[tone]
   const Comp = onClick ? "button" : "div"
@@ -106,8 +223,8 @@ function Kpi({
     >
       <span
         className={cn(
-          "absolute inset-y-0 left-0 w-1 transition-colors",
-          active ? t.bar : cn("bg-transparent", t.barHover),
+          "absolute inset-y-0 left-0 w-1 transition-colors duration-200",
+          active ? cn(t.bar, t.barHover) : cn("bg-transparent", t.barHover),
         )}
       />
       <div className="flex items-start justify-between gap-3 pl-1.5">
@@ -128,7 +245,8 @@ function Kpi({
         <div
           className={cn(
             "flex h-10 w-10 shrink-0 items-center justify-center rounded-lg transition-colors duration-200",
-            active ? t.iconActive : cn(t.iconRest, t.iconHover),
+            active ? cn(t.iconActive, t.iconHover) : cn(t.iconRest, t.iconHover),
+            iconWrapperClassName,
           )}
         >
           <Icon className="h-4 w-4" />
@@ -160,8 +278,8 @@ function Panel({
     >
       <span
         className={cn(
-          "absolute inset-x-0 top-0 h-0.5 transition-colors",
-          active ? t.bar : cn("bg-transparent", t.panelBarHover),
+          "absolute inset-x-0 top-0 h-0.5 transition-colors duration-200",
+          active ? cn(t.bar, t.panelBarHover) : cn("bg-transparent", t.panelBarHover),
         )}
       />
       {children}
@@ -173,17 +291,20 @@ function PanelIcon({
   tone = "sales",
   active = false,
   children,
+  className,
 }: {
   tone?: Tone
   active?: boolean
   children: ReactNode
+  className?: string
 }) {
   const t = toneStyles[tone]
   return (
     <span
       className={cn(
-        "flex h-8 w-8 items-center justify-center rounded-lg transition-colors",
-        active ? t.iconActive : cn(t.iconRest, t.panelIconHover),
+        "flex h-8 w-8 items-center justify-center rounded-lg transition-colors duration-200",
+        active ? cn(t.iconActive, t.panelIconHover) : cn(t.iconRest, t.panelIconHover),
+        className,
       )}
     >
       {children}
@@ -194,9 +315,11 @@ function PanelIcon({
 function ListRow({
   children,
   onClick,
+  tone,
 }: {
   children: ReactNode
   onClick?: () => void
+  tone?: Tone
 }) {
   const Comp = onClick ? "button" : "li"
   return (
@@ -205,7 +328,9 @@ function ListRow({
       onClick={onClick}
       className={cn(
         "group -mx-2 flex w-full items-center justify-between gap-3 rounded-md px-2 py-2.5 text-left transition-colors duration-150",
-        "hover:bg-muted/60",
+        tone === "sales"
+          ? "hover:bg-emerald-100 dark:hover:bg-emerald-900"
+          : "hover:bg-muted/60",
         onClick && "cursor-pointer",
       )}
     >
@@ -237,8 +362,8 @@ function ViewLink({
       type="button"
       onClick={onClick}
       className={cn(
-        "inline-flex items-center gap-1 font-sans text-xs font-medium text-muted-foreground transition-colors",
-        t.linkHover,
+        "inline-flex items-center gap-1 font-sans text-xs font-medium transition-colors duration-200",
+        tone === "sales" ? t.linkHover : cn("text-muted-foreground", t.linkHover),
       )}
     >
       {label}
@@ -260,8 +385,8 @@ function Amount({
   return (
     <span
       className={cn(
-        "shrink-0 font-sans text-sm font-medium tabular-nums transition-colors text-navy",
-        t.amountHover,
+        "shrink-0 font-sans text-sm font-medium tabular-nums transition-colors duration-200",
+        tone === "sales" ? t.amountHover : cn("text-navy", t.amountHover),
         className,
       )}
     >
@@ -410,6 +535,18 @@ export default function DashboardHome({ onNavigate }: DashboardHomeProps) {
     .slice(0, 5)
 
   const stockAttentionCount = lowStockProducts.length + deadStockProducts.length
+  const highDeadStock = deadStockProducts.length > 10
+  const highLowStock = lowStockProducts.length > 10
+  const stockIconBlinkClass = highDeadStock
+    ? "animate-dead-stock-icon-blink"
+    : highLowStock
+      ? "animate-low-stock-icon-blink"
+      : undefined
+  const stockIconTone = highDeadStock
+    ? "danger"
+    : highLowStock || stockAttentionCount > 0
+      ? "alert"
+      : "inventory"
 
   return (
     <div className="space-y-5">
@@ -443,6 +580,7 @@ export default function DashboardHome({ onNavigate }: DashboardHomeProps) {
           hint={`${monthlyPurchases.length} in last 30 days`}
           icon={ShoppingCart}
           tone="purchases"
+          active
           onClick={() => go("purchases")}
         />
         <Kpi
@@ -462,8 +600,9 @@ export default function DashboardHome({ onNavigate }: DashboardHomeProps) {
               : `${totalProducts} products OK`
           }
           icon={stockAttentionCount > 0 ? AlertTriangle : Package}
-          tone={stockAttentionCount > 0 ? "alert" : "inventory"}
+          tone={stockIconTone}
           active={stockAttentionCount > 0}
+          iconWrapperClassName={stockIconBlinkClass}
           onClick={() => go("products")}
         />
         <Kpi
@@ -493,7 +632,7 @@ export default function DashboardHome({ onNavigate }: DashboardHomeProps) {
 
       {/* Activity — 2 columns */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <Panel tone="sales" active>
+        <Panel tone="neutral" active>
           <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-3">
             <div className="space-y-1">
               <CardTitle className="flex items-center gap-2">
@@ -504,7 +643,7 @@ export default function DashboardHome({ onNavigate }: DashboardHomeProps) {
               </CardTitle>
               <CardDescription>Latest transactions</CardDescription>
             </div>
-            <ViewLink label="View all" tone="sales" onClick={() => go("sales")} />
+            <ViewLink label="View all" tone="neutral" onClick={() => go("sales")} />
           </CardHeader>
           <CardContent>
             {recentSales.length > 0 ? (
@@ -538,18 +677,18 @@ export default function DashboardHome({ onNavigate }: DashboardHomeProps) {
           </CardContent>
         </Panel>
 
-        <Panel tone="purchases">
+        <Panel tone="neutral" active>
           <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-3">
             <div className="space-y-1">
               <CardTitle className="flex items-center gap-2">
-                <PanelIcon tone="purchases">
+                <PanelIcon tone="purchases" active>
                   <ShoppingCart className="h-4 w-4" />
                 </PanelIcon>
                 Recent purchases
               </CardTitle>
               <CardDescription>Latest orders</CardDescription>
             </div>
-            <ViewLink label="View all" tone="purchases" onClick={() => go("purchases")} />
+            <ViewLink label="View all" tone="neutral" onClick={() => go("purchases")} />
           </CardHeader>
           <CardContent>
             {recentPurchases.length > 0 ? (
@@ -573,9 +712,9 @@ export default function DashboardHome({ onNavigate }: DashboardHomeProps) {
                             {formatNepaliDateForTable(purchase.purchaseDate)}
                           </p>
                         </div>
-                        <Amount tone="purchases" className="text-sm font-semibold">
+                        <span className="shrink-0 text-sm font-semibold tabular-nums text-brand-dark dark:text-brand">
                           {formatRs(amount)}
-                        </Amount>
+                        </span>
                       </ListRow>
                     </li>
                   )
@@ -590,11 +729,21 @@ export default function DashboardHome({ onNavigate }: DashboardHomeProps) {
 
       {/* Attention — 2 columns */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <Panel tone="alert" active={stockAttentionCount > 0}>
+        <Panel tone="neutral" active={stockAttentionCount > 0}>
           <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-3">
             <div className="space-y-1">
               <CardTitle className="flex items-center gap-2">
-                <PanelIcon tone="alert" active={stockAttentionCount > 0}>
+                <PanelIcon
+                  tone={
+                    highDeadStock
+                      ? "danger"
+                      : highLowStock || stockAttentionCount > 0
+                        ? "alert"
+                        : "neutral"
+                  }
+                  active={stockAttentionCount > 0}
+                  className={stockIconBlinkClass}
+                >
                   <AlertTriangle className="h-4 w-4" />
                 </PanelIcon>
                 Needs attention
@@ -605,7 +754,7 @@ export default function DashboardHome({ onNavigate }: DashboardHomeProps) {
                   : "Stock looks healthy"}
               </CardDescription>
             </div>
-            <ViewLink label="Products" tone="alert" onClick={() => go("products")} />
+            <ViewLink label="Products" tone="neutral" onClick={() => go("products")} />
           </CardHeader>
           <CardContent>
             {lowStockProducts.length > 0 ? (
@@ -635,21 +784,10 @@ export default function DashboardHome({ onNavigate }: DashboardHomeProps) {
                 <p className="text-sm">No low-stock items</p>
               </div>
             )}
-            {deadStockProducts.length > 0 && (
-              <button
-                type="button"
-                onClick={() => go("products")}
-                className="mt-3 flex w-full items-center gap-2 rounded-md border border-red-100 bg-red-50/70 px-3 py-2 text-left text-xs text-red-700 transition-colors hover:bg-red-50 dark:border-red-900/40 dark:bg-red-900/15 dark:text-red-300 dark:hover:bg-red-900/25"
-              >
-                <Clock className="h-3.5 w-3.5 shrink-0" />
-                {deadStockProducts.length} dead stock item
-                {deadStockProducts.length === 1 ? "" : "s"} (90+ days)
-              </button>
-            )}
           </CardContent>
         </Panel>
 
-        <Panel tone="sales" active>
+        <Panel tone="neutral" active>
           <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-3">
             <div className="space-y-1">
               <CardTitle className="flex items-center gap-2">
@@ -660,7 +798,7 @@ export default function DashboardHome({ onNavigate }: DashboardHomeProps) {
               </CardTitle>
               <CardDescription>By quantity sold</CardDescription>
             </div>
-            <ViewLink label="Sales" tone="sales" onClick={() => go("sales")} />
+            <ViewLink label="Sales" tone="neutral" onClick={() => go("sales")} />
           </CardHeader>
           <CardContent>
             {topSellingProducts.length > 0 ? (
@@ -690,18 +828,18 @@ export default function DashboardHome({ onNavigate }: DashboardHomeProps) {
 
       {/* Money due — 2 columns */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <Panel tone="danger" active={overdueClients.length > 0}>
+        <Panel tone="neutral" active={overdueClients.length > 0}>
           <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-3">
             <div className="space-y-1">
               <CardTitle className="flex items-center gap-2">
-                <PanelIcon tone="danger" active={overdueClients.length > 0}>
+                <PanelIcon tone={overdueClients.length > 0 ? "danger" : "neutral"} active={overdueClients.length > 0}>
                   <AlertTriangle className="h-4 w-4" />
                 </PanelIcon>
                 Client receivables
               </CardTitle>
               <CardDescription>Pending over {OVERDUE_DAYS} days</CardDescription>
             </div>
-            <ViewLink label="Clients" tone="danger" onClick={() => go("clients")} />
+            <ViewLink label="Clients" tone="neutral" onClick={() => go("clients")} />
           </CardHeader>
           <CardContent>
             {overdueClients.length > 0 ? (
@@ -725,18 +863,18 @@ export default function DashboardHome({ onNavigate }: DashboardHomeProps) {
           </CardContent>
         </Panel>
 
-        <Panel tone="alert" active={overdueSuppliers.length > 0}>
+        <Panel tone="neutral" active={overdueSuppliers.length > 0}>
           <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-3">
             <div className="space-y-1">
               <CardTitle className="flex items-center gap-2">
-                <PanelIcon tone="alert" active={overdueSuppliers.length > 0}>
+                <PanelIcon tone={overdueSuppliers.length > 0 ? "purchases" : "neutral"} active={overdueSuppliers.length > 0}>
                   <Truck className="h-4 w-4" />
                 </PanelIcon>
                 Supplier payables
               </CardTitle>
               <CardDescription>Pending over {OVERDUE_DAYS} days</CardDescription>
             </div>
-            <ViewLink label="Suppliers" tone="alert" onClick={() => go("suppliers")} />
+            <ViewLink label="Suppliers" tone="neutral" onClick={() => go("suppliers")} />
           </CardHeader>
           <CardContent>
             {overdueSuppliers.length > 0 ? (

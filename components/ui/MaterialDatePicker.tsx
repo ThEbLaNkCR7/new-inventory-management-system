@@ -110,7 +110,11 @@ export function MaterialDatePicker({
           )}
           onClick={() => setOpen(true)}
         >
-          {tempDate ? format(tempDate, dateFormat) : placeholder}
+          {tempDate ? (
+            format(tempDate, dateFormat)
+          ) : (
+            <span className="!text-muted-foreground/50">{placeholder}</span>
+          )}
         </button>
         {open && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">

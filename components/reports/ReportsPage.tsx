@@ -3,759 +3,1365 @@
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useToast } from "@/components/ui/use-toast"
 import { useInventory } from "@/contexts/InventoryContext"
-import { formatDateForReports, getCurrentNepaliYear, getNepaliMonth, getNepaliYear, toTitleCase } from "@/lib/utils"
+import {
+  cn,
+  formatDateForReports,
+  getCurrentNepaliYear,
+  getNepaliDay,
+  getNepaliMonth,
+  getNepaliYear,
+  toTitleCase,
+} from "@/lib/utils"
 import { exportTableToExcel } from "@/utils/exportUtils"
-import { AlertTriangle, BarChart, BarChart3, Calendar, DollarSign, Package, Printer, TrendingDown, TrendingUp } from "lucide-react"
-import { useState } from "react"
-import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts"
+import {
+  AlertTriangle,
+  BarChart3,
+  Calendar,
+  ChevronLeft,
+  ChevronRight,
+  Download,
+  Printer,
+  TrendingDown,
+  TrendingUp,
+  Wallet,
+} from "lucide-react"
+import { useEffect, useId, useMemo, useState, type ComponentType, type ReactNode } from "react"
+import {
+  Area,
+  CartesianGrid,
+  ComposedChart,
+  Line,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts"
 
-const formatDate = (dateString: string) => {
- return formatDateForReports(dateString)
+/** Restrained finance palette — brand teal + slate only */
+const C = {
+  sales: "#165e6c",
+  purchases: "#8B9AAB",
+  profit: "#165e6c",
+  axis: "#94A3B8",
+  grid: "rgba(148, 163, 184, 0.25)",
+  cursor: "rgba(22, 94, 108, 0.06)",
 }
 
-const formatRs = (value: number) => `Rs ${Number(value || 0).toLocaleString()}`
+const NEPALI_MONTHS = [
+  "Baisakh",
+  "Jestha",
+  "Asar",
+  "Shrawan",
+  "Bhadra",
+  "Ashoj",
+  "Kartik",
+  "Mangsir",
+  "Poush",
+  "Magh",
+  "Falgun",
+  "Chaitra",
+]
+
+function formatRs(value: number) {
+  return `Rs ${Number(value || 0).toLocaleString()}`
+}
+
+function formatCompactRs(value: number) {
+  const n = Number(value || 0)
+  if (Math.abs(n) >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
+  if (Math.abs(n) >= 1_000) return `${(n / 1_000).toFixed(0)}K`
+  return `${Math.round(n)}`
+}
+
+function saleTotal(sale: { items?: { quantitySold?: number; salePrice?: number }[] }) {
+  return (sale.items || []).reduce(
+    (sum, item) => sum + (item.quantitySold || 0) * (item.salePrice || 0),
+    0
+  )
+}
+
+function purchaseTotal(purchase: {
+  items?: { quantityPurchased?: number; purchasePrice?: number }[]
+}) {
+  return (purchase.items || []).reduce(
+    (sum, item) => sum + (item.quantityPurchased || 0) * (item.purchasePrice || 0),
+    0
+  )
+}
+
+function ChartTooltip({
+  active,
+  payload,
+  label,
+}: {
+  active?: boolean
+  payload?: { name?: string; value?: number; color?: string; dataKey?: string }[]
+  label?: string
+}) {
+  if (!active || !payload?.length) return null
+  return (
+    <div className="rounded-lg border border-border/80 bg-background/95 px-3.5 py-2.5 shadow-md backdrop-blur-sm">
+      {label ? <p className="mb-1.5 text-[11px] font-medium tracking-wide text-muted-foreground">{label}</p> : null}
+      <div className="space-y-1">
+        {payload.map((entry, i) => (
+          <div key={i} className="flex items-center justify-between gap-6 text-[12px]">
+            <span className="flex items-center gap-2 text-muted-foreground">
+              <span
+                className="h-1.5 w-1.5 rounded-full"
+                style={{ background: entry.color || C.sales }}
+              />
+              {entry.name}
+            </span>
+            <span className="font-semibold tabular-nums text-navy">{formatRs(entry.value || 0)}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function ChartLegend({ items }: { items: { label: string; color: string }[] }) {
+  return (
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+      {items.map((item) => (
+        <span key={item.label} className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground">
+          <span className="h-1.5 w-3 rounded-full" style={{ background: item.color }} />
+          {item.label}
+        </span>
+      ))}
+    </div>
+  )
+}
+
+function ChartCard({
+  title,
+  description,
+  legend,
+  children,
+  className,
+  action,
+}: {
+  title: string
+  description?: string
+  legend?: ReactNode
+  children: ReactNode
+  className?: string
+  action?: ReactNode
+}) {
+  return (
+    <Card className={cn("report-print-block shadow-none", className)}>
+      <CardHeader className="flex flex-row items-start justify-between gap-3 space-y-0 pb-3">
+        <div className="space-y-1">
+          <CardTitle className="text-[15px] font-semibold tracking-tight">{title}</CardTitle>
+          {description ? <CardDescription className="text-[12px]">{description}</CardDescription> : null}
+          {legend ? <div className="pt-2">{legend}</div> : null}
+        </div>
+        {action}
+      </CardHeader>
+      <CardContent className="pt-0">{children}</CardContent>
+    </Card>
+  )
+}
+
+function TrendChart({
+  data,
+  xKey,
+  labelKey,
+  showProfit = false,
+}: {
+  data: Record<string, string | number>[]
+  xKey: string
+  labelKey?: string
+  showProfit?: boolean
+}) {
+  const uid = useId().replace(/:/g, "")
+  const salesGrad = `salesGrad-${uid}`
+  const profitGrad = `profitGrad-${uid}`
+
+  return (
+    <ResponsiveContainer width="100%" height={300}>
+      <ComposedChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+        <defs>
+          <linearGradient id={salesGrad} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={C.sales} stopOpacity={0.18} />
+            <stop offset="100%" stopColor={C.sales} stopOpacity={0.02} />
+          </linearGradient>
+          <linearGradient id={profitGrad} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={C.profit} stopOpacity={0.12} />
+            <stop offset="100%" stopColor={C.profit} stopOpacity={0} />
+          </linearGradient>
+        </defs>
+        <CartesianGrid stroke={C.grid} strokeDasharray="0" vertical={false} />
+        <XAxis
+          dataKey={xKey}
+          tick={{ fill: C.axis, fontSize: 11, fontWeight: 500 }}
+          axisLine={false}
+          tickLine={false}
+          dy={8}
+        />
+        <YAxis
+          tick={{ fill: C.axis, fontSize: 11 }}
+          axisLine={false}
+          tickLine={false}
+          width={44}
+          tickFormatter={formatCompactRs}
+        />
+        <Tooltip
+          content={<ChartTooltip />}
+          cursor={{ fill: C.cursor }}
+          labelFormatter={(_, payload) => {
+            const row = payload?.[0]?.payload
+            if (labelKey && row?.[labelKey]) return String(row[labelKey])
+            return String(row?.[xKey] ?? "")
+          }}
+        />
+        <Area
+          type="monotone"
+          dataKey="sales"
+          name="Sales"
+          stroke={C.sales}
+          strokeWidth={2}
+          fill={`url(#${salesGrad})`}
+          dot={false}
+          activeDot={{ r: 4, strokeWidth: 2, stroke: "#fff", fill: C.sales }}
+        />
+        <Line
+          type="monotone"
+          dataKey="purchases"
+          name="Purchases"
+          stroke={C.purchases}
+          strokeWidth={2}
+          strokeDasharray="5 4"
+          dot={false}
+          activeDot={{ r: 3.5, strokeWidth: 2, stroke: "#fff", fill: C.purchases }}
+        />
+        {showProfit ? (
+          <Area
+            type="monotone"
+            dataKey="profit"
+            name="Profit"
+            stroke={C.profit}
+            strokeWidth={1.5}
+            fill={`url(#${profitGrad})`}
+            dot={false}
+            activeDot={{ r: 3.5, strokeWidth: 2, stroke: "#fff", fill: C.profit }}
+          />
+        ) : null}
+      </ComposedChart>
+    </ResponsiveContainer>
+  )
+}
+
+function ProfitChart({
+  data,
+  xKey,
+  labelKey,
+}: {
+  data: Record<string, string | number>[]
+  xKey: string
+  labelKey?: string
+}) {
+  const uid = useId().replace(/:/g, "")
+  const gradId = `profitOnly-${uid}`
+
+  return (
+    <ResponsiveContainer width="100%" height={220}>
+      <ComposedChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+        <defs>
+          <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={C.profit} stopOpacity={0.2} />
+            <stop offset="100%" stopColor={C.profit} stopOpacity={0.02} />
+          </linearGradient>
+        </defs>
+        <CartesianGrid stroke={C.grid} vertical={false} />
+        <XAxis
+          dataKey={xKey}
+          tick={{ fill: C.axis, fontSize: 11, fontWeight: 500 }}
+          axisLine={false}
+          tickLine={false}
+          dy={8}
+        />
+        <YAxis
+          tick={{ fill: C.axis, fontSize: 11 }}
+          axisLine={false}
+          tickLine={false}
+          width={44}
+          tickFormatter={formatCompactRs}
+        />
+        <Tooltip
+          content={<ChartTooltip />}
+          cursor={{ stroke: C.sales, strokeWidth: 1, strokeDasharray: "4 4" }}
+          labelFormatter={(_, payload) => {
+            const row = payload?.[0]?.payload
+            if (labelKey && row?.[labelKey]) return String(row[labelKey])
+            return String(row?.[xKey] ?? "")
+          }}
+        />
+        <Area
+          type="monotone"
+          dataKey="profit"
+          name="Profit"
+          stroke={C.profit}
+          strokeWidth={2.25}
+          fill={`url(#${gradId})`}
+          dot={false}
+          activeDot={{ r: 4, strokeWidth: 2, stroke: "#fff", fill: C.profit }}
+        />
+      </ComposedChart>
+    </ResponsiveContainer>
+  )
+}
+
+function PaymentSplit({
+  paid,
+  unpaid,
+}: {
+  paid: number
+  unpaid: number
+}) {
+  const total = paid + unpaid
+  const paidPct = total > 0 ? (paid / total) * 100 : 0
+  const unpaidPct = total > 0 ? (unpaid / total) * 100 : 0
+
+  if (total <= 0) {
+    return (
+      <div className="flex h-[220px] flex-col items-center justify-center text-center">
+        <p className="text-sm font-medium text-navy">No sales in this period</p>
+        <p className="mt-1 text-xs text-muted-foreground">Payment mix will appear when sales are recorded</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex h-[220px] flex-col justify-center gap-6">
+      <div>
+        <div className="mb-2 flex items-end justify-between">
+          <div>
+            <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Collection rate</p>
+            <p className="text-3xl font-semibold tracking-tight tabular-nums text-navy">
+              {paidPct.toFixed(0)}
+              <span className="text-lg font-medium text-muted-foreground">%</span>
+            </p>
+          </div>
+          <p className="text-xs tabular-nums text-muted-foreground">{formatRs(total)} total</p>
+        </div>
+        <div className="flex h-3 w-full overflow-hidden rounded-full bg-muted">
+          <div
+            className="h-full bg-[#165e6c] transition-all duration-500"
+            style={{ width: `${paidPct}%` }}
+            title={`Received ${formatRs(paid)}`}
+          />
+          <div
+            className="h-full bg-slate-300 transition-all duration-500 dark:bg-slate-600"
+            style={{ width: `${unpaidPct}%` }}
+            title={`Pending ${formatRs(unpaid)}`}
+          />
+        </div>
+      </div>
+
+      <div className="space-y-3">
+        <div className="flex items-center justify-between border-b border-border/60 pb-2.5">
+          <span className="flex items-center gap-2 text-sm text-muted-foreground">
+            <span className="h-2 w-2 rounded-full bg-[#165e6c]" />
+            Received
+          </span>
+          <div className="text-right">
+            <p className="text-sm font-semibold tabular-nums text-navy">{formatRs(paid)}</p>
+            <p className="text-[11px] tabular-nums text-muted-foreground">{paidPct.toFixed(1)}%</p>
+          </div>
+        </div>
+        <div className="flex items-center justify-between">
+          <span className="flex items-center gap-2 text-sm text-muted-foreground">
+            <span className="h-2 w-2 rounded-full bg-slate-300 dark:bg-slate-600" />
+            Pending
+          </span>
+          <div className="text-right">
+            <p className="text-sm font-semibold tabular-nums text-navy">{formatRs(unpaid)}</p>
+            <p className="text-[11px] tabular-nums text-muted-foreground">{unpaidPct.toFixed(1)}%</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function RankList({
+  items,
+  emptyLabel,
+  valueLabel = "Revenue",
+}: {
+  items: { id: string; name: string; value: number; meta?: string }[]
+  emptyLabel: string
+  valueLabel?: string
+}) {
+  const max = items[0]?.value || 1
+
+  if (!items.length) {
+    return <p className="py-12 text-center text-sm text-muted-foreground">{emptyLabel}</p>
+  }
+
+  return (
+    <div className="space-y-4 py-1">
+      {items.map((item, index) => {
+        const pct = Math.max(4, (item.value / max) * 100)
+        return (
+          <div key={item.id} className="space-y-1.5">
+            <div className="flex items-baseline justify-between gap-3">
+              <div className="flex min-w-0 items-baseline gap-2">
+                <span className="w-4 shrink-0 text-[11px] font-medium tabular-nums text-muted-foreground">
+                  {index + 1}
+                </span>
+                <span className="truncate text-sm font-medium text-navy">{item.name}</span>
+              </div>
+              <span className="shrink-0 text-sm font-semibold tabular-nums text-navy">
+                {formatRs(item.value)}
+              </span>
+            </div>
+            <div className="ml-6 h-1.5 overflow-hidden rounded-full bg-muted">
+              <div
+                className="h-full rounded-full bg-[#165e6c]/85 transition-all duration-500"
+                style={{ width: `${pct}%` }}
+              />
+            </div>
+            {item.meta ? (
+              <p className="ml-6 text-[11px] text-muted-foreground">
+                {item.meta}
+                <span className="sr-only"> {valueLabel}</span>
+              </p>
+            ) : null}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+function ChannelSplit({
+  clientAmount,
+  siteAmount,
+}: {
+  clientAmount: number
+  siteAmount: number
+}) {
+  const total = clientAmount + siteAmount
+  const clientPct = total > 0 ? (clientAmount / total) * 100 : 0
+  const sitePct = total > 0 ? (siteAmount / total) * 100 : 0
+
+  if (total <= 0) {
+    return (
+      <div className="flex h-[220px] flex-col items-center justify-center text-center">
+        <p className="text-sm font-medium text-navy">No sales in this period</p>
+        <p className="mt-1 text-xs text-muted-foreground">Client vs site mix will appear with sales</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex h-[220px] flex-col justify-center gap-6">
+      <div>
+        <div className="mb-2 flex items-end justify-between">
+          <div>
+            <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+              Client share
+            </p>
+            <p className="text-3xl font-semibold tracking-tight tabular-nums text-navy">
+              {clientPct.toFixed(0)}
+              <span className="text-lg font-medium text-muted-foreground">%</span>
+            </p>
+          </div>
+          <p className="text-xs tabular-nums text-muted-foreground">{formatRs(total)} sales</p>
+        </div>
+        <div className="flex h-3 w-full overflow-hidden rounded-full bg-muted">
+          <div className="h-full bg-[#165e6c] transition-all duration-500" style={{ width: `${clientPct}%` }} />
+          <div
+            className="h-full bg-slate-300 transition-all duration-500 dark:bg-slate-600"
+            style={{ width: `${sitePct}%` }}
+          />
+        </div>
+      </div>
+      <div className="space-y-3">
+        <div className="flex items-center justify-between border-b border-border/60 pb-2.5">
+          <span className="flex items-center gap-2 text-sm text-muted-foreground">
+            <span className="h-2 w-2 rounded-full bg-[#165e6c]" />
+            Client sales
+          </span>
+          <div className="text-right">
+            <p className="text-sm font-semibold tabular-nums text-navy">{formatRs(clientAmount)}</p>
+            <p className="text-[11px] tabular-nums text-muted-foreground">{clientPct.toFixed(1)}%</p>
+          </div>
+        </div>
+        <div className="flex items-center justify-between">
+          <span className="flex items-center gap-2 text-sm text-muted-foreground">
+            <span className="h-2 w-2 rounded-full bg-slate-300 dark:bg-slate-600" />
+            Site / project
+          </span>
+          <div className="text-right">
+            <p className="text-sm font-semibold tabular-nums text-navy">{formatRs(siteAmount)}</p>
+            <p className="text-[11px] tabular-nums text-muted-foreground">{sitePct.toFixed(1)}%</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function KpiCard({
+  label,
+  value,
+  hint,
+  icon: Icon,
+  tone = "neutral",
+}: {
+  label: string
+  value: string
+  hint?: string
+  icon: ComponentType<{ className?: string }>
+  tone?: "sales" | "purchases" | "profit" | "alert" | "neutral"
+}) {
+  const tones = {
+    sales: "border-border",
+    purchases: "border-border",
+    profit: "border-border",
+    alert: "border-border",
+    neutral: "border-border",
+  }
+  const iconTones = {
+    sales: "bg-[#165e6c]/8 text-[#165e6c]",
+    purchases: "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300",
+    profit: "bg-[#165e6c]/8 text-[#165e6c]",
+    alert: "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300",
+    neutral: "bg-muted text-navy/70",
+  }
+  return (
+    <Card className={cn("report-print-block shadow-none", tones[tone])}>
+      <CardContent className="flex items-start justify-between gap-3 p-4">
+        <div className="min-w-0 space-y-1">
+          <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{label}</p>
+          <p className="truncate text-xl font-semibold tracking-tight tabular-nums text-navy sm:text-2xl">
+            {value}
+          </p>
+          {hint ? <p className="text-xs text-muted-foreground">{hint}</p> : null}
+        </div>
+        <div className={cn("rounded-md p-2", iconTones[tone])}>
+          <Icon className="h-4 w-4" />
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+function formatPrintStamp(date = new Date()) {
+  return date.toLocaleString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: true,
+  })
+}
+
+function shiftNepaliMonth(year: number, month: number, delta: number) {
+  let nextMonth = month + delta
+  let nextYear = year
+  while (nextMonth < 1) {
+    nextMonth += 12
+    nextYear -= 1
+  }
+  while (nextMonth > 12) {
+    nextMonth -= 12
+    nextYear += 1
+  }
+  return { year: nextYear, month: nextMonth }
+}
 
 export default function ReportsPage() {
- const { products, purchases, sales, getLowStockProducts, getTotalSales, getTotalPurchases, getProfit } =
- useInventory()
- const [reportType, setReportType] = useState<'monthly' | 'yearly'>('monthly')
+  const { products, purchases, sales } = useInventory()
+  const [reportType, setReportType] = useState<"monthly" | "yearly">("monthly")
+  const [printStamp, setPrintStamp] = useState(() => formatPrintStamp())
+  const { toast } = useToast()
 
- const totalSales = getTotalSales()
- const totalPurchases = getTotalPurchases()
- const profit = getProfit()
- const lowStockProducts = getLowStockProducts()
- const { toast } = useToast()
+  const todayNepaliYear = getCurrentNepaliYear()
+  const todayNepaliMonth = getNepaliMonth(new Date().toISOString())
+  const [selectedYear, setSelectedYear] = useState(todayNepaliYear)
+  const [selectedMonth, setSelectedMonth] = useState(todayNepaliMonth)
 
- // Calculate monthly data (simplified for demo)
- const currentNepaliYear = getCurrentNepaliYear()
- const currentNepaliMonth = getNepaliMonth(new Date().toISOString())
+  useEffect(() => {
+    const refreshStamp = () => setPrintStamp(formatPrintStamp())
+    window.addEventListener("beforeprint", refreshStamp)
+    return () => window.removeEventListener("beforeprint", refreshStamp)
+  }, [])
 
- // Export Monthly Report as Excel table (matches weekly chart breakdown)
- const exportMonthlyReportToExcel = (weeklyRows: any[]) => {
- if (!weeklyRows || weeklyRows.length === 0) {
- toast({ title: "No monthly data", description: "There is no monthly report to export.", variant: "destructive" });
- return;
- }
+  const handlePrint = () => {
+    setPrintStamp(formatPrintStamp())
+    // Let React paint the updated stamp before the print dialog opens
+    requestAnimationFrame(() => window.print())
+  }
 
- const data = weeklyRows.map((row) => ({
- week: row.week,
- sales: formatRs(row.sales),
- purchases: formatRs(row.purchases),
- profit: formatRs(row.profit),
- }));
+  const availableYears = useMemo(() => {
+    const years = new Set<number>([todayNepaliYear])
+    sales.forEach((s) => {
+      try {
+        years.add(getNepaliYear(s.saleDate))
+      } catch {
+        /* ignore bad dates */
+      }
+    })
+    purchases.forEach((p) => {
+      try {
+        years.add(getNepaliYear(p.purchaseDate))
+      } catch {
+        /* ignore bad dates */
+      }
+    })
+    // Always offer a short lookback even if data is empty
+    for (let y = todayNepaliYear; y >= todayNepaliYear - 5; y -= 1) years.add(y)
+    years.add(selectedYear)
+    return Array.from(years)
+      .filter((y) => Number.isFinite(y) && y > 2000)
+      .sort((a, b) => b - a)
+  }, [sales, purchases, todayNepaliYear, selectedYear])
 
- exportTableToExcel(data, `monthly_report_${new Date().toISOString().split("T")[0]}`, {
- sheetName: "Monthly Report",
- title: "Monthly Report — Weekly Breakdown",
- columns: [
- { key: "week", header: "Week", width: 12 },
- { key: "sales", header: "Sales", width: 18 },
- { key: "purchases", header: "Purchases", width: 18 },
- { key: "profit", header: "Profit", width: 18 },
- ],
- });
- };
+  const isCurrentMonth = selectedYear === todayNepaliYear && selectedMonth === todayNepaliMonth
+  const isCurrentYear = selectedYear === todayNepaliYear
 
- // Export Yearly Report as Excel table (matches Yearly Summary table)
- const exportYearlyReportToExcel = (yearlyRows: any[]) => {
- if (!yearlyRows || yearlyRows.length === 0) {
- toast({ title: "No yearly data", description: "There is no yearly report to export.", variant: "destructive" });
- return;
- }
+  const goToPreviousPeriod = () => {
+    if (reportType === "monthly") {
+      const prev = shiftNepaliMonth(selectedYear, selectedMonth, -1)
+      setSelectedYear(prev.year)
+      setSelectedMonth(prev.month)
+      return
+    }
+    setSelectedYear((y) => y - 1)
+  }
 
- const data = yearlyRows.map((row) => ({
- month: row.month,
- sales: formatRs(row.sales),
- purchases: formatRs(row.purchases),
- profit: formatRs(row.profit),
- transactions: row.transactions ?? 0,
- }));
+  const goToNextPeriod = () => {
+    if (reportType === "monthly") {
+      const next = shiftNepaliMonth(selectedYear, selectedMonth, 1)
+      // Don't go past the current Nepali month
+      if (next.year > todayNepaliYear || (next.year === todayNepaliYear && next.month > todayNepaliMonth)) {
+        return
+      }
+      setSelectedYear(next.year)
+      setSelectedMonth(next.month)
+      return
+    }
+    if (selectedYear >= todayNepaliYear) return
+    setSelectedYear((y) => y + 1)
+  }
 
- exportTableToExcel(data, `yearly_report_${new Date().toISOString().split("T")[0]}`, {
- sheetName: "Yearly Summary",
- title: `Yearly Summary — ${currentNepaliYear}`,
- columns: [
- { key: "month", header: "Month", width: 14 },
- { key: "sales", header: "Sales", width: 18 },
- { key: "purchases", header: "Purchases", width: 18 },
- { key: "profit", header: "Profit", width: 18 },
- { key: "transactions", header: "Transactions", width: 14 },
- ],
- });
- };
+  const canGoNext =
+    reportType === "monthly"
+      ? !(selectedYear === todayNepaliYear && selectedMonth === todayNepaliMonth)
+      : selectedYear < todayNepaliYear
 
+  const resetToCurrent = () => {
+    setSelectedYear(todayNepaliYear)
+    setSelectedMonth(todayNepaliMonth)
+  }
 
- // Calculate weekly data for current month
- const getWeeklyData = () => {
- const currentMonth = new Date().getMonth() + 1; // JS month (1-12)
- const currentYear = new Date().getFullYear();
+  const productNameById = useMemo(() => {
+    const map = new Map<string, string>()
+    products.forEach((p) => map.set(p.id, p.name))
+    return map
+  }, [products])
 
- const weeks = [
- { week: "Week 1", start: 1, end: 7 },
- { week: "Week 2", start: 8, end: 14 },
- { week: "Week 3", start: 15, end: 21 },
- { week: "Week 4", start: 22, end: 28 },
- { week: "Week 5", start: 29, end: 31 },
- ];
+  const resolveProductName = (productId?: string, productName?: string) => {
+    if (productName?.trim()) return toTitleCase(productName)
+    if (productId && productNameById.has(productId)) return toTitleCase(productNameById.get(productId)!)
+    return productId ? toTitleCase(productId) : "—"
+  }
 
- return weeks.map(({ week, start, end }) => {
- const weekSales = sales
- .filter((s) => {
- const date = new Date(s.saleDate)
- return (
- date.getMonth() + 1 === currentMonth &&
- date.getDate() >= start &&
- date.getDate() <= end
- )
- })
- .reduce((sum, s) => {
- return (
- sum +
- (s.items || []).reduce(
- (itemSum, item) =>
- itemSum +
- (item.quantitySold || 0) *
- (item.salePrice || 0),
- 0
- )
- )
- }, 0)
+  const inSelectedPeriod = (dateStr: string) => {
+    if (reportType === "monthly") {
+      return getNepaliYear(dateStr) === selectedYear && getNepaliMonth(dateStr) === selectedMonth
+    }
+    return getNepaliYear(dateStr) === selectedYear
+  }
 
- const weekPurchases = purchases
- .filter((p) => {
- const date = new Date(p.purchaseDate)
- return (
- date.getMonth() + 1 === currentMonth &&
- date.getDate() >= start &&
- date.getDate() <= end
- )
- })
- .reduce((sum, p) => {
- return (
- sum +
- (p.items || []).reduce(
- (itemSum, item) =>
- itemSum +
- (item.quantityPurchased || 0) *
- (item.purchasePrice || 0),
- 0
- )
- )
- }, 0)
- return {
- week,
- sales: weekSales,
- purchases: weekPurchases,
- profit: weekSales - weekPurchases,
- };
- });
- };
+  const periodSales = useMemo(
+    () => sales.filter((s) => inSelectedPeriod(s.saleDate)),
+    [sales, reportType, selectedYear, selectedMonth]
+  )
 
- const weeklyData = getWeeklyData();
+  const periodPurchases = useMemo(
+    () => purchases.filter((p) => inSelectedPeriod(p.purchaseDate)),
+    [purchases, reportType, selectedYear, selectedMonth]
+  )
 
+  /** Weekly buckets by Nepali day-of-month for the selected Bikram Sambat month */
+  const weeklyData = useMemo(() => {
+    const weeks = [
+      { week: "W1", start: 1, end: 7 },
+      { week: "W2", start: 8, end: 14 },
+      { week: "W3", start: 15, end: 21 },
+      { week: "W4", start: 22, end: 28 },
+      { week: "W5", start: 29, end: 32 },
+    ]
 
- const getMonthlyData = () => {
- const nepaliMonths = [
- "Baisakh", "Jestha", "Asar", "Shrawan", "Bhadra", "Ashoj",
- "Kartik", "Mangsir", "Poush", "Magh", "Falgun", "Chaitra"
- ];
- const currentNepaliYear = getCurrentNepaliYear();
+    const inMonth = (dateStr: string) =>
+      getNepaliYear(dateStr) === selectedYear && getNepaliMonth(dateStr) === selectedMonth
 
- return nepaliMonths.map((monthName, index) => {
- const monthNumber = index + 1;
- const monthSalesList = sales.filter(
- (s) =>
- getNepaliYear(s.saleDate) === currentNepaliYear &&
- getNepaliMonth(s.saleDate) === monthNumber
- )
- const monthPurchasesList = purchases.filter(
- (p) =>
- getNepaliYear(p.purchaseDate) === currentNepaliYear &&
- getNepaliMonth(p.purchaseDate) === monthNumber
- )
+    return weeks
+      .map(({ week, start, end }) => {
+        const weekSales = sales
+          .filter((s) => {
+            if (!inMonth(s.saleDate)) return false
+            const day = getNepaliDay(s.saleDate)
+            return day >= start && day <= end
+          })
+          .reduce((sum, s) => sum + saleTotal(s), 0)
 
- const monthSales = monthSalesList.reduce((sum, s) => {
- return (
- sum +
- (s.items || []).reduce(
- (itemSum, item) =>
- itemSum +
- (item.quantitySold || 0) *
- (item.salePrice || 0),
- 0
- )
- )
- }, 0)
+        const weekPurchases = purchases
+          .filter((p) => {
+            if (!inMonth(p.purchaseDate)) return false
+            const day = getNepaliDay(p.purchaseDate)
+            return day >= start && day <= end
+          })
+          .reduce((sum, p) => sum + purchaseTotal(p), 0)
 
- const monthPurchases = monthPurchasesList.reduce((sum, p) => {
- return (
- sum +
- (p.items || []).reduce(
- (itemSum, item) =>
- itemSum +
- (item.quantityPurchased || 0) *
- (item.purchasePrice || 0),
- 0
- )
- )
- }, 0)
+        return {
+          week,
+          label: week.replace("W", "Week "),
+          sales: weekSales,
+          purchases: weekPurchases,
+          profit: weekSales - weekPurchases,
+        }
+      })
+      .filter((row, index) => index < 4 || row.sales > 0 || row.purchases > 0)
+  }, [sales, purchases, selectedYear, selectedMonth])
 
- return {
- month: monthName,
- sales: monthSales,
- purchases: monthPurchases,
- profit: monthSales - monthPurchases,
- transactions: monthSalesList.length + monthPurchasesList.length,
- };
- });
- };
+  const monthlyBreakdown = useMemo(() => {
+    return NEPALI_MONTHS.map((monthName, index) => {
+      const monthNumber = index + 1
+      const monthSalesList = sales.filter(
+        (s) => getNepaliYear(s.saleDate) === selectedYear && getNepaliMonth(s.saleDate) === monthNumber
+      )
+      const monthPurchasesList = purchases.filter(
+        (p) =>
+          getNepaliYear(p.purchaseDate) === selectedYear && getNepaliMonth(p.purchaseDate) === monthNumber
+      )
 
- const monthlySales = sales
- .filter((sale) => {
- const saleNepaliYear = getNepaliYear(sale.saleDate)
- const saleNepaliMonth = getNepaliMonth(sale.saleDate)
- return (
- saleNepaliYear === currentNepaliYear &&
- saleNepaliMonth === currentNepaliMonth
- )
- })
- .reduce((total, sale) => {
- return (
- total +
- (sale.items || []).reduce(
- (itemSum, item) =>
- itemSum +
- (item.quantitySold || 0) *
- (item.salePrice || 0),
- 0
- )
- )
- }, 0)
+      const monthSales = monthSalesList.reduce((sum, s) => sum + saleTotal(s), 0)
+      const monthPurchases = monthPurchasesList.reduce((sum, p) => sum + purchaseTotal(p), 0)
 
- const monthlyPurchases = purchases
- .filter((purchase) => {
- const purchaseNepaliYear = getNepaliYear(purchase.purchaseDate)
- const purchaseNepaliMonth = getNepaliMonth(purchase.purchaseDate)
- return (
- purchaseNepaliYear === currentNepaliYear &&
- purchaseNepaliMonth === currentNepaliMonth
- )
- })
- .reduce((total, purchase) => {
- return (
- total +
- (purchase.items || []).reduce(
- (itemSum, item) =>
- itemSum +
- (item.quantityPurchased || 0) *
- (item.purchasePrice || 0),
- 0
- )
- )
- }, 0)
+      return {
+        month: monthName,
+        shortMonth: monthName.slice(0, 3),
+        sales: monthSales,
+        purchases: monthPurchases,
+        profit: monthSales - monthPurchases,
+        transactions: monthSalesList.length + monthPurchasesList.length,
+      }
+    })
+  }, [sales, purchases, selectedYear])
 
- const monthlyProfit = monthlySales - monthlyPurchases
+  const periodStats = useMemo(() => {
+    const inMonth = (dateStr: string) =>
+      getNepaliYear(dateStr) === selectedYear && getNepaliMonth(dateStr) === selectedMonth
 
- // Top selling products
- const productSales = sales.reduce((acc, sale) => {
- const items = sale.items || []
+    const inYear = (dateStr: string) => getNepaliYear(dateStr) === selectedYear
 
- for (const item of items) {
- const id = item.productId
- acc[id] = (acc[id] || 0) + (item.quantitySold || 0)
- }
+    const monthSalesList = sales.filter((s) => inMonth(s.saleDate))
+    const monthPurchasesList = purchases.filter((p) => inMonth(p.purchaseDate))
+    const yearSalesList = sales.filter((s) => inYear(s.saleDate))
+    const yearPurchasesList = purchases.filter((p) => inYear(p.purchaseDate))
 
- return acc
- }, {} as Record<string, number>)
+    const monthlySales = monthSalesList.reduce((sum, s) => sum + saleTotal(s), 0)
+    const monthlyPurchases = monthPurchasesList.reduce((sum, p) => sum + purchaseTotal(p), 0)
+    const yearlySales = yearSalesList.reduce((sum, s) => sum + saleTotal(s), 0)
+    const yearlyPurchases = yearPurchasesList.reduce((sum, p) => sum + purchaseTotal(p), 0)
 
- const productRevenue = sales.reduce((acc, sale) => {
- const items = sale.items || []
+    const monthlyProfit = monthlySales - monthlyPurchases
+    const yearlyProfit = yearlySales - yearlyPurchases
 
- for (const item of items) {
- const id = item.productId
- const value =
- (item.quantitySold || 0) * (item.salePrice || 0)
+    const unpaidSales = yearSalesList
+      .filter((s) => (s.paymentStatus || "Pending") === "Pending")
+      .reduce((sum, s) => sum + saleTotal(s), 0)
+    const paidSales = yearSalesList
+      .filter((s) => s.paymentStatus === "Received")
+      .reduce((sum, s) => sum + saleTotal(s), 0)
 
- acc[id] = (acc[id] || 0) + value
- }
+    const monthUnpaid = monthSalesList
+      .filter((s) => (s.paymentStatus || "Pending") === "Pending")
+      .reduce((sum, s) => sum + saleTotal(s), 0)
+    const monthPaid = monthSalesList
+      .filter((s) => s.paymentStatus === "Received")
+      .reduce((sum, s) => sum + saleTotal(s), 0)
 
- return acc
- }, {} as Record<string, number>)
+    return {
+      monthlySales,
+      monthlyPurchases,
+      monthlyProfit,
+      monthlyMargin: monthlySales > 0 ? (monthlyProfit / monthlySales) * 100 : 0,
+      monthlyTx: monthSalesList.length + monthPurchasesList.length,
+      yearlySales,
+      yearlyPurchases,
+      yearlyProfit,
+      yearlyMargin: yearlySales > 0 ? (yearlyProfit / yearlySales) * 100 : 0,
+      yearlyTx: yearSalesList.length + yearPurchasesList.length,
+      unpaidSales,
+      paidSales,
+      monthUnpaid,
+      monthPaid,
+    }
+  }, [sales, purchases, selectedYear, selectedMonth])
 
- const topProducts = products
- .map((product) => ({
- ...product,
- totalSold: productSales[product.id] || 0,
- revenue: productRevenue[product.id] || 0,
- }))
- .sort((a, b) => b.totalSold - a.totalSold)
- .slice(0, 5)
+  const topProducts = useMemo(() => {
+    const qty: Record<string, number> = {}
+    const rev: Record<string, number> = {}
 
- return (
- <div className="report-print-root space-y-4 min-h-screen transition-colors duration-300">
- <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
- <div className="space-y-2">
- <h1 className="section-title">
- Reports
- </h1>
- <p className="page-desc">Generate comprehensive reports and analytics</p>
- </div>
- <Button
- type="button"
- variant="outline"
- className="print:hidden shrink-0"
- onClick={() => window.print()}
- >
- <Printer className="h-4 w-4 mr-2" />
- Print
- </Button>
- </div>
+    periodSales.forEach((sale) => {
+      ;(sale.items || []).forEach((item) => {
+        const key = item.productId || item.productName
+        if (!key) return
+        qty[key] = (qty[key] || 0) + (item.quantitySold || 0)
+        rev[key] = (rev[key] || 0) + (item.quantitySold || 0) * (item.salePrice || 0)
+      })
+    })
 
- {/* Report Type Toggle */}
- <Tabs value={reportType} onValueChange={(value) => setReportType(value as 'monthly' | 'yearly')} className="w-full">
- <TabsList className="grid w-full max-w-md mx-auto grid-cols-2">
- <TabsTrigger value="monthly" className="flex items-center space-x-2">
- <Calendar className="h-4 w-4" />
- <span>Monthly Report</span>
- </TabsTrigger>
- <TabsTrigger value="yearly" className="flex items-center space-x-2">
- <BarChart className="h-4 w-4" />
- <span>Yearly Report</span>
- </TabsTrigger>
- </TabsList>
+    return Object.keys(qty)
+      .map((key) => {
+        const product = products.find((p) => p.id === key)
+        const sampleName = periodSales
+          .flatMap((s) => s.items || [])
+          .find((i) => i.productId === key || i.productName === key)?.productName
+        return {
+          id: key,
+          name: resolveProductName(product?.id || key, product?.name || sampleName),
+          value: rev[key] || 0,
+          meta: `${qty[key] || 0} units sold`,
+        }
+      })
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 5)
+  }, [periodSales, products, productNameById])
 
- <TabsContent value="monthly" className="space-y-4">
- {/* Monthly Report Content */}
- <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
- <Card>
- <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
- <CardTitle className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Monthly Sales</CardTitle>
- <TrendingUp className="h-4 w-4 text-navy" />
- </CardHeader>
- <CardContent>
- <div className="text-2xl font-semibold tracking-tight tabular-nums text-navy">Rs {monthlySales.toLocaleString()}</div>
- <p className="text-xs text-muted-foreground">Total sales this month</p>
- </CardContent>
- </Card>
+  const topClients = useMemo(() => {
+    const map = new Map<string, { revenue: number; unpaid: number; orders: number }>()
 
- <Card>
- <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
- <CardTitle className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Monthly Purchases</CardTitle>
- <TrendingDown className="h-4 w-4 text-navy" />
- </CardHeader>
- <CardContent>
- <div className="text-2xl font-semibold tracking-tight tabular-nums text-navy">Rs {monthlyPurchases.toLocaleString()}</div>
- <p className="text-xs text-muted-foreground">Total purchases this month</p>
- </CardContent>
- </Card>
+    periodSales.forEach((sale) => {
+      const name = sale.client?.trim() || "Unknown"
+      const amount = saleTotal(sale)
+      const prev = map.get(name) || { revenue: 0, unpaid: 0, orders: 0 }
+      prev.revenue += amount
+      prev.orders += 1
+      if ((sale.paymentStatus || "Pending") === "Pending") prev.unpaid += amount
+      map.set(name, prev)
+    })
 
- <Card>
- <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
- <CardTitle className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Monthly Profit</CardTitle>
- <DollarSign className="h-4 w-4 text-navy" />
- </CardHeader>
- <CardContent>
- <div className="text-2xl font-semibold tracking-tight tabular-nums text-navy">Rs {monthlyProfit.toLocaleString()}</div>
- <p className="text-xs text-muted-foreground">Net profit this month</p>
- </CardContent>
- </Card>
+    return Array.from(map.entries())
+      .map(([name, stats]) => ({
+        id: name,
+        name: toTitleCase(name),
+        value: stats.revenue,
+        meta:
+          stats.unpaid > 0
+            ? `${stats.orders} orders · ${formatRs(stats.unpaid)} unpaid`
+            : `${stats.orders} orders`,
+      }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 5)
+  }, [periodSales])
 
- <Card>
- <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
- <CardTitle className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Transactions</CardTitle>
- <Package className="h-4 w-4 text-navy" />
- </CardHeader>
- <CardContent>
- <div className="text-2xl font-semibold tracking-tight tabular-nums text-navy">{sales.length + purchases.length}</div>
- <p className="text-xs text-muted-foreground">Total transactions</p>
- </CardContent>
- </Card>
- </div>
+  const topSuppliers = useMemo(() => {
+    const map = new Map<string, { spend: number; orders: number }>()
 
- <Button className="print:hidden" onClick={() => exportMonthlyReportToExcel(weeklyData)}>Export Monthly Excel</Button>
+    periodPurchases.forEach((purchase) => {
+      const name = purchase.supplier?.trim() || "Unknown"
+      const amount = purchaseTotal(purchase)
+      const prev = map.get(name) || { spend: 0, orders: 0 }
+      prev.spend += amount
+      prev.orders += 1
+      map.set(name, prev)
+    })
 
- {/* Monthly Charts */}
- <div>
- <Card>
- <CardHeader>
- <CardTitle>Weekly Sales, Purchases & Profit</CardTitle>
- <CardDescription>Current month broken down by week</CardDescription>
- </CardHeader>
- <CardContent>
- <ResponsiveContainer width="100%" height={300}>
- <LineChart data={weeklyData}>
- <CartesianGrid strokeDasharray="3 3" />
- <XAxis dataKey="week" />
- <YAxis />
- <Tooltip formatter={(value) => `Rs ${value.toLocaleString()}`} />
- <Line type="monotone" dataKey="sales" stroke="#10B981" strokeWidth={2} name="Sales" />
- <Line type="monotone" dataKey="purchases" stroke="#3B82F6" strokeWidth={2} name="Purchases" />
- <Line type="monotone" dataKey="profit" stroke="#A855F7" strokeWidth={2} name="Profit" />
- </LineChart>
- </ResponsiveContainer>
- </CardContent>
- </Card>
- </div>
- </TabsContent>
+    return Array.from(map.entries())
+      .map(([name, stats]) => ({
+        id: name,
+        name: toTitleCase(name),
+        value: stats.spend,
+        meta: `${stats.orders} purchases`,
+      }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 5)
+  }, [periodPurchases])
 
- <TabsContent value="yearly" className="space-y-4">
- {/* Yearly Report Content */}
- <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
- <Card>
- <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
- <CardTitle className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Yearly Sales</CardTitle>
- <TrendingUp className="h-4 w-4 text-navy" />
- </CardHeader>
- <CardContent>
- <div className="text-2xl font-semibold tracking-tight tabular-nums text-navy">Rs {totalSales.toLocaleString()}</div>
- <p className="text-xs text-muted-foreground">Total sales this year</p>
- </CardContent>
- </Card>
+  const channelMix = useMemo(() => {
+    let clientAmount = 0
+    let siteAmount = 0
+    periodSales.forEach((sale) => {
+      const amount = saleTotal(sale)
+      if ((sale.saleType || "client") === "site") siteAmount += amount
+      else clientAmount += amount
+    })
+    return { clientAmount, siteAmount }
+  }, [periodSales])
 
- <Card>
- <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
- <CardTitle className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Yearly Purchases</CardTitle>
- <TrendingDown className="h-4 w-4 text-navy" />
- </CardHeader>
- <CardContent>
- <div className="text-2xl font-semibold tracking-tight tabular-nums text-navy">Rs {totalPurchases.toLocaleString()}</div>
- <p className="text-xs text-muted-foreground">Total purchases this year</p>
- </CardContent>
- </Card>
+  const recentActivity = useMemo(() => {
+    const saleRows = periodSales.map((sale) => {
+      const items = sale.items || []
+      return {
+        id: `sale-${sale.id}`,
+        type: "Sale" as const,
+        date: sale.saleDate,
+        party: sale.client,
+        products: items.map((item) => resolveProductName(item.productId, item.productName)).join(", ") || "—",
+        quantity: items.reduce((sum, item) => sum + (item.quantitySold || 0), 0),
+        amount: saleTotal(sale),
+      }
+    })
 
- <Card>
- <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
- <CardTitle className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Yearly Profit</CardTitle>
- <DollarSign className="h-4 w-4 text-navy" />
- </CardHeader>
- <CardContent>
- <div className="text-2xl font-semibold tracking-tight tabular-nums text-navy">Rs {profit.toLocaleString()}</div>
- <p className="text-xs text-muted-foreground">Net profit this year</p>
- </CardContent>
- </Card>
+    const purchaseRows = periodPurchases.map((purchase) => {
+      const items = purchase.items || []
+      return {
+        id: `purchase-${purchase.id}`,
+        type: "Purchase" as const,
+        date: purchase.purchaseDate,
+        party: purchase.supplier,
+        products: items.map((item) => resolveProductName(item.productId, item.productName)).join(", ") || "—",
+        quantity: items.reduce((sum, item) => sum + (item.quantityPurchased || 0), 0),
+        amount: purchaseTotal(purchase),
+      }
+    })
 
- <Card>
- <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
- <CardTitle className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Total Transactions</CardTitle>
- <Package className="h-4 w-4 text-navy" />
- </CardHeader>
- <CardContent>
- <div className="text-2xl font-semibold tracking-tight tabular-nums text-navy">{sales.length + purchases.length}</div>
- <p className="text-xs text-muted-foreground">All transactions this year</p>
- </CardContent>
- </Card>
- </div>
+    return [...saleRows, ...purchaseRows]
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      .slice(0, 8)
+  }, [periodSales, periodPurchases, productNameById])
 
- <Button className="print:hidden" onClick={() => exportYearlyReportToExcel(getMonthlyData())}>Export Yearly Excel</Button>
+  const selectedMonthName = NEPALI_MONTHS[selectedMonth - 1] || "Month"
 
- <Card>
- <CardHeader>
- <CardTitle>Monthly Sales, Purchases & Profit</CardTitle>
- <CardDescription>Current year broken down by month</CardDescription>
- </CardHeader>
- <CardContent>
- <ResponsiveContainer width="100%" height={300}>
- <LineChart data={getMonthlyData()}>
- <CartesianGrid strokeDasharray="3 3" />
- <XAxis dataKey="month" />
- <YAxis />
- <Tooltip formatter={(value) => `Rs ${value.toLocaleString()}`} />
- <Line type="monotone" dataKey="sales" stroke="#10B981" strokeWidth={2} name="Sales" />
- <Line type="monotone" dataKey="purchases" stroke="#3B82F6" strokeWidth={2} name="Purchases" />
- <Line type="monotone" dataKey="profit" stroke="#A855F7" strokeWidth={2} name="Profit" />
- </LineChart>
- </ResponsiveContainer>
- </CardContent>
- </Card>
+  const activeKpis =
+    reportType === "monthly"
+      ? {
+          sales: periodStats.monthlySales,
+          purchases: periodStats.monthlyPurchases,
+          profit: periodStats.monthlyProfit,
+          margin: periodStats.monthlyMargin,
+          tx: periodStats.monthlyTx,
+          paid: periodStats.monthPaid,
+          unpaid: periodStats.monthUnpaid,
+          periodLabel: `${selectedMonthName} ${selectedYear}`,
+        }
+      : {
+          sales: periodStats.yearlySales,
+          purchases: periodStats.yearlyPurchases,
+          profit: periodStats.yearlyProfit,
+          margin: periodStats.yearlyMargin,
+          tx: periodStats.yearlyTx,
+          paid: periodStats.paidSales,
+          unpaid: periodStats.unpaidSales,
+          periodLabel: `NS ${selectedYear}`,
+        }
 
- {/* Yearly Summary Table */}
- <Card>
- <CardHeader>
- <CardTitle>Yearly Summary</CardTitle>
- <CardDescription>Monthly breakdown for the current year</CardDescription>
- </CardHeader>
- <CardContent>
- <div className="overflow-x-auto">
- <Table>
- <TableHeader>
- <TableRow>
- <TableHead>Month</TableHead>
- <TableHead>Sales</TableHead>
- <TableHead>Purchases</TableHead>
- <TableHead>Profit</TableHead>
- <TableHead>Transactions</TableHead>
- </TableRow>
- </TableHeader>
- <TableBody>
- {getMonthlyData().map((data, index) => (
- <TableRow key={index}>
- <TableCell className="font-medium">{data.month}</TableCell>
- <TableCell>{formatRs(data.sales)}</TableCell>
- <TableCell>{formatRs(data.purchases)}</TableCell>
- <TableCell>{formatRs(data.profit)}</TableCell>
- <TableCell>{data.transactions}</TableCell>
- </TableRow>
- ))}
- </TableBody>
- </Table>
- </div>
- </CardContent>
- </Card>
- </TabsContent>
- </Tabs>
+  const exportReport = () => {
+    if (reportType === "monthly") {
+      if (!weeklyData.length) {
+        toast({ title: "No monthly data", description: "There is no monthly report to export.", variant: "destructive" })
+        return
+      }
+      exportTableToExcel(
+        weeklyData.map((row) => ({
+          week: row.label,
+          sales: formatRs(row.sales),
+          purchases: formatRs(row.purchases),
+          profit: formatRs(row.profit),
+        })),
+        `monthly_report_${new Date().toISOString().split("T")[0]}`,
+        {
+          sheetName: "Monthly Report",
+          title: `Monthly Report — ${activeKpis.periodLabel}`,
+          columns: [
+            { key: "week", header: "Week", width: 12 },
+            { key: "sales", header: "Sales", width: 18 },
+            { key: "purchases", header: "Purchases", width: 18 },
+            { key: "profit", header: "Profit", width: 18 },
+          ],
+        }
+      )
+      return
+    }
 
- {/* Key Metrics */}
- <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
- <Card>
- <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
- <CardTitle className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Total Revenue</CardTitle>
- <DollarSign className="h-4 w-4 text-navy" />
- </CardHeader>
- <CardContent>
- <div className="text-2xl font-semibold tracking-tight tabular-nums text-navy">
- Rs {totalSales.toLocaleString()}
- </div>
- <p className="text-xs text-muted-foreground">
- This month: Rs {monthlySales.toLocaleString()}
- </p>
- </CardContent>
- </Card>
+    if (!monthlyBreakdown.length) {
+      toast({ title: "No yearly data", description: "There is no yearly report to export.", variant: "destructive" })
+      return
+    }
+    exportTableToExcel(
+      monthlyBreakdown.map((row) => ({
+        month: row.month,
+        sales: formatRs(row.sales),
+        purchases: formatRs(row.purchases),
+        profit: formatRs(row.profit),
+        transactions: row.transactions,
+      })),
+      `yearly_report_${new Date().toISOString().split("T")[0]}`,
+      {
+        sheetName: "Yearly Summary",
+        title: `Yearly Summary — ${selectedYear}`,
+        columns: [
+          { key: "month", header: "Month", width: 14 },
+          { key: "sales", header: "Sales", width: 18 },
+          { key: "purchases", header: "Purchases", width: 18 },
+          { key: "profit", header: "Profit", width: 18 },
+          { key: "transactions", header: "Transactions", width: 14 },
+        ],
+      }
+    )
+  }
 
- <Card>
- <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
- <CardTitle className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Total Expenses</CardTitle>
- <TrendingDown className="h-4 w-4 text-navy" />
- </CardHeader>
- <CardContent>
- <div className="text-2xl font-semibold tracking-tight tabular-nums text-navy">
- Rs {totalPurchases.toLocaleString()}
- </div>
- <p className="text-xs text-muted-foreground">
- This month: Rs {monthlyPurchases.toLocaleString()}
- </p>
- </CardContent>
- </Card>
+  const trendLegend = (
+    <ChartLegend
+      items={[
+        { label: "Sales", color: C.sales },
+        { label: "Purchases", color: C.purchases },
+      ]}
+    />
+  )
 
- <Card>
- <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
- <CardTitle className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Net Profit</CardTitle>
- <TrendingUp
- className={`h-4 w-4 ${profit >= 0 ? "text-navy" : "text-navy"}`}
- />
- </CardHeader>
- <CardContent>
- <div
- className={`text-2xl font-semibold tracking-tight tabular-nums ${profit >= 0 ? "text-navy" : "text-navy"}`}
- >
- Rs {profit.toLocaleString()}
- </div>
- <p className="text-xs text-muted-foreground">
- This month: Rs {monthlyProfit.toLocaleString()}
- </p>
- </CardContent>
- </Card>
+  return (
+    <div className="report-print-root min-h-screen space-y-5 transition-colors duration-300">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="space-y-1">
+          <h1 className="section-title">Reports</h1>
+          <p className="page-desc">
+            Live overview from your current sales, purchases, and stock — updates as you add records.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2 print:hidden">
+          <Button type="button" variant="outline" onClick={exportReport}>
+            <Download className="mr-2 h-4 w-4" />
+            Export Excel
+          </Button>
+          <Button type="button" variant="outline" onClick={handlePrint}>
+            <Printer className="mr-2 h-4 w-4" />
+            Print
+          </Button>
+        </div>
+      </div>
 
- <Card>
- <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
- <CardTitle className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Low Stock Items</CardTitle>
- <AlertTriangle className="h-4 w-4 text-navy dark:text-navy" />
- </CardHeader>
- <CardContent>
- <div className="text-2xl font-semibold tracking-tight tabular-nums text-navy dark:text-navy">{lowStockProducts.length}</div>
- <p className="text-xs text-muted-foreground">Require immediate attention</p>
- </CardContent>
- </Card>
- </div>
+      <p className="report-print-timestamp" aria-hidden="true">
+        Printed on {printStamp}
+      </p>
 
- {/* Charts and Tables */}
- <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
- {/* Top Selling Products */}
- <Card>
- <CardHeader>
- <CardTitle className="flex items-center">
- <BarChart3 className="mr-2 h-5 w-5" />
- Top Selling Products
- </CardTitle>
- <CardDescription className="">Best performing products by quantity sold</CardDescription>
- </CardHeader>
- <CardContent>
- <div className="space-y-4">
- {topProducts.map((product, index) => (
- <div
- key={product.id}
- className="flex items-center justify-between p-3 bg-muted rounded-lg"
- >
- <div className="flex items-center space-x-3">
- <div className="flex items-center justify-center w-8 h-8 bg-muted dark:bg-muted text-navy rounded-full text-sm font-semibold">
- {index + 1}
- </div>
- <div>
- <p className="font-medium">{product.name}</p>
- <p className="text-sm text-muted-foreground">HS Code: {product.hsCode}</p>
- </div>
- </div>
- <div className="text-right">
- <p className="font-medium">{product.totalSold} sold</p>
- <p className="text-sm text-navy">Rs {product.revenue.toLocaleString()}</p>
- </div>
- </div>
- ))}
- {topProducts.length === 0 && (
- <p className="py-4 text-center text-sm font-normal italic text-muted-foreground">No sales data available</p>
- )}
- </div>
- </CardContent>
- </Card>
+      <Tabs
+        value={reportType}
+        onValueChange={(value) => setReportType(value as "monthly" | "yearly")}
+        className="w-full"
+      >
+        <div className="flex flex-col gap-3 print:hidden sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+          <TabsList className="grid w-full max-w-sm grid-cols-2">
+            <TabsTrigger value="monthly" className="gap-2">
+              <Calendar className="h-4 w-4" />
+              Monthly
+            </TabsTrigger>
+            <TabsTrigger value="yearly" className="gap-2">
+              <BarChart3 className="h-4 w-4" />
+              Yearly
+            </TabsTrigger>
+          </TabsList>
 
- {/* Low Stock Alert */}
- <Card>
- <CardHeader>
- <CardTitle className="flex items-center text-navy dark:text-navy">
- <AlertTriangle className="mr-2 h-5 w-5" />
- Low Stock Alert
- </CardTitle>
- <CardDescription className="">Products that need restocking</CardDescription>
- </CardHeader>
- <CardContent>
- <div className="space-y-3">
- {lowStockProducts.map((product) => (
- <div
- key={product.id}
- className="flex items-center justify-between p-3 bg-muted dark:bg-muted rounded-lg border border-border dark:border-border"
- >
- <div>
- <p className="font-medium">{product.name}</p>
- <p className="text-sm text-muted-foreground">HS Code: {product.hsCode}</p>
- <p className="text-sm text-muted-foreground">Category: {product.category}</p>
- </div>
- <div className="text-right">
- <Badge variant="destructive" className="mb-1">
- {product.stockQuantity} left
- </Badge>
- <p className="text-sm text-muted-foreground">Rs {product.unitPrice}</p>
- </div>
- </div>
- ))}
- {lowStockProducts.length === 0 && (
- <div className="text-center py-8">
- <Package className="mx-auto h-12 w-12 text-navy mb-4" />
- <p className="text-navy font-medium">All products are well stocked!</p>
- </div>
- )}
- </div>
- </CardContent>
- </Card>
- </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              className="h-10 w-10 shrink-0"
+              onClick={goToPreviousPeriod}
+              aria-label={reportType === "monthly" ? "Previous month" : "Previous year"}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
 
- {/* Recent Activity */}
- <Card>
- <CardHeader>
- <CardTitle className="">Recent Activity Summary</CardTitle>
- <CardDescription className="">Latest transactions and inventory changes</CardDescription>
- </CardHeader>
- <CardContent>
- <div className="overflow-x-auto">
- <Table>
- <TableHeader>
- <TableRow className="dark:border-border">
- <TableHead>Date</TableHead>
- <TableHead>Type</TableHead>
- <TableHead>Product</TableHead>
- <TableHead>Quantity</TableHead>
- <TableHead>Amount</TableHead>
- </TableRow>
- </TableHeader>
- <TableBody>
- {/* Combine and sort recent sales and purchases */}
- {[
- ...sales.slice(-5).map((sale) => {
- const items = sale.items || []
+            {reportType === "monthly" ? (
+              <Select
+                value={String(selectedMonth)}
+                onValueChange={(value) => setSelectedMonth(Number(value))}
+              >
+                <SelectTrigger className="h-10 w-[140px]">
+                  <SelectValue placeholder="Month" />
+                </SelectTrigger>
+                <SelectContent>
+                  {NEPALI_MONTHS.map((name, index) => (
+                    <SelectItem key={name} value={String(index + 1)}>
+                      {name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : null}
 
- const quantity = items.reduce(
- (sum, item) => sum + (item.quantitySold || 0),
- 0
- )
+            <Select
+              value={String(selectedYear)}
+              onValueChange={(value) => setSelectedYear(Number(value))}
+            >
+              <SelectTrigger className="h-10 w-[110px]">
+                <SelectValue placeholder="Year" />
+              </SelectTrigger>
+              <SelectContent>
+                {availableYears.map((year) => (
+                  <SelectItem key={year} value={String(year)}>
+                    {year}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
- const amount = items.reduce(
- (sum, item) =>
- sum +
- (item.quantitySold || 0) *
- (item.salePrice || 0),
- 0
- )
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              className="h-10 w-10 shrink-0"
+              onClick={goToNextPeriod}
+              disabled={!canGoNext}
+              aria-label={reportType === "monthly" ? "Next month" : "Next year"}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
 
- return {
- ...sale,
- type: "Sale",
- date: sale.saleDate,
- quantity,
- amount,
- }
- }),
+            <Button
+              type="button"
+              variant="ghost"
+              className="h-10 px-3 text-sm"
+              onClick={resetToCurrent}
+              disabled={reportType === "monthly" ? isCurrentMonth : isCurrentYear}
+            >
+              {reportType === "monthly" ? "This month" : "This year"}
+            </Button>
+          </div>
+        </div>
 
- ...purchases.slice(-5).map((purchase) => {
- const items = purchase.items || []
+        <div className="mt-4 space-y-5">
+          <div className="flex items-baseline justify-between gap-2">
+            <p className="text-sm font-medium text-navy">
+              Profit overview · <span className="text-muted-foreground">{activeKpis.periodLabel}</span>
+              {(reportType === "monthly" ? !isCurrentMonth : !isCurrentYear) ? (
+                <span className="ml-2 text-xs font-normal text-muted-foreground">(historical)</span>
+              ) : null}
+            </p>
+            <p className="text-xs text-muted-foreground print:hidden">Live data · selected period</p>
+          </div>
 
- const quantity = items.reduce(
- (sum, item) =>
- sum + (item.quantityPurchased || 0),
- 0
- )
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <KpiCard
+              label="Sales"
+              value={formatRs(activeKpis.sales)}
+              hint={`${activeKpis.tx} transactions in period`}
+              icon={TrendingUp}
+              tone="sales"
+            />
+            <KpiCard
+              label="Purchases"
+              value={formatRs(activeKpis.purchases)}
+              hint="Cost of goods bought"
+              icon={TrendingDown}
+              tone="purchases"
+            />
+            <KpiCard
+              label="Net profit"
+              value={formatRs(activeKpis.profit)}
+              hint={`Margin ${activeKpis.margin.toFixed(1)}%`}
+              icon={Wallet}
+              tone="profit"
+            />
+            <KpiCard
+              label="Unpaid sales"
+              value={formatRs(activeKpis.unpaid)}
+              hint={`Received ${formatRs(activeKpis.paid)}`}
+              icon={AlertTriangle}
+              tone={activeKpis.unpaid > 0 ? "alert" : "neutral"}
+            />
+          </div>
 
- const amount = items.reduce(
- (sum, item) =>
- sum +
- (item.quantityPurchased || 0) *
- (item.purchasePrice || 0),
- 0
- )
+          {/* Only the active period is mounted — print never includes the other tab */}
+          {reportType === "monthly" ? (
+            <div className="space-y-4" data-report-period="monthly">
+              <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
+                <ChartCard
+                  className="xl:col-span-2"
+                  title="Sales & purchases trend"
+                  description={`Weekly movement for ${selectedMonthName} ${selectedYear}`}
+                  legend={trendLegend}
+                >
+                  <TrendChart data={weeklyData} xKey="week" labelKey="label" />
+                </ChartCard>
 
- return {
- ...purchase,
- type: "Purchase",
- date: purchase.purchaseDate,
- quantity,
- amount,
- }
- }),
- ]
- .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
- .slice(0, 10)
- .map((activity, index) => (
- <TableRow key={index} className="dark:border-border">
- <TableCell className="text-navy">{formatDate(activity.date)}</TableCell>
- <TableCell className="text-navy">
- <Badge className="text-navy" >{activity.type}</Badge>
- </TableCell>
- <TableCell className="font-medium text-navy">
- {activity.items?.map((item, index) => (
- <span key={index}>
- {toTitleCase(item.productId)}
- {index < activity.items.length - 1 ? ", " : ""}
- </span>
- ))}
- </TableCell>
- <TableCell className="text-navy">{activity.quantity}</TableCell>
- <TableCell
- className={
- activity.type === "Sale"
- ? "text-navy "
- : "text-navy "
- }
- >
- Rs {activity.amount.toFixed(2)}
- </TableCell>
- </TableRow>
- ))}
- </TableBody>
- </Table>
- </div>
- </CardContent>
- </Card>
- </div>
- )
+                <ChartCard
+                  title="Payment collection"
+                  description={`Received vs pending · ${selectedMonthName} ${selectedYear}`}
+                >
+                  <PaymentSplit paid={activeKpis.paid} unpaid={activeKpis.unpaid} />
+                </ChartCard>
+              </div>
+
+              <ChartCard title="Profit trend" description="Weekly net (sales − purchases)">
+                <ProfitChart data={weeklyData} xKey="week" labelKey="label" />
+              </ChartCard>
+            </div>
+          ) : (
+            <div className="space-y-4" data-report-period="yearly">
+              <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
+                <ChartCard
+                  className="xl:col-span-2"
+                  title="Sales & purchases trend"
+                  description={`Nepali year ${selectedYear}`}
+                  legend={trendLegend}
+                >
+                  <TrendChart data={monthlyBreakdown} xKey="shortMonth" labelKey="month" />
+                </ChartCard>
+
+                <ChartCard
+                  title="Payment collection"
+                  description={`Received vs pending · NS ${selectedYear}`}
+                >
+                  <PaymentSplit paid={activeKpis.paid} unpaid={activeKpis.unpaid} />
+                </ChartCard>
+              </div>
+
+              <ChartCard title="Profit trend" description="Monthly net across the year">
+                <ProfitChart data={monthlyBreakdown} xKey="shortMonth" labelKey="month" />
+              </ChartCard>
+
+              <Card className="report-print-block report-print-allow-break shadow-none">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-[15px] font-semibold tracking-tight">Yearly summary</CardTitle>
+                  <CardDescription className="text-[12px]">
+                    Month-by-month totals for NS {selectedYear}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Month</TableHead>
+                          <TableHead className="text-right">Sales</TableHead>
+                          <TableHead className="text-right">Purchases</TableHead>
+                          <TableHead className="text-right">Profit</TableHead>
+                          <TableHead className="text-right">Tx</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {monthlyBreakdown.map((data) => (
+                          <TableRow key={data.month}>
+                            <TableCell className="font-medium text-navy">{data.month}</TableCell>
+                            <TableCell className="text-right tabular-nums">{formatRs(data.sales)}</TableCell>
+                            <TableCell className="text-right tabular-nums">{formatRs(data.purchases)}</TableCell>
+                            <TableCell
+                              className={cn(
+                                "text-right font-medium tabular-nums",
+                                data.profit >= 0 ? "text-[#165e6c]" : "text-red-600"
+                              )}
+                            >
+                              {formatRs(data.profit)}
+                            </TableCell>
+                            <TableCell className="text-right tabular-nums text-muted-foreground">
+                              {data.transactions}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+        </div>
+      </Tabs>
+
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <ChartCard
+          title="Top products"
+          description={`Highest revenue in ${activeKpis.periodLabel.toLowerCase()}`}
+        >
+          <RankList items={topProducts} emptyLabel="No product sales in this period" />
+        </ChartCard>
+
+        <ChartCard
+          title="Top clients"
+          description="Who drives revenue — and how much is still unpaid"
+        >
+          <RankList items={topClients} emptyLabel="No client sales in this period" />
+        </ChartCard>
+
+        <ChartCard
+          title="Top suppliers"
+          description="Where purchase spend is concentrated"
+        >
+          <RankList items={topSuppliers} emptyLabel="No purchases in this period" valueLabel="Spend" />
+        </ChartCard>
+
+        <ChartCard
+          title="Sales channel"
+          description="Client sales vs site / project work"
+        >
+          <ChannelSplit
+            clientAmount={channelMix.clientAmount}
+            siteAmount={channelMix.siteAmount}
+          />
+        </ChartCard>
+      </div>
+
+      <Card className="report-print-block report-print-allow-break shadow-none">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-[15px] font-semibold tracking-tight">Recent activity</CardTitle>
+          <CardDescription className="text-[12px]">Latest sales and purchases</CardDescription>
+        </CardHeader>
+        <CardContent className="pt-0">
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead>Party</TableHead>
+                  <TableHead>Products</TableHead>
+                  <TableHead className="text-right">Qty</TableHead>
+                  <TableHead className="text-right">Amount</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {recentActivity.map((activity) => (
+                  <TableRow key={activity.id}>
+                    <TableCell className="whitespace-nowrap text-sm text-navy">
+                      {formatDateForReports(activity.date)}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="font-normal">
+                        {activity.type}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="max-w-[140px] truncate text-sm font-medium text-navy">
+                      {toTitleCase(activity.party || "—")}
+                    </TableCell>
+                    <TableCell className="max-w-[220px] truncate text-sm text-muted-foreground">
+                      {activity.products}
+                    </TableCell>
+                    <TableCell className="text-right text-sm tabular-nums text-navy">{activity.quantity}</TableCell>
+                    <TableCell className="text-right text-sm font-medium tabular-nums text-navy">
+                      {formatRs(activity.amount)}
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {recentActivity.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="py-8 text-center text-sm text-muted-foreground">
+                      No transactions yet
+                    </TableCell>
+                  </TableRow>
+                ) : null}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  )
 }

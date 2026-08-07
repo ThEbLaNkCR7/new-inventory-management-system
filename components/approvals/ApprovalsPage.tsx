@@ -485,7 +485,7 @@ export default function ApprovalsPage() {
  <div className="overflow-x-auto">
  <Table>
  <TableHeader>
- <TableRow className="bg-muted/60 dark:bg-muted/40 hover:bg-muted/60 dark:hover:bg-muted/40">
+ <TableRow className="border-0">
  <TableHead className="table-header">Type</TableHead>
  <TableHead className="table-header">Action</TableHead>
  <TableHead className="table-header">Summary</TableHead>
@@ -714,7 +714,7 @@ export default function ApprovalsPage() {
  <TabsList className="grid w-full grid-cols-2 bg-muted p-1.5 rounded-xl h-14">
  <TabsTrigger
  value="pending"
-            className="flex h-full items-center justify-center space-x-2 rounded-lg px-3 py-2.5 transition-all duration-300 data-[state=active]:bg-foreground data-[state=active]:font-semibold data-[state=active]:text-background data-[state=active]:shadow-sm"
+            className="flex h-full items-center justify-center space-x-2 rounded-lg px-3 py-2.5 transition-all duration-300 data-[state=active]:bg-primary data-[state=active]:font-semibold data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
  >
  <Clock className="h-4 w-4" />
  <span>Pending Approvals</span>
@@ -724,7 +724,7 @@ export default function ApprovalsPage() {
  </TabsTrigger>
  <TabsTrigger
  value="history"
-            className="flex h-full items-center justify-center space-x-2 rounded-lg px-3 py-2.5 transition-all duration-300 data-[state=active]:bg-foreground data-[state=active]:font-semibold data-[state=active]:text-background data-[state=active]:shadow-sm"
+            className="flex h-full items-center justify-center space-x-2 rounded-lg px-3 py-2.5 transition-all duration-300 data-[state=active]:bg-primary data-[state=active]:font-semibold data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
  >
  <History className="h-4 w-4" />
  <span>History</span>

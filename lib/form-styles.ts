@@ -33,10 +33,14 @@ export const formHintClass =
 export const formErrorTextClass =
   "font-sans text-xs font-medium leading-4 text-navy"
 
-export const formInputClass =
-  "h-10 rounded-md border border-border bg-card font-sans text-sm font-normal leading-5 text-navy transition-colors placeholder:text-muted-foreground focus:border-navy/50 focus-visible:ring-1 focus-visible:ring-ring"
+/** Shared muted tone for empty-field placeholders across form controls */
+export const formPlaceholderClass = "!text-muted-foreground/50"
 
-export const formSelectTriggerClass = formInputClass
+export const formInputClass =
+  "h-10 rounded-md border border-border bg-card font-sans text-sm font-normal leading-5 text-navy transition-colors placeholder:!text-muted-foreground/50 focus:border-navy/50 focus-visible:ring-1 focus-visible:ring-ring"
+
+export const formSelectTriggerClass =
+  `${formInputClass} data-[placeholder]:!text-muted-foreground/50`
 
 /** Label → control gap (keep identical on every field) */
 export const formFieldClass = "flex flex-col gap-1.5"
@@ -59,7 +63,7 @@ export const formDialogFooterClass =
   "flex justify-end gap-2 px-6 py-4 text-sm font-medium"
 
 export const formFileInputClass =
-  "block w-full font-sans text-sm font-normal text-muted-foreground file:mr-3 file:cursor-pointer file:rounded-md file:border file:border-border file:bg-card file:px-3 file:py-1.5 file:font-sans file:text-sm file:font-medium file:text-navy hover:file:bg-muted"
+  "block w-full font-sans text-sm font-normal !text-muted-foreground/50 file:mr-3 file:cursor-pointer file:rounded-md file:border file:border-border file:bg-card file:px-3 file:py-1.5 file:font-sans file:text-sm file:font-medium file:text-navy hover:file:bg-muted"
 
 export const formItemLabelClass = labelClass
 

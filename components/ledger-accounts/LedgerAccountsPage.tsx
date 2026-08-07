@@ -5,7 +5,6 @@ import ViewLedgerReportDialog from "@/components/ledger-accounts/ViewLedgerRepor
 import {
   formatRs,
   getAccountClosingBalance,
-  getAccountTypeLabel,
   getAccountTypeShortLabel,
   validateLedgerAccountForm,
 } from "@/components/ledger-accounts/utils"
@@ -34,14 +33,26 @@ import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/components/ui/use-toast"
 import type { LedgerAccount, LedgerAccountType } from "@/contexts/LedgerContext"
 import { useLedger } from "@/contexts/LedgerContext"
-import { BookOpen, Eye, Filter, Loader2, Plus, Search, Trash2, X } from "lucide-react"
-import { useMemo, useState } from "react"
+import { cn, formatNepaliDateForTable, toTitleCase } from "@/lib/utils"
+import { BookOpen, ChevronDown, ChevronRight, Eye, Filter, Loader2, Plus, Search, Trash2, X } from "lucide-react"
+import { useMemo, useState, type ReactNode } from "react"
 import DataPagination from "@/components/ui/data-pagination"
 import { usePagination } from "@/hooks/usePagination"
 
 const inputClass =
   "border border-border bg-background focus:border-navy/50 focus-visible:ring-1 focus-visible:ring-navy/20"
 const errorTextClass = "text-sm text-navy"
+
+type LedgerNameGroup = {
+  key: string
+  name: string
+  accountType: LedgerAccountType
+  accounts: LedgerAccount[]
+}
+
+function accountGroupKey(account: LedgerAccount) {
+  return `${account.accountType}|${account.name.trim().toLowerCase()}`
+}
 
 export default function LedgerAccountsPage() {
   const {
@@ -55,6 +66,7 @@ export default function LedgerAccountsPage() {
 
   const [searchTerm, setSearchTerm] = useState("")
   const [typeFilter, setTypeFilter] = useState<"all" | LedgerAccountType>("all")
+  const [expandedNames, setExpandedNames] = useState<Set<string>>(new Set())
   const [isAddAccountOpen, setIsAddAccountOpen] = useState(false)
   const [isAddEntryOpen, setIsAddEntryOpen] = useState(false)
   const [isViewOpen, setIsViewOpen] = useState(false)
@@ -84,18 +96,52 @@ export default function LedgerAccountsPage() {
 
   const isCarryForward = accountForm.existingAccountId !== "none"
 
-  const filteredAccounts = ledgerAccounts
-    .filter((account) => {
-      const matchesSearch = account.name.toLowerCase().includes(searchTerm.toLowerCase())
-      const matchesType = typeFilter === "all" || account.accountType === typeFilter
-      return matchesSearch && matchesType
+  const filteredAccounts = useMemo(
+    () =>
+      ledgerAccounts
+        .filter((account) => {
+          const matchesSearch = account.name.toLowerCase().includes(searchTerm.toLowerCase())
+          const matchesType = typeFilter === "all" || account.accountType === typeFilter
+          return matchesSearch && matchesType
+        })
+        .slice()
+        .sort((a, b) => {
+          const aTime = new Date((a as any).createdAt || 0).getTime()
+          const bTime = new Date((b as any).createdAt || 0).getTime()
+          return bTime - aTime
+        }),
+    [ledgerAccounts, searchTerm, typeFilter]
+  )
+
+  /** Same name + type collapse into one row (carry-forward ledgers), like sales/purchases. */
+  const groupedAccounts = useMemo(() => {
+    const groups = new Map<string, LedgerNameGroup>()
+
+    filteredAccounts.forEach((account) => {
+      const key = accountGroupKey(account)
+      const existing = groups.get(key)
+      if (existing) {
+        existing.accounts.push(account)
+        return
+      }
+      groups.set(key, {
+        key,
+        name: account.name,
+        accountType: account.accountType,
+        accounts: [account],
+      })
     })
-    .slice()
-    .sort((a, b) => {
-      const aTime = new Date((a as any).createdAt || 0).getTime()
-      const bTime = new Date((b as any).createdAt || 0).getTime()
+
+    return Array.from(groups.values()).sort((a, b) => {
+      const aTime = Math.max(
+        ...a.accounts.map((acc) => new Date((acc as any).createdAt || 0).getTime())
+      )
+      const bTime = Math.max(
+        ...b.accounts.map((acc) => new Date((acc as any).createdAt || 0).getTime())
+      )
       return bTime - aTime
     })
+  }, [filteredAccounts])
 
   const {
     page,
@@ -104,12 +150,180 @@ export default function LedgerAccountsPage() {
     setPageSize,
     totalItems,
     totalPages,
-    paginatedItems: paginatedAccounts,
+    paginatedItems: paginatedGroups,
     startItem,
     endItem,
-  } = usePagination(filteredAccounts, {
+  } = usePagination(groupedAccounts, {
     resetKey: `${searchTerm}|${typeFilter}`,
   })
+
+  const toggleExpanded = (key: string) => {
+    setExpandedNames((prev) => {
+      const next = new Set(prev)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      return next
+    })
+  }
+
+  const renderExpandCell = (content?: ReactNode) => (
+    <TableCell className="w-10 min-w-10 max-w-10 py-2 pl-6 pr-2 align-middle">
+      {content ?? null}
+    </TableCell>
+  )
+
+  const renderAccountActions = (account: LedgerAccount) => (
+    <div className="flex justify-end gap-2">
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => openAddEntry(account)}
+        title="Add Entry"
+      >
+        <Plus className="h-4 w-4" />
+      </Button>
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => openViewReport(account)}
+        title="View Ledger"
+      >
+        <Eye className="h-4 w-4" />
+      </Button>
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => handleDeleteAccount(account)}
+        title="Delete"
+      >
+        <Trash2 className="h-4 w-4 text-red-500" />
+      </Button>
+    </div>
+  )
+
+  const renderAccountRow = (account: LedgerAccount, options?: { nested?: boolean }) => {
+    const closing = getAccountClosingBalance(account, getEntriesForAccount(account.id))
+    const createdLabel = (account as any).createdAt
+      ? formatNepaliDateForTable((account as any).createdAt)
+      : null
+
+    return (
+      <TableRow
+        key={account.id}
+        className={cn(
+          "bg-white transition-colors duration-150 hover:bg-muted/40 dark:bg-card",
+          options?.nested && "bg-muted/20 dark:bg-muted/10"
+        )}
+      >
+        {renderExpandCell()}
+        <TableCell>
+          <div className="min-w-[120px]">
+            {options?.nested ? (
+              <>
+                <p className="text-sm font-normal text-navy">
+                  {createdLabel ? `Opened ${createdLabel}` : "Ledger period"}
+                </p>
+                <p className="mt-0.5 text-[11px] font-normal text-muted-foreground">
+                  Opening Rs.{" "}
+                  {account.openingBalance.toLocaleString("en-IN", { minimumFractionDigits: 2 })}{" "}
+                  {account.openingBalanceType}
+                </p>
+              </>
+            ) : (
+              <p className="text-sm font-semibold text-navy">{toTitleCase(account.name)}</p>
+            )}
+          </div>
+        </TableCell>
+        <TableCell>
+          <Badge variant={account.accountType === "supplier" ? "secondary" : "default"}>
+            {getAccountTypeShortLabel(account.accountType)}
+          </Badge>
+        </TableCell>
+        <TableCell className="text-sm text-navy">{account.address || "-"}</TableCell>
+        <TableCell>
+          <Badge variant="outline">
+            Rs. {account.openingBalance.toLocaleString("en-IN", { minimumFractionDigits: 2 })}{" "}
+            {account.openingBalanceType}
+          </Badge>
+        </TableCell>
+        <TableCell>
+          <Badge variant="outline">
+            Rs. {closing.value.toLocaleString("en-IN", { minimumFractionDigits: 2 })} {closing.side}
+          </Badge>
+        </TableCell>
+        <TableCell className="text-right">{renderAccountActions(account)}</TableCell>
+      </TableRow>
+    )
+  }
+
+  const renderAccountRows = () =>
+    paginatedGroups.flatMap((group) => {
+      if (group.accounts.length === 1) {
+        return [renderAccountRow(group.accounts[0])]
+      }
+
+      const isExpanded = expandedNames.has(group.key)
+      const latest = group.accounts[0]
+      const latestClosing = getAccountClosingBalance(
+        latest,
+        getEntriesForAccount(latest.id)
+      )
+
+      const headerRow = (
+        <TableRow
+          key={`group-${group.key}`}
+          className="cursor-pointer bg-white transition-colors duration-150 hover:bg-muted/40 dark:bg-card dark:hover:bg-muted/60"
+          onClick={() => toggleExpanded(group.key)}
+        >
+          {renderExpandCell(
+            <button
+              type="button"
+              className="flex h-7 w-7 items-center justify-center rounded-md text-navy hover:bg-muted hover:text-navy"
+              aria-label={isExpanded ? "Collapse ledgers" : "Expand ledgers"}
+              onClick={(e) => {
+                e.stopPropagation()
+                toggleExpanded(group.key)
+              }}
+            >
+              {isExpanded ? (
+                <ChevronDown className="h-4 w-4" />
+              ) : (
+                <ChevronRight className="h-4 w-4" />
+              )}
+            </button>
+          )}
+          <TableCell>
+            <div className="min-w-[140px]">
+              <p className="text-sm font-semibold text-navy">{toTitleCase(group.name)}</p>
+              <p className="mt-0.5 text-xs font-normal text-muted-foreground">
+                {group.accounts.length} ledgers
+              </p>
+            </div>
+          </TableCell>
+          <TableCell>
+            <Badge variant={group.accountType === "supplier" ? "secondary" : "default"}>
+              {getAccountTypeShortLabel(group.accountType)}
+            </Badge>
+          </TableCell>
+          <TableCell className="text-sm text-muted-foreground">
+            {latest.address || "-"}
+          </TableCell>
+          <TableCell className="text-sm text-muted-foreground">—</TableCell>
+          <TableCell>
+            <Badge variant="outline" className="font-normal">
+              Latest Rs.{" "}
+              {latestClosing.value.toLocaleString("en-IN", { minimumFractionDigits: 2 })}{" "}
+              {latestClosing.side}
+            </Badge>
+          </TableCell>
+          <TableCell />
+        </TableRow>
+      )
+
+      if (!isExpanded) return [headerRow]
+
+      return [headerRow, ...group.accounts.map((account) => renderAccountRow(account, { nested: true }))]
+    })
 
   const clearFieldErrors = (...fields: string[]) => {
     setFieldErrors((prev) => {
@@ -462,6 +676,7 @@ export default function LedgerAccountsPage() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-10 min-w-10 max-w-10 py-2 pl-6 pr-2" />
                   <TableHead>Account Name</TableHead>
                   <TableHead>Account Type</TableHead>
                   <TableHead>Address</TableHead>
@@ -471,72 +686,20 @@ export default function LedgerAccountsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredAccounts.length === 0 && (
+                {groupedAccounts.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="py-8 text-center text-sm font-normal italic text-muted-foreground">
+                    <TableCell
+                      colSpan={7}
+                      className="py-8 text-center text-sm font-normal italic text-muted-foreground"
+                    >
                       {ledgerAccounts.length === 0
                         ? 'No ledger accounts yet. Click "Add Ledger Account" to get started.'
                         : "No accounts match your search or filter."}
                     </TableCell>
                   </TableRow>
+                ) : (
+                  renderAccountRows()
                 )}
-                {paginatedAccounts.map((account) => {
-                  const closing = getAccountClosingBalance(
-                    account,
-                    getEntriesForAccount(account.id),
-                  )
-                  return (
-                    <TableRow key={account.id}>
-                      <TableCell className="font-medium">{account.name}</TableCell>
-                      <TableCell>
-                        <Badge variant={account.accountType === "supplier" ? "secondary" : "default"}>
-                          {getAccountTypeShortLabel(account.accountType)}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{account.address || "-"}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline">
-                          Rs. {account.openingBalance.toLocaleString("en-IN", { minimumFractionDigits: 2 })}{" "}
-                          {account.openingBalanceType}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline">
-                          Rs. {closing.value.toLocaleString("en-IN", { minimumFractionDigits: 2 })}{" "}
-                          {closing.side}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => openAddEntry(account)}
-                            title="Add Entry"
-                          >
-                            <Plus className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => openViewReport(account)}
-                            title="View Ledger"
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleDeleteAccount(account)}
-                            title="Delete"
-                          >
-                            <Trash2 className="h-4 w-4 text-red-500" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  )
-                })}
               </TableBody>
             </Table>
           </div>
